@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { User } from '../types';
@@ -12,6 +13,7 @@ interface LoginProps {
 export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onClose, error }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const { t, setLanguage, language } = useLanguage();
     
     const handleSubmit = (e: React.FormEvent) => { 
@@ -45,14 +47,22 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
                             onChange={(e) => setEmail(e.target.value)} 
                             required 
                         />
-                        <input 
-                            type="password" 
-                            placeholder={t('password_placeholder') || "Password"} 
-                            className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-md px-4 py-3.5 text-[17px] text-[#E4E6EB] placeholder-[#B0B3B8] focus:outline-none focus:border-[#1877F2] focus:shadow-[0_0_0_2px_#263951]" 
-                            value={password} 
-                            onChange={(e) => setPassword(e.target.value)} 
-                            required 
-                        />
+                        <div className="relative">
+                            <input 
+                                type={showPassword ? "text" : "password"} 
+                                placeholder={t('password_placeholder') || "Password"} 
+                                className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-md px-4 py-3.5 text-[17px] text-[#E4E6EB] placeholder-[#B0B3B8] focus:outline-none focus:border-[#1877F2] focus:shadow-[0_0_0_2px_#263951]" 
+                                value={password} 
+                                onChange={(e) => setPassword(e.target.value)} 
+                                required 
+                            />
+                            <div 
+                                className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-[#B0B3B8] hover:text-[#E4E6EB]"
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                            </div>
+                        </div>
                         <button type="submit" className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold text-[20px] py-2.5 rounded-md transition-colors">
                             {t('login_btn')}
                         </button>
@@ -103,6 +113,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
     const [surname, setSurname] = useState(''); // Optional
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [nationality, setNationality] = useState('Tanzania');
     const [region, setRegion] = useState('');
     
@@ -239,18 +250,26 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                         required 
                     />
                     
-                    <input 
-                        type="password" 
-                        placeholder="Password (6 numbers)" 
-                        pattern="[0-9]*"
-                        inputMode="numeric"
-                        minLength={6}
-                        className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-md px-3 py-2 text-[15px] text-[#E4E6EB] placeholder-[#B0B3B8] focus:outline-none focus:border-[#505151]" 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        required 
-                        title="Password must be at least 6 numbers"
-                    />
+                    <div className="relative">
+                        <input 
+                            type={showPassword ? "text" : "password"} 
+                            placeholder="Password (6 numbers)" 
+                            pattern="[0-9]*"
+                            inputMode="numeric"
+                            minLength={6}
+                            className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-md px-3 py-2 text-[15px] text-[#E4E6EB] placeholder-[#B0B3B8] focus:outline-none focus:border-[#505151]" 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            required 
+                            title="Password must be at least 6 numbers"
+                        />
+                        <div 
+                            className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-[#B0B3B8] hover:text-[#E4E6EB]"
+                            onClick={() => setShowPassword(!showPassword)}
+                        >
+                            <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </div>
+                    </div>
                     
                     <div className="mt-1">
                         <label className="text-[12px] text-[#B0B3B8] block mb-1">{t('dob') || "Date of birth"}</label>

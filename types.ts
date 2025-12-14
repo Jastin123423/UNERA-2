@@ -29,6 +29,26 @@ export interface User {
     interests?: string[]; // For Interest Clustering
 }
 
+export interface Brand {
+    id: number;
+    name: string;
+    description: string;
+    category: string;
+    profileImage: string;
+    coverImage: string;
+    adminId: number; // User who owns the page
+    followers: number[]; // User IDs who follow the page
+    isVerified?: boolean;
+    website?: string;
+    email?: string;
+    phone?: string;
+    location?: string; // Country and Region
+    contactEmail?: string;
+    contactPhone?: string;
+    joinedDate: string;
+    // Brands behave like users for authoring posts
+}
+
 export interface Comment {
     id: number;
     userId: number;
@@ -75,6 +95,14 @@ export interface LinkPreview {
     domain: string;
 }
 
+export interface SharedPostInfo {
+    originalAuthorName?: string;
+    originalAuthorImage?: string;
+    originalAuthorId?: number;
+    originalGroupName?: string;
+    originalGroupId?: string;
+}
+
 export interface Post {
     id: number;
     authorId: number;
@@ -106,6 +134,8 @@ export interface Post {
     groupId?: string;
     groupName?: string;
     isGroupAdmin?: boolean;
+    // Embed data for shared posts
+    embeddedSharedPost?: Post & SharedPostInfo;
 }
 
 export interface Story {

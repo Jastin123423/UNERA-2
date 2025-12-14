@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Post as PostType, ReactionType, Reel, AudioTrack, Song, Episode } from '../types';
+import { User, Post as PostType, ReactionType, Reel, AudioTrack, Song, Episode, Group, Brand } from '../types';
 import { CreatePost, Post, CreatePostModal } from './Feed';
 
 // --- EDIT PROFILE MODAL ---
@@ -95,6 +95,8 @@ interface UserProfileProps {
     user: User;
     currentUser: User | null; // Allow null
     users: User[];
+    groups?: Group[];
+    brands?: Brand[];
     posts: PostType[];
     reels?: Reel[]; 
     songs: Song[];
@@ -126,7 +128,7 @@ interface UserProfileProps {
     onPlayAudio?: (track: AudioTrack) => void; 
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, users, posts, reels = [], songs = [], episodes = [], onProfileClick, onFollow, onReact, onComment, onShare, onMessage, onCreatePost, onUpdateProfileImage, onUpdateCoverImage, onUpdateUserDetails, onDeletePost, onEditPost, getCommentAuthor, onViewImage, onCreateEventClick, onOpenComments, onVideoClick, onVerifyUser, onRestrictUser, onDeleteUser, onMakeModerator, onPlayAudio }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, users, groups = [], brands = [], posts, reels = [], songs = [], episodes = [], onProfileClick, onFollow, onReact, onComment, onShare, onMessage, onCreatePost, onUpdateProfileImage, onUpdateCoverImage, onUpdateUserDetails, onDeletePost, onEditPost, getCommentAuthor, onViewImage, onCreateEventClick, onOpenComments, onVideoClick, onVerifyUser, onRestrictUser, onDeleteUser, onMakeModerator, onPlayAudio }) => {
     const [activeTab, setActiveTab] = useState('Posts');
     const [showCreatePostModal, setShowCreatePostModal] = useState(false);
     const [showEditProfile, setShowEditProfile] = useState(false);
@@ -154,6 +156,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
     const totalShares = userPosts.reduce((acc, curr) => acc + curr.shares, 0) + userReels.reduce((acc, curr) => acc + curr.shares, 0);
     const totalComments = userPosts.reduce((acc, curr) => acc + curr.comments.length, 0) + userReels.reduce((acc, curr) => acc + curr.comments.length, 0);
     const totalEngagement = totalLikes + totalComments + totalShares;
+
+    // Suggestions Logic for Current User
+    const suggestedGroups = isCurrentUser ? groups.filter(g => !g.members.includes(currentUser!.id)).slice(0, 3) : [];
+    const suggestedBrands = isCurrentUser ? brands.filter(b => !b.followers.includes(currentUser!.id)).slice(0, 3) : [];
 
     const renderContent = () => {
         switch (activeTab) {
@@ -359,6 +365,48 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
                                 {isCurrentUser && <button className="w-full bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#E4E6EB] font-semibold py-2 rounded-md transition-colors text-[16px] mt-2" onClick={() => setShowEditProfile(true)}>Edit Details</button>}
                             </div>
                         </div>
+                        
+                        {/* Suggestions Section for Current User */}
+                        {isCurrentUser && (suggestedGroups.length > 0 || suggestedBrands.length > 0) && (
+                            <div className="bg-[#242526] rounded-xl p-4 shadow-sm border border-[#3E4042]">
+                                <h3 className="text-lg font-bold text-[#E4E6EB] mb-3">Suggested for you</h3>
+                                
+                                {suggestedGroups.length > 0 && (
+                                    <div className="mb-4">
+                                        <h4 className="text-[#B0B3B8] text-sm font-semibold mb-2">Groups</h4>
+                                        <div className="flex flex-col gap-2">
+                                            {suggestedGroups.map(group => (
+                                                <div key={group.id} className="flex items-center gap-2">
+                                                    <img src={group.image} className="w-8 h-8 rounded-lg object-cover" alt="" />
+                                                    <div className="flex-1 overflow-hidden">
+                                                        <div className="text-[#E4E6EB] text-sm font-semibold truncate">{group.name}</div>
+                                                        <div className="text-[#B0B3B8] text-xs">{group.members.length} members</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {suggestedBrands.length > 0 && (
+                                    <div>
+                                        <h4 className="text-[#B0B3B8] text-sm font-semibold mb-2">Pages</h4>
+                                        <div className="flex flex-col gap-2">
+                                            {suggestedBrands.map(brand => (
+                                                <div key={brand.id} className="flex items-center gap-2">
+                                                    <img src={brand.profileImage} className="w-8 h-8 rounded-full object-cover" alt="" />
+                                                    <div className="flex-1 overflow-hidden">
+                                                        <div className="text-[#E4E6EB] text-sm font-semibold truncate">{brand.name}</div>
+                                                        <div className="text-[#B0B3B8] text-xs">{brand.category}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="bg-[#242526] rounded-xl p-4 shadow-sm border border-[#3E4042]">
                             <div className="flex justify-between items-center mb-3"><h2 className="text-xl font-bold text-[#E4E6EB]">Photos</h2><span className="text-[#1877F2] cursor-pointer hover:underline text-[15px]" onClick={() => setActiveTab('Photos')}>See all</span></div>
                             <div className="grid grid-cols-3 gap-1 rounded-lg overflow-hidden">

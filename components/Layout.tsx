@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Notification } from '../types';
+import { User, Notification, Group, Brand } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { NotificationDropdown } from './Notifications';
 
@@ -17,9 +17,10 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
 
     const menuItems = [
         { id: 'marketplace', title: 'Marketplace', icon: 'fas fa-store', color: '#1877F2', desc: 'Buy and sell in your community.' },
+        { id: 'groups', title: 'Groups', icon: 'fas fa-users', color: '#1877F2', desc: 'Connect with people who share your interests.' },
+        { id: 'brands', title: 'Brands', icon: 'fas fa-flag', color: '#F3425F', desc: 'Discover and connect with your favorite businesses.' },
         { id: 'create_event', title: 'Create Event', icon: 'fas fa-calendar-plus', color: '#F3425F', desc: 'Host a new event for friends.' },
         { id: 'profiles', title: 'Profiles', icon: 'fas fa-user-friends', color: '#1877F2', desc: 'See friends and profiles.' },
-        { id: 'groups', title: 'Groups', icon: 'fas fa-users', color: '#1877F2', desc: 'Connect with people who share your interests.' },
         { id: 'music', title: 'UNERA Music', icon: 'fas fa-music', color: '#0055FF', desc: 'Listen to music and podcasts.' }, 
         { id: 'tools', title: 'UNERA Tools', icon: 'fas fa-briefcase', color: '#2ABBA7', desc: 'PDF Tools, AI Chat, Image Tools.' }, 
         { id: 'reels', title: 'Reels', icon: 'fas fa-clapperboard', color: '#E41E3F', desc: 'Watch and create short videos.' },
@@ -130,6 +131,8 @@ interface HeaderProps {
     currentUser: User | null;
     notifications: Notification[];
     users: User[];
+    groups?: Group[];
+    brands?: Brand[];
     onLogout: () => void;
     onLoginClick: () => void;
     onMarkNotificationsRead: () => void;
@@ -137,12 +140,23 @@ interface HeaderProps {
     onNavigate: (view: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onReelsClick, onMarketplaceClick, onGroupsClick, currentUser, notifications, users, onLogout, onLoginClick, onMarkNotificationsRead, activeTab, onNavigate }) => {
+interface SearchResult {
+    id: number | string;
+    name: string;
+    image: string;
+    type: 'user' | 'group' | 'brand';
+    subtext: string;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onReelsClick, onMarketplaceClick, onGroupsClick, currentUser, notifications, users, groups = [], brands = [], onLogout, onLoginClick, onMarkNotificationsRead, activeTab, onNavigate }) => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showFullMenu, setShowFullMenu] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<User[]>([]);
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+    const [recentSearches, setRecentSearches] = useState<string[]>(["UNERA Official", "Tech Enthusiasts", "Photography"]);
+    
     const { t } = useLanguage();
     const notifRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
@@ -153,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onR
         const handleClickOutside = (event: MouseEvent) => {
             if (notifRef.current && !notifRef.current.contains(event.target as Node)) setShowNotifications(false);
             if (profileRef.current && !profileRef.current.contains(event.target as Node)) setShowProfileMenu(false);
-            if (searchRef.current && !searchRef.current.contains(event.target as Node)) setSearchResults([]);
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) setShowSearchDropdown(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -162,17 +176,59 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onR
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
         setSearchQuery(query);
-        if (!query.trim()) { setSearchResults([]); return; }
+        
+        if (!query.trim()) { 
+            setSearchResults([]); 
+            return; 
+        }
+
         const lowerQuery = query.toLowerCase();
-        const scoredUsers = users.filter(u => !currentUser || u.id !== currentUser.id).map(user => {
-            let score = 0;
-            if (user.name.toLowerCase().includes(lowerQuery)) score += 10;
-            if (user.work?.toLowerCase().includes(lowerQuery)) score += 8;
-            if (user.bio?.toLowerCase().includes(lowerQuery)) score += 3;
-            if (currentUser) { const mutuals = user.followers.filter(id => currentUser.followers.includes(id)).length; score += mutuals * 2; }
-            return { user, score };
-        }).filter(item => item.score > 0).sort((a, b) => b.score - a.score).map(item => item.user);
-        setSearchResults(scoredUsers);
+        
+        // Search Users
+        const userResults: SearchResult[] = users
+            .filter(u => (!currentUser || u.id !== currentUser.id) && u.name.toLowerCase().includes(lowerQuery))
+            .map(u => ({ id: u.id, name: u.name, image: u.profileImage, type: 'user', subtext: u.work || 'User' }));
+
+        // Search Groups
+        const groupResults: SearchResult[] = groups
+            .filter(g => g.name.toLowerCase().includes(lowerQuery))
+            .map(g => ({ id: g.id, name: g.name, image: g.image, type: 'group', subtext: `${g.members.length} members` }));
+
+        // Search Brands
+        const brandResults: SearchResult[] = brands
+            .filter(b => b.name.toLowerCase().includes(lowerQuery))
+            .map(b => ({ id: b.id, name: b.name, image: b.profileImage, type: 'brand', subtext: b.category }));
+
+        // Combine and limit
+        setSearchResults([...userResults, ...brandResults, ...groupResults].slice(0, 8));
+        setShowSearchDropdown(true);
+    };
+
+    const handleSearchResultClick = (result: SearchResult) => {
+        if (result.type === 'user') {
+            onProfileClick(result.id as number);
+        } else if (result.type === 'brand') {
+            onProfileClick(result.id as number); // Brands handle profile click to navigate
+        } else if (result.type === 'group') {
+            onNavigate('groups'); // In real app, would navigate to specific group ID
+        }
+        
+        // Add to recent if not exists
+        if (!recentSearches.includes(result.name)) {
+            setRecentSearches(prev => [result.name, ...prev].slice(0, 5));
+        }
+        
+        setSearchQuery('');
+        setShowSearchDropdown(false);
+    };
+
+    const handleRecentClick = (term: string) => {
+        setSearchQuery(term);
+        // Trigger search logic immediately
+        const lowerQuery = term.toLowerCase();
+        const userResults = users.filter(u => u.name.toLowerCase().includes(lowerQuery)).map(u => ({ id: u.id, name: u.name, image: u.profileImage, type: 'user', subtext: 'User' } as SearchResult));
+        const groupResults = groups.filter(g => g.name.toLowerCase().includes(lowerQuery)).map(g => ({ id: g.id, name: g.name, image: g.image, type: 'group', subtext: 'Group' } as SearchResult));
+        setSearchResults([...userResults, ...groupResults].slice(0, 8));
     };
 
     return (
@@ -190,7 +246,49 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onR
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] cursor-pointer" onClick={() => setShowFullMenu(true)}>
                         <i className="fas fa-bars text-[#E4E6EB] text-[18px]"></i>
                     </div>
-                    <div className="relative mr-1 md:mr-2" ref={searchRef}><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i className="fas fa-search text-[#B0B3B8]"></i></div><input type="text" className="bg-[#3A3B3C] text-[#E4E6EB] rounded-full py-2 pl-10 pr-4 w-[40px] md:w-[240px] focus:w-[240px] transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-[#1877F2] cursor-pointer md:cursor-text placeholder-transparent md:placeholder-[#B0B3B8] focus:placeholder-[#B0B3B8]" placeholder="Search in UNERA" value={searchQuery} onChange={handleSearchChange} />{searchQuery && <div className="absolute top-12 right-0 w-[280px] bg-[#242526] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-[#3E4042] z-50 p-2 max-h-[400px] overflow-y-auto">{searchResults.length > 0 ? searchResults.map(user => <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors" onClick={() => { onProfileClick(user.id); setSearchQuery(''); setSearchResults([]); }}><img src={user.profileImage} alt={user.name} className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" /><div className="flex flex-col overflow-hidden"><span className="font-semibold text-[15px] text-[#E4E6EB] truncate">{user.name}</span></div></div>) : <div className="p-4 text-center text-[#B0B3B8] text-sm">No results found</div>}</div>}</div>
+                    <div className="relative mr-1 md:mr-2" ref={searchRef}>
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i className="fas fa-search text-[#B0B3B8]"></i></div>
+                        <input 
+                            type="text" 
+                            className="bg-[#3A3B3C] text-[#E4E6EB] rounded-full py-2 pl-10 pr-4 w-[40px] md:w-[240px] focus:w-[240px] transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-[#1877F2] cursor-pointer md:cursor-text placeholder-transparent md:placeholder-[#B0B3B8] focus:placeholder-[#B0B3B8]" 
+                            placeholder="Search in UNERA" 
+                            value={searchQuery} 
+                            onChange={handleSearchChange} 
+                            onFocus={() => setShowSearchDropdown(true)}
+                        />
+                        {showSearchDropdown && (
+                            <div className="absolute top-12 right-0 w-[280px] bg-[#242526] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-[#3E4042] z-50 p-2 max-h-[400px] overflow-y-auto">
+                                {!searchQuery && recentSearches.length > 0 && (
+                                    <div className="mb-2">
+                                        <div className="px-2 py-1 flex justify-between items-center text-[#B0B3B8] text-sm font-semibold">
+                                            <span>Recent Searches</span>
+                                            <span className="cursor-pointer hover:text-[#1877F2]">Edit</span>
+                                        </div>
+                                        {recentSearches.map((term, i) => (
+                                            <div key={i} className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors" onClick={() => handleRecentClick(term)}>
+                                                <div className="w-9 h-9 rounded-full bg-[#3A3B3C] flex items-center justify-center"><i className="fas fa-history text-[#B0B3B8]"></i></div>
+                                                <span className="font-semibold text-[15px] text-[#E4E6EB] truncate">{term}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                {searchResults.length > 0 ? searchResults.map(result => (
+                                    <div key={`${result.type}-${result.id}`} className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors" onClick={() => handleSearchResultClick(result)}>
+                                        <div className="relative">
+                                            <img src={result.image} alt={result.name} className={`w-10 h-10 object-cover border border-[#3E4042] ${result.type === 'group' ? 'rounded-xl' : 'rounded-full'}`} />
+                                            {result.type === 'group' && <div className="absolute -bottom-1 -right-1 bg-[#1877F2] rounded-full w-4 h-4 flex items-center justify-center border border-[#242526]"><i className="fas fa-users text-white text-[8px]"></i></div>}
+                                            {result.type === 'brand' && <div className="absolute -bottom-1 -right-1 bg-[#F3425F] rounded-full w-4 h-4 flex items-center justify-center border border-[#242526]"><i className="fas fa-flag text-white text-[8px]"></i></div>}
+                                        </div>
+                                        <div className="flex flex-col overflow-hidden">
+                                            <span className="font-semibold text-[15px] text-[#E4E6EB] truncate">{result.name}</span>
+                                            <span className="text-[12px] text-[#B0B3B8] truncate capitalize">{result.subtext || result.type}</span>
+                                        </div>
+                                    </div>
+                                )) : searchQuery && <div className="p-4 text-center text-[#B0B3B8] text-sm">No results found</div>}
+                            </div>
+                        )}
+                    </div>
                     
                     {!currentUser ? <button onClick={onLoginClick} className="bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-1.5 px-4 rounded-full transition-colors">{t('login')}</button> : <><div className="hidden xl:flex items-center justify-center w-10 h-10 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] cursor-pointer"><i className="fas fa-th text-[#E4E6EB]"></i></div><div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] cursor-pointer relative" onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) onMarkNotificationsRead(); }} ref={notifRef}><i className="fas fa-bell text-[#E4E6EB] text-lg"></i>{unreadCount > 0 && <div className="absolute -top-1 -right-1 bg-[#E41E3F] text-white text-[11px] font-bold px-1.5 rounded-full">{unreadCount > 9 ? '9+' : unreadCount}</div>}{showNotifications && <NotificationDropdown notifications={notifications} users={users} onNotificationClick={(n) => { setShowNotifications(false); if (n.postId) onNavigate(`post-${n.postId}`); else if (n.senderId) onProfileClick(n.senderId); }} onMarkAllRead={onMarkNotificationsRead} />}</div><div className="relative cursor-pointer" onClick={() => setShowProfileMenu(!showProfileMenu)} ref={profileRef}><img src={currentUser.profileImage} alt="Profile" className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" /><div className="absolute bottom-0 right-0 w-3 h-3 bg-[#3A3B3C] rounded-full flex items-center justify-center border border-[#242526]"><i className="fas fa-chevron-down text-[8px] text-[#E4E6EB]"></i></div>{showProfileMenu && <div className="absolute top-12 right-0 w-[300px] bg-[#242526] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-[#3E4042] z-50 p-2"><div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.05)] mb-2" onClick={() => onProfileClick(currentUser.id)}><img src={currentUser.profileImage} alt="" className="w-10 h-10 rounded-full object-cover" /><span className="font-semibold text-[17px] text-[#E4E6EB]">{currentUser.name}</span></div><div className="border-b border-[#3E4042] my-1"></div><div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer" onClick={onLogout}><div className="w-9 h-9 bg-[#3A3B3C] rounded-full flex items-center justify-center"><i className="fas fa-sign-out-alt text-[#E4E6EB]"></i></div><span className="font-medium text-[15px] text-[#E4E6EB]">{t('logout')}</span></div></div>}</div></>}
                 </div>

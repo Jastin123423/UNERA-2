@@ -181,14 +181,119 @@ export const SuggestedProfilesPage: React.FC<SuggestedProfilesPageProps> = ({
     );
 };
 
-interface BirthdaysPageProps { currentUser: User; users: User[]; onMessage: (id: number) => void; }
+interface BirthdaysPageProps { 
+    currentUser: User; 
+    users: User[]; 
+    onMessage: (id: number) => void; 
+}
+
 export const BirthdaysPage: React.FC<BirthdaysPageProps> = ({ currentUser, users, onMessage }) => {
-    return <div className="p-4 text-[#E4E6EB]">Birthdays Page</div>;
+    // Simulate birthday logic (mocking some users having birthdays today)
+    const today = new Date();
+    const birthdaysToday = users.filter(u => u.id !== currentUser.id && u.id % 5 === 0); // Mock logic
+    const upcomingBirthdays = users.filter(u => u.id !== currentUser.id && u.id % 5 !== 0).slice(0, 5);
+
+    return (
+        <div className="w-full max-w-[700px] mx-auto p-4 font-sans pb-20 animate-fade-in">
+            <h1 className="text-2xl font-bold text-[#E4E6EB] mb-6 flex items-center gap-2">
+                <i className="fas fa-birthday-cake text-[#F02849]"></i> Birthdays
+            </h1>
+
+            {birthdaysToday.length > 0 ? (
+                <div className="mb-8">
+                    <h3 className="text-lg font-bold text-[#E4E6EB] mb-3">Today's Birthdays</h3>
+                    <div className="flex flex-col gap-4">
+                        {birthdaysToday.map(user => (
+                            <div key={user.id} className="bg-[#242526] p-4 rounded-xl border border-[#3E4042] flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <img src={user.profileImage} className="w-12 h-12 rounded-full object-cover" alt="" />
+                                    <div>
+                                        <h4 className="text-[#E4E6EB] font-bold">{user.name}</h4>
+                                        <p className="text-[#B0B3B8] text-sm">Turning {20 + user.id} years old</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => onMessage(user.id)}
+                                    className="bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#E4E6EB] px-4 py-2 rounded-lg font-bold transition-colors"
+                                >
+                                    Wish Happy Birthday
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] text-center mb-8">
+                    <i className="fas fa-calendar-times text-4xl text-[#B0B3B8] mb-3"></i>
+                    <p className="text-[#E4E6EB] font-medium">No birthdays today.</p>
+                </div>
+            )}
+
+            <div>
+                <h3 className="text-lg font-bold text-[#B0B3B8] mb-3 uppercase tracking-wide text-sm">Upcoming Birthdays</h3>
+                <div className="bg-[#242526] rounded-xl border border-[#3E4042] overflow-hidden">
+                    {upcomingBirthdays.map((user, idx) => (
+                        <div key={user.id} className={`flex items-center justify-between p-4 ${idx !== upcomingBirthdays.length - 1 ? 'border-b border-[#3E4042]' : ''}`}>
+                            <div className="flex items-center gap-3">
+                                <img src={user.profileImage} className="w-10 h-10 rounded-full object-cover" alt="" />
+                                <div>
+                                    <h4 className="text-[#E4E6EB] font-bold text-sm">{user.name}</h4>
+                                    <p className="text-[#B0B3B8] text-xs">Born in September</p>
+                                </div>
+                            </div>
+                            <div className="text-[#B0B3B8] text-xs font-bold bg-[#3A3B3C] px-2 py-1 rounded">
+                                {2 + idx} days left
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 };
 
 interface EventsPageProps { events: Event[]; currentUser: User; onJoinEvent: (eventId: number) => void; onCreateEventClick: () => void; }
-export const EventsPage: React.FC<EventsPageProps> = ({ events }) => {
-    return <div className="p-4 text-[#E4E6EB]">Events Page</div>;
+export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventClick }) => {
+    return (
+        <div className="w-full max-w-[800px] mx-auto p-4 font-sans pb-20 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-[#E4E6EB]">Events</h1>
+                <button onClick={onCreateEventClick} className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
+                    <i className="fas fa-plus"></i> Create Event
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {events.map(event => (
+                    <div key={event.id} className="bg-[#242526] rounded-xl overflow-hidden border border-[#3E4042] group cursor-pointer">
+                        <div className="h-40 overflow-hidden relative">
+                            <img src={event.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            <div className="absolute top-2 left-2 bg-white rounded-lg px-2 py-1 text-center min-w-[50px]">
+                                <span className="block text-red-500 font-bold text-xs uppercase">{new Date(event.date).toLocaleString('default', { month: 'short' })}</span>
+                                <span className="block text-black font-bold text-xl leading-none">{new Date(event.date).getDate()}</span>
+                            </div>
+                        </div>
+                        <div className="p-4">
+                            <h3 className="text-[#E4E6EB] font-bold text-lg mb-1 truncate">{event.title}</h3>
+                            <p className="text-red-500 text-sm font-semibold mb-2">{new Date(event.date).toDateString()} • {event.time}</p>
+                            <p className="text-[#B0B3B8] text-sm mb-4"><i className="fas fa-map-marker-alt mr-1"></i> {event.location}</p>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[#B0B3B8] text-xs">{event.attendees.length} people going</span>
+                                <button className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-4 py-1.5 rounded-lg font-bold text-sm transition-colors">Interested</button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            
+            {events.length === 0 && (
+                <div className="text-center py-10 text-[#B0B3B8]">
+                    <i className="fas fa-calendar-times text-4xl mb-3"></i>
+                    <p>No upcoming events found.</p>
+                </div>
+            )}
+        </div>
+    );
 };
 
 // --- MEMORIES PAGE ---

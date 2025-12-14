@@ -107,6 +107,7 @@ export const GroupsPage: React.FC<GroupsPageProps> = ({
     const [view, setView] = useState<'feed' | 'detail'>('feed');
     const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
     const [groupTab, setGroupTab] = useState<'Discussion' | 'Events' | 'Members' | 'About'>('Discussion');
+    const [searchQuery, setSearchQuery] = useState('');
     
     // Modals state
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -210,23 +211,41 @@ export const GroupsPage: React.FC<GroupsPageProps> = ({
     // Feed View
     if (view === 'feed' || !activeGroup) {
         const myGroups = currentUser ? groups.filter(g => g.members.includes(currentUser.id) || g.adminId === currentUser.id) : [];
-        const suggestedGroups = currentUser ? groups.filter(g => !g.members.includes(currentUser.id) && g.adminId !== currentUser.id) : groups;
+        let suggestedGroups = currentUser ? groups.filter(g => !g.members.includes(currentUser.id) && g.adminId !== currentUser.id) : groups;
+
+        // Apply Search
+        if (searchQuery.trim()) {
+            suggestedGroups = suggestedGroups.filter(g => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
 
         return (
             <div className="w-full max-w-[1000px] mx-auto p-4 font-sans pb-20">
-                <div className="flex justify-between items-center mb-6 bg-[#242526] p-4 rounded-xl border border-[#3E4042]">
-                    <div>
-                        <h2 className="text-2xl font-bold text-[#E4E6EB]">Groups</h2>
-                        <p className="text-[#B0B3B8] text-sm">Discover and join communities.</p>
+                <div className="flex flex-col gap-4 mb-6 bg-[#242526] p-4 rounded-xl border border-[#3E4042]">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h2 className="text-2xl font-bold text-[#E4E6EB]">Groups</h2>
+                            <p className="text-[#B0B3B8] text-sm">Discover and join communities.</p>
+                        </div>
+                        {currentUser && (
+                        <button onClick={() => setShowCreateModal(true)} className="bg-[#263951] text-[#2D88FF] hover:bg-[#2A3F5A] px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
+                            <i className="fas fa-plus-circle"></i> <span>Create New Group</span>
+                        </button>
+                        )}
                     </div>
-                    {currentUser && (
-                    <button onClick={() => setShowCreateModal(true)} className="bg-[#263951] text-[#2D88FF] hover:bg-[#2A3F5A] px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
-                        <i className="fas fa-plus-circle"></i> <span>Create New Group</span>
-                    </button>
-                    )}
+                    {/* Search Bar */}
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 pl-10 text-[#E4E6EB] outline-none focus:border-[#1877F2]" 
+                            placeholder="Search Groups..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[#B0B3B8]"></i>
+                    </div>
                 </div>
 
-                {myGroups.length > 0 && (
+                {myGroups.length > 0 && !searchQuery && (
                     <div className="mb-8">
                         <h3 className="text-xl font-bold text-[#E4E6EB] mb-3">Your Groups</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -249,30 +268,34 @@ export const GroupsPage: React.FC<GroupsPageProps> = ({
                 )}
 
                 <div>
-                    <h3 className="text-xl font-bold text-[#E4E6EB] mb-3">{currentUser ? "Suggested for you" : "All Groups"}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {suggestedGroups.map(group => (
-                            <div key={group.id} className="bg-[#242526] rounded-xl overflow-hidden border border-[#3E4042] flex flex-col">
-                                <div className="h-32 relative cursor-pointer" onClick={() => handleGroupClick(group)}>
-                                    <img src={group.coverImage} className="w-full h-full object-cover" alt="" />
-                                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-bold uppercase">{group.type}</div>
-                                </div>
-                                <div className="p-4 flex-1 flex flex-col">
-                                    <h4 className="font-bold text-lg text-[#E4E6EB] mb-1 cursor-pointer hover:underline" onClick={() => handleGroupClick(group)}>{group.name}</h4>
-                                    <p className="text-[#B0B3B8] text-sm mb-4 line-clamp-2">{group.description}</p>
-                                    <div className="mt-auto">
-                                        <div className="flex items-center gap-2 mb-3 text-xs text-[#B0B3B8]">
-                                            <div className="flex -space-x-2">
-                                                {[1,2].map(i => <div key={i} className="w-5 h-5 rounded-full bg-gray-600 border border-[#242526]"></div>)}
+                    <h3 className="text-xl font-bold text-[#E4E6EB] mb-3">{searchQuery ? 'Search Results' : (currentUser ? "Suggested for you" : "All Groups")}</h3>
+                    {suggestedGroups.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {suggestedGroups.map(group => (
+                                <div key={group.id} className="bg-[#242526] rounded-xl overflow-hidden border border-[#3E4042] flex flex-col">
+                                    <div className="h-32 relative cursor-pointer" onClick={() => handleGroupClick(group)}>
+                                        <img src={group.coverImage} className="w-full h-full object-cover" alt="" />
+                                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-bold uppercase">{group.type}</div>
+                                    </div>
+                                    <div className="p-4 flex-1 flex flex-col">
+                                        <h4 className="font-bold text-lg text-[#E4E6EB] mb-1 cursor-pointer hover:underline" onClick={() => handleGroupClick(group)}>{group.name}</h4>
+                                        <p className="text-[#B0B3B8] text-sm mb-4 line-clamp-2">{group.description}</p>
+                                        <div className="mt-auto">
+                                            <div className="flex items-center gap-2 mb-3 text-xs text-[#B0B3B8]">
+                                                <div className="flex -space-x-2">
+                                                    {[1,2].map(i => <div key={i} className="w-5 h-5 rounded-full bg-gray-600 border border-[#242526]"></div>)}
+                                                </div>
+                                                <span>{group.members.length} members</span>
                                             </div>
-                                            <span>{group.members.length} members</span>
+                                            <button onClick={() => currentUser ? onJoinGroup(group.id) : alert("Please login to join groups.")} className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white py-2 rounded-lg font-semibold transition-colors">Join Group</button>
                                         </div>
-                                        <button onClick={() => currentUser ? onJoinGroup(group.id) : alert("Please login to join groups.")} className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white py-2 rounded-lg font-semibold transition-colors">Join Group</button>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-[#B0B3B8]">No groups found.</p>
+                    )}
                 </div>
 
                 {/* Create Modal */}
