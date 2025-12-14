@@ -509,4 +509,13 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ currentUser, p
                                     </div>
                                 )}
                             </div>
-                            <button onClick={handleSubmit} className="w-full bg-[#45BD62] hover:bg-[#3AA855] text-white py-3 rounded-lg font-bold shadow-
+                            <button onClick={handleSubmit} className="w-full bg-[#45BD62] hover:bg-[#3AA855] text-white py-3 rounded-lg font-bold shadow-lg transition-colors">
+                                List Product
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
