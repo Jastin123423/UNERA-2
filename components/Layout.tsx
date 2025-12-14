@@ -20,18 +20,18 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
         { id: 'create_event', title: 'Create Event', icon: 'fas fa-calendar-plus', color: '#F3425F', desc: 'Host a new event for friends.' },
         { id: 'profiles', title: 'Profiles', icon: 'fas fa-user-friends', color: '#1877F2', desc: 'See friends and profiles.' },
         { id: 'groups', title: 'Groups', icon: 'fas fa-users', color: '#1877F2', desc: 'Connect with people who share your interests.' },
-        { id: 'music', title: 'UNERA Music', icon: 'fas fa-music', color: '#0055FF', desc: 'Listen to music and podcasts.' }, // NEW
-        { id: 'office', title: 'UNERA Office Tools', icon: 'fas fa-briefcase', color: '#2ABBA7', desc: 'Productivity tools for work.' }, // NEW
+        { id: 'music', title: 'UNERA Music', icon: 'fas fa-music', color: '#0055FF', desc: 'Listen to music and podcasts.' }, 
+        { id: 'tools', title: 'UNERA Tools', icon: 'fas fa-briefcase', color: '#2ABBA7', desc: 'PDF Tools, AI Chat, Image Tools.' }, 
         { id: 'reels', title: 'Reels', icon: 'fas fa-clapperboard', color: '#E41E3F', desc: 'Watch and create short videos.' },
         { id: 'birthdays', title: 'Birthdays', icon: 'fas fa-birthday-cake', color: '#F7B928', desc: 'See upcoming birthdays.' },
         { id: 'memories', title: 'Memories', icon: 'fas fa-history', color: '#1877F2', desc: 'Browse your old photos, videos and posts.' },
     ];
 
     const bottomItems = [
-        { id: 'settings', title: 'Settings', icon: 'fas fa-cog' },
-        { id: 'privacy', title: 'Privacy & Policy', icon: 'fas fa-lock' },
-        { id: 'terms', title: 'Terms of Service', icon: 'fas fa-file-alt' },
+        { id: 'settings', title: 'Settings & Privacy', icon: 'fas fa-cog' },
         { id: 'help', title: 'Help & Support', icon: 'fas fa-question-circle' },
+        { id: 'terms', title: 'Terms of Service', icon: 'fas fa-file-alt' },
+        { id: 'privacy', title: 'Privacy & Policy', icon: 'fas fa-shield-alt' },
     ];
 
     return (
@@ -56,8 +56,8 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
                     <div className="flex items-center gap-3 p-3 bg-[#242526] rounded-xl shadow-sm mb-4 cursor-pointer hover:bg-[#3A3B3C]" onClick={() => { onNavigate('profile'); onClose(); }}>
                         <img src={currentUser.profileImage} alt={currentUser.name} className="w-10 h-10 rounded-full object-cover" />
                         <div className="flex flex-col">
-                            <span className="font-bold text-[#E4E6EB] text-lg">{currentUser.name}</span>
-                            <span className="text-[#B0B3B8] text-sm">View your profile</span>
+                            <span className="font-bold text-[#E4E6EB] text-[18px]">{currentUser.name}</span>
+                            <span className="text-[#B0B3B8] text-[15px]">View your profile</span>
                         </div>
                     </div>
                 )}
@@ -79,8 +79,8 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
                                 <i className={`${item.icon} text-[28px] drop-shadow-sm`} style={{ color: item.color }}></i>
                             </div>
                             <div>
-                                <h4 className="font-semibold text-[#E4E6EB] text-[16px] leading-tight mb-0.5">{item.title}</h4>
-                                <p className="text-[#B0B3B8] text-[12px] leading-snug line-clamp-2 hidden sm:block">{item.desc}</p>
+                                <h4 className="font-semibold text-[#E4E6EB] text-[17px] leading-tight mb-0.5">{item.title}</h4>
+                                <p className="text-[#B0B3B8] text-[14px] leading-snug line-clamp-2 hidden sm:block">{item.desc}</p>
                             </div>
                         </div>
                     ))}
@@ -92,14 +92,14 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
                 <div className="flex flex-col gap-1">
                     {bottomItems.map((item) => (
                         <div key={item.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-[#3A3B3C] cursor-pointer" onClick={() => {
-                            if (item.id === 'help') alert("Help Center coming soon.");
-                            if (item.id === 'settings') alert("Settings coming soon.");
-                            if (item.id === 'privacy') alert("Privacy Policy coming soon.");
-                            if (item.id === 'terms') alert("Terms of Service coming soon.");
+                            if (['help', 'settings', 'terms', 'privacy'].includes(item.id)) {
+                                onNavigate(item.id);
+                                onClose();
+                            }
                         }}>
                             <div className="flex items-center gap-3">
                                 <i className={`${item.icon} text-[#B0B3B8] text-xl w-6 text-center`}></i>
-                                <span className="text-[#E4E6EB] font-medium text-[16px]">{item.title}</span>
+                                <span className="text-[#E4E6EB] font-medium text-[17px]">{item.title}</span>
                             </div>
                             <i className="fas fa-chevron-right text-[#B0B3B8] text-sm"></i>
                         </div>
@@ -107,7 +107,7 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
                     <div className="flex items-center justify-between p-3 rounded-lg hover:bg-[#3A3B3C] cursor-pointer mt-2" onClick={onLogout}>
                         <div className="flex items-center gap-3">
                             <i className="fas fa-sign-out-alt text-[#E4E6EB] text-xl w-6 text-center"></i>
-                            <span className="text-[#E4E6EB] font-medium text-[16px]">Log Out</span>
+                            <span className="text-[#E4E6EB] font-medium text-[17px]">Log Out</span>
                         </div>
                     </div>
                 </div>
@@ -119,10 +119,6 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
         </div>
     );
 };
-
-// ... (Header and Sidebar remain mostly same, assuming previous implementation persists if not overwritten here. I will just export MenuOverlay since that was the specific request for "menu padding add another shortcuts") ...
-// However, to be safe and ensure the file is complete, I will include the other components with minimal changes if needed, but since I am only targeting MenuOverlay changes, and the file structure requires full file overwrite usually in these prompts unless diffs are supported (XML format implies full file replacement usually for clarity).
-// I will include the full Layout file content to avoid breaking the app.
 
 // --- HEADER COMPONENT ---
 interface HeaderProps {
@@ -182,7 +178,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onR
     return (
         <>
             <div className="sticky top-0 z-50 bg-[#242526] shadow-sm h-14 flex items-center justify-between px-4 w-full border-b border-[#3E4042]">
-                <div className="flex items-center gap-2"><div className="flex items-center cursor-pointer gap-2 mr-2" onClick={onHomeClick}><i className="fas fa-globe-americas text-[#1877F2] text-[28px] sm:text-[32px]"></i><h1 className="text-[24px] sm:text-[28px] font-bold bg-gradient-to-r from-[#1877F2] to-[#1D8AF2] text-transparent bg-clip-text tracking-tight">UNERA</h1></div></div>
+                <div className="flex items-center gap-2"><div className="flex items-center cursor-pointer gap-2 mr-2" onClick={onHomeClick}><i className="fas fa-globe-americas text-[#1877F2] text-[28px] sm:text-[32px] animate-[spin_10s_linear_infinite]"></i><h1 className="text-[24px] sm:text-[28px] font-bold bg-gradient-to-r from-[#1877F2] to-[#1D8AF2] text-transparent bg-clip-text tracking-tight">UNERA</h1></div></div>
                 <div className="flex-1 max-w-[600px] h-full hidden md:flex items-center justify-center gap-1">
                     <div onClick={onHomeClick} className={`flex-1 h-full flex items-center justify-center cursor-pointer border-b-[3px] ${activeTab === 'home' ? 'border-[#1877F2] text-[#1877F2]' : 'border-transparent text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg'}`} title={t('home')}><i className={`fas fa-home text-[24px]`}></i></div>
                     <div onClick={onReelsClick} className={`flex-1 h-full flex items-center justify-center cursor-pointer border-b-[3px] ${activeTab === 'reels' ? 'border-[#1877F2] text-[#1877F2]' : 'border-transparent text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg'}`} title={t('reels')}><i className="fas fa-clapperboard text-[24px]"></i></div>
@@ -194,9 +190,9 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onR
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] cursor-pointer" onClick={() => setShowFullMenu(true)}>
                         <i className="fas fa-bars text-[#E4E6EB] text-[18px]"></i>
                     </div>
-                    <div className="relative mr-1 md:mr-2" ref={searchRef}><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i className="fas fa-search text-[#B0B3B8]"></i></div><input type="text" className="bg-[#3A3B3C] text-[#E4E6EB] rounded-full py-2 pl-10 pr-4 w-[40px] md:w-[240px] focus:w-[240px] transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-[#1877F2] cursor-pointer md:cursor-text placeholder-transparent md:placeholder-[#B0B3B8] focus:placeholder-[#B0B3B8]" placeholder={t('search_placeholder')} value={searchQuery} onChange={handleSearchChange} />{searchQuery && <div className="absolute top-12 right-0 w-[280px] bg-[#242526] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-[#3E4042] z-50 p-2 max-h-[400px] overflow-y-auto">{searchResults.length > 0 ? searchResults.map(user => <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors" onClick={() => { onProfileClick(user.id); setSearchQuery(''); setSearchResults([]); }}><img src={user.profileImage} alt={user.name} className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" /><div className="flex flex-col overflow-hidden"><span className="font-semibold text-[15px] text-[#E4E6EB] truncate">{user.name}</span></div></div>) : <div className="p-4 text-center text-[#B0B3B8] text-sm">No results found</div>}</div>}</div>
+                    <div className="relative mr-1 md:mr-2" ref={searchRef}><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i className="fas fa-search text-[#B0B3B8]"></i></div><input type="text" className="bg-[#3A3B3C] text-[#E4E6EB] rounded-full py-2 pl-10 pr-4 w-[40px] md:w-[240px] focus:w-[240px] transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-[#1877F2] cursor-pointer md:cursor-text placeholder-transparent md:placeholder-[#B0B3B8] focus:placeholder-[#B0B3B8]" placeholder="Search in UNERA" value={searchQuery} onChange={handleSearchChange} />{searchQuery && <div className="absolute top-12 right-0 w-[280px] bg-[#242526] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-[#3E4042] z-50 p-2 max-h-[400px] overflow-y-auto">{searchResults.length > 0 ? searchResults.map(user => <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors" onClick={() => { onProfileClick(user.id); setSearchQuery(''); setSearchResults([]); }}><img src={user.profileImage} alt={user.name} className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" /><div className="flex flex-col overflow-hidden"><span className="font-semibold text-[15px] text-[#E4E6EB] truncate">{user.name}</span></div></div>) : <div className="p-4 text-center text-[#B0B3B8] text-sm">No results found</div>}</div>}</div>
                     
-                    {!currentUser ? <button onClick={onLoginClick} className="bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-1.5 px-4 rounded-full transition-colors">{t('login')}</button> : <><div className="hidden xl:flex items-center justify-center w-10 h-10 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] cursor-pointer"><i className="fas fa-th text-[#E4E6EB]"></i></div><div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] cursor-pointer relative" onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) onMarkNotificationsRead(); }} ref={notifRef}><i className="fas fa-bell text-[#E4E6EB] text-lg"></i>{unreadCount > 0 && <div className="absolute -top-1 -right-1 bg-[#E41E3F] text-white text-[11px] font-bold px-1.5 rounded-full">{unreadCount > 9 ? '9+' : unreadCount}</div>}{showNotifications && <NotificationDropdown notifications={notifications} users={users} onNotificationClick={(n) => { setShowNotifications(false); if (n.senderId) onProfileClick(n.senderId); }} onMarkAllRead={onMarkNotificationsRead} />}</div><div className="relative cursor-pointer" onClick={() => setShowProfileMenu(!showProfileMenu)} ref={profileRef}><img src={currentUser.profileImage} alt="Profile" className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" /><div className="absolute bottom-0 right-0 w-3 h-3 bg-[#3A3B3C] rounded-full flex items-center justify-center border border-[#242526]"><i className="fas fa-chevron-down text-[8px] text-[#E4E6EB]"></i></div>{showProfileMenu && <div className="absolute top-12 right-0 w-[300px] bg-[#242526] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-[#3E4042] z-50 p-2"><div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.05)] mb-2" onClick={() => onProfileClick(currentUser.id)}><img src={currentUser.profileImage} alt="" className="w-10 h-10 rounded-full object-cover" /><span className="font-semibold text-[17px] text-[#E4E6EB]">{currentUser.name}</span></div><div className="border-b border-[#3E4042] my-1"></div><div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer" onClick={onLogout}><div className="w-9 h-9 bg-[#3A3B3C] rounded-full flex items-center justify-center"><i className="fas fa-sign-out-alt text-[#E4E6EB]"></i></div><span className="font-medium text-[15px] text-[#E4E6EB]">{t('logout')}</span></div></div>}</div></>}
+                    {!currentUser ? <button onClick={onLoginClick} className="bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-1.5 px-4 rounded-full transition-colors">{t('login')}</button> : <><div className="hidden xl:flex items-center justify-center w-10 h-10 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] cursor-pointer"><i className="fas fa-th text-[#E4E6EB]"></i></div><div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] cursor-pointer relative" onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) onMarkNotificationsRead(); }} ref={notifRef}><i className="fas fa-bell text-[#E4E6EB] text-lg"></i>{unreadCount > 0 && <div className="absolute -top-1 -right-1 bg-[#E41E3F] text-white text-[11px] font-bold px-1.5 rounded-full">{unreadCount > 9 ? '9+' : unreadCount}</div>}{showNotifications && <NotificationDropdown notifications={notifications} users={users} onNotificationClick={(n) => { setShowNotifications(false); if (n.postId) onNavigate(`post-${n.postId}`); else if (n.senderId) onProfileClick(n.senderId); }} onMarkAllRead={onMarkNotificationsRead} />}</div><div className="relative cursor-pointer" onClick={() => setShowProfileMenu(!showProfileMenu)} ref={profileRef}><img src={currentUser.profileImage} alt="Profile" className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" /><div className="absolute bottom-0 right-0 w-3 h-3 bg-[#3A3B3C] rounded-full flex items-center justify-center border border-[#242526]"><i className="fas fa-chevron-down text-[8px] text-[#E4E6EB]"></i></div>{showProfileMenu && <div className="absolute top-12 right-0 w-[300px] bg-[#242526] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-[#3E4042] z-50 p-2"><div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.05)] mb-2" onClick={() => onProfileClick(currentUser.id)}><img src={currentUser.profileImage} alt="" className="w-10 h-10 rounded-full object-cover" /><span className="font-semibold text-[17px] text-[#E4E6EB]">{currentUser.name}</span></div><div className="border-b border-[#3E4042] my-1"></div><div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer" onClick={onLogout}><div className="w-9 h-9 bg-[#3A3B3C] rounded-full flex items-center justify-center"><i className="fas fa-sign-out-alt text-[#E4E6EB]"></i></div><span className="font-medium text-[15px] text-[#E4E6EB]">{t('logout')}</span></div></div>}</div></>}
                 </div>
             </div>
             
@@ -218,7 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onProfileClick, onReelsClick, 
     const SidebarRow = ({ Icon, src, title, color, onClick }: { Icon?: string, src?: string, title: string, color?: string, onClick?: () => void }) => (
         <div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors -ml-2" onClick={onClick}>
             {src && <img src={src} alt={title} className="w-9 h-9 rounded-full object-cover border border-[#3E4042]" />}
-            {Icon && <div className="w-9 h-9 flex items-center justify-center"><i className={`${Icon} text-[22px]`} style={{ color: color }}></i></div>}
+            {Icon && <div className="w-9 h-9 flex items-center justify-center"><i className={`${Icon} text-[24px]`} style={{ color: color }}></i></div>}
             <h4 className="font-medium text-[#E4E6EB] text-[15px]">{title}</h4>
         </div>
     );
@@ -242,7 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onProfileClick, onReelsClick, 
 export const RightSidebar: React.FC<{ contacts: User[], onProfileClick: (id: number) => void }> = ({ contacts, onProfileClick }) => {
     return (
         <div className="hidden md:block p-2 mt-4 max-w-[360px] min-w-[280px] sticky top-20 h-screen overflow-y-auto">
-            <div className="mb-4"><h3 className="text-[#B0B3B8] font-semibold text-[17px] mb-2">Sponsored</h3><div className="flex items-center gap-4 mb-4 cursor-pointer hover:bg-[#3A3B3C] p-2 rounded-lg -ml-2"><img src="https://picsum.photos/120/120?random=10" className="w-[120px] h-[120px] rounded-lg object-cover" alt="Ad" /><div className="flex flex-col"><span className="font-semibold text-[#E4E6EB] text-[15px]">Luxury Resort</span><span className="text-[#B0B3B8] text-[13px]">resorts.com</span></div></div></div>
+            <div className="mb-4"><h3 className="text-[#B0B3B8] font-semibold text-[17px] mb-2">Sponsored</h3><div className="flex items-center gap-4 mb-4 cursor-pointer hover:bg-[#3A3B3C] p-2 rounded-lg -ml-2"><img src="https://picsum.photos/120/120?random=10" className="w-[120px] h-[120px] rounded-lg object-cover" alt="Ad" /><div className="flex flex-col"><span className="font-semibold text-[#E4E6EB] text-[16px]">Luxury Resort</span><span className="text-[#B0B3B8] text-[13px]">resorts.com</span></div></div></div>
             <div className="border-b border-[#3E4042] my-2"></div>
             <div className="flex items-center justify-between mb-2 text-[#B0B3B8]"><h3 className="font-semibold text-[17px]">Contacts</h3><div className="flex gap-4 mr-2"><i className="fas fa-video cursor-pointer hover:text-[#E4E6EB]"></i><i className="fas fa-search cursor-pointer hover:text-[#E4E6EB]"></i><i className="fas fa-ellipsis-h cursor-pointer hover:text-[#E4E6EB]"></i></div></div>
             <div className="flex flex-col">{contacts.map((contact) => (<div key={contact.id} className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors -mr-2 relative" onClick={() => onProfileClick(contact.id)}><div className="relative"><img src={contact.profileImage} alt={contact.name} className="w-9 h-9 rounded-full object-cover" />{contact.isOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#31A24C] rounded-full border-2 border-[#18191A]"></div>}</div><h4 className="font-medium text-[#E4E6EB] text-[15px]">{contact.name}</h4></div>))}</div>

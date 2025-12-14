@@ -21,9 +21,12 @@ export interface User {
     nationality?: string;
     isVerified?: boolean;
     role?: 'admin' | 'moderator' | 'user';
+    isMusician?: boolean; // New: Musician role
     isRestricted?: boolean;
     restrictedUntil?: number; // Timestamp
     phone?: string;
+    joinedDate?: string; // For New User Boost
+    interests?: string[]; // For Interest Clustering
 }
 
 export interface Comment {
@@ -38,6 +41,7 @@ export interface Comment {
         url: string;
         fileName?: string;
     };
+    stickerUrl?: string; // New: Sticker support
     replies?: CommentReply[];
     rating?: number;
     userName?: string;
@@ -49,9 +53,11 @@ export interface Comment {
 export interface CommentReply {
     id: number;
     userId: number;
-    userName: string;
+    userName?: string; // Optional for compatibility
     reply: string;
-    date: number;
+    date: number; // Timestamp
+    likes: number; // Added likes for replies
+    hasLiked?: boolean;
 }
 
 export type ReactionType = 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry';
@@ -75,11 +81,15 @@ export interface Post {
     content?: string;
     image?: string;
     video?: string;
-    timestamp: string;
+    timestamp: string; // Display string e.g. "2h"
+    createdAt?: number; // Actual timestamp for Freshness Algorithm
     reactions: Reaction[]; 
     comments: Comment[];
     shares: number;
-    type: 'text' | 'image' | 'video' | 'event' | 'product';
+    views?: number; // For Watch-Time Algorithm
+    category?: string; // For Interest Clustering
+    tags?: string[];
+    type: 'text' | 'image' | 'video' | 'event' | 'product' | 'audio';
     visibility: 'Public' | 'Friends' | 'Only Me';
     location?: string;
     feeling?: string;
@@ -88,9 +98,14 @@ export interface Post {
     event?: Event; 
     productId?: number; 
     product?: Product; 
+    audioTrack?: AudioTrack; // NEW: For Music in Feed
     background?: string;
     sharedPostId?: number;
     linkPreview?: LinkPreview;
+    // Group Context for Feed
+    groupId?: string;
+    groupName?: string;
+    isGroupAdmin?: boolean;
 }
 
 export interface Story {
@@ -98,6 +113,7 @@ export interface Story {
     userId: number;
     image: string;
     user?: User;
+    createdAt: number; // Added for expiration
 }
 
 export interface Reel {
@@ -117,7 +133,7 @@ export interface Notification {
     id: number;
     userId: number;
     senderId: number;
-    type: 'like' | 'comment' | 'follow' | 'share' | 'birthday' | 'reaction' | 'event' | 'system';
+    type: 'like' | 'comment' | 'follow' | 'share' | 'birthday' | 'reaction' | 'event' | 'system' | 'mention';
     content: string;
     postId?: number;
     reelId?: number;
@@ -133,11 +149,13 @@ export interface Message {
     timestamp: number;
     productId?: number;
     productTitle?: string;
+    stickerUrl?: string; // New: Sticker support
 }
 
 export interface SearchResult {
     user: User;
     score: number;
+    reason?: string;
 }
 
 export interface Event {
@@ -150,6 +168,7 @@ export interface Event {
     location: string;
     image: string;
     attendees: number[]; // User IDs
+    interestedIds: number[]; // User IDs interested
 }
 
 export interface LocationData {
@@ -185,9 +204,19 @@ export interface GroupPost {
     authorId: number;
     content: string;
     image?: string;
+    video?: string;
+    attachment?: {
+        name: string;
+        type: string;
+        url: string;
+        size: string;
+    };
+    background?: string; // Added background support
     timestamp: number;
-    likes: number[]; // User IDs
+    likes: number[]; // User IDs (Note: this logic differs slightly from Post reactions in original type, we will normalize)
+    reactions?: Reaction[]; // Normalize to this
     comments: Comment[];
+    shares: number;
 }
 
 export interface Group {
@@ -201,25 +230,38 @@ export interface Group {
     members: number[]; // User IDs
     posts: GroupPost[];
     createdDate: number;
+    events?: Event[];
+    memberPostingAllowed?: boolean; // New setting
 }
 
 // --- AUDIO SYSTEM TYPES ---
+
+export interface Stats {
+    plays: number;
+    downloads: number;
+    shares: number;
+    likes: number; // Added likes
+    reelsUse: number;
+}
 
 export interface Song {
     id: string;
     title: string;
     artist: string;
+    uploaderId?: number; // ID of the real user who uploaded it
     album: string;
     cover: string;
     duration: string; // Display format "3:45"
-    audioUrl: string; // Mock URL
-    plays: number;
+    audioUrl: string; // Mock URL or blob URL
+    stats: Stats;
+    isLocal?: boolean;
 }
 
 export interface Album {
     id: string;
     title: string;
     artist: string;
+    uploaderId?: number;
     cover: string;
     year: string;
     songs: string[]; // Song IDs
@@ -244,6 +286,9 @@ export interface Episode {
     duration: string;
     audioUrl: string;
     thumbnail: string;
+    stats: Stats;
+    uploaderId?: number; // Added for feed/profile linking
+    host?: string; // Added for display
 }
 
 export interface AudioTrack {
@@ -251,6 +296,8 @@ export interface AudioTrack {
     url: string;
     title: string;
     artist: string; // or Host
+    uploaderId?: number; // For profile linking
     cover: string;
     type: 'music' | 'podcast';
+    isVerified?: boolean; // For visual tick
 }

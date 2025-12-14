@@ -389,19 +389,19 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ currentUser, p
                                     {/* Content */}
                                     <div className="px-2 pt-2">
                                         {/* Title */}
-                                        <h3 className="text-[#E4E6EB] text-[13px] leading-tight line-clamp-2 h-[34px] mb-1 font-normal opacity-90">{product.title}</h3>
+                                        <h3 className="text-[#E4E6EB] text-[16px] leading-tight line-clamp-2 h-[42px] mb-1 font-normal opacity-90">{product.title}</h3>
                                         
                                         {/* Rating & Sold */}
                                         <div className="flex items-center gap-1 mb-1.5">
                                             <i className="fas fa-star text-[#FFD100] text-[10px]"></i>
-                                            <span className="text-[11px] text-[#E4E6EB] font-bold">{rating}</span>
-                                            <span className="text-[10px] text-[#B0B3B8]">• {soldCount} sold</span>
+                                            <span className="text-[13px] text-[#E4E6EB] font-bold">{rating}</span>
+                                            <span className="text-[12px] text-[#B0B3B8]">• {soldCount} sold</span>
                                         </div>
 
                                         {/* Price Section */}
                                         <div className="flex items-baseline gap-1.5 mb-1">
-                                            <span className="text-[#F02849] font-bold text-[18px] leading-none">{symbol}{priceToDisplay!.toFixed(2)}</span>
-                                            {hasDiscount && <span className="text-[#B0B3B8] text-[11px] line-through">{symbol}{originalPrice.toFixed(2)}</span>}
+                                            <span className="text-[#F02849] font-bold text-[20px] leading-none">{symbol}{priceToDisplay!.toFixed(2)}</span>
+                                            {hasDiscount && <span className="text-[#B0B3B8] text-[13px] line-through">{symbol}{originalPrice.toFixed(2)}</span>}
                                         </div>
 
                                         {/* Marketing Label */}
@@ -509,11 +509,4 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ currentUser, p
                                     </div>
                                 )}
                             </div>
-                            <button onClick={handleSubmit} className="w-full bg-[#45BD62] hover:bg-[#3AA855] text-white py-3 rounded-lg font-bold shadow-lg transition-colors mt-4">List Product</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
+                            <button onClick={handleSubmit} className="w-full bg-[#45BD62] hover:bg-[#3AA855] text-white py-3 rounded-lg font-bold shadow-

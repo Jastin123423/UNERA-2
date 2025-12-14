@@ -21,19 +21,13 @@
             font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
         }
         
-        /* Custom scrollbar - Dark Mode */
+        /* HIDE SCROLLBARS GLOBALLY */
         ::-webkit-scrollbar {
-            width: 8px;
+            display: none;
         }
-        ::-webkit-scrollbar-track {
-            background: #18191A; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #3E4042; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #505254; 
+        * {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
         
         /* Animation for Like Heart in Reels */
@@ -71,15 +65,6 @@
 
         .animate-slide-down {
             animation: slideDown 0.3s cubic-bezier(0.1, 0.7, 0.1, 1) forwards;
-        }
-        
-        /* Hide scrollbar utility */
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
         }
         
         /* Dark Mode Input Autofill fix */

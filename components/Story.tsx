@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Story, User } from '../types';
 
@@ -7,24 +8,40 @@ interface StoryViewerProps {
     onClose: () => void;
     onNext?: () => void;
     onPrev?: () => void;
+    onReply?: (text: string) => void;
+    onLike?: () => void;
 }
 
-export const StoryViewer: React.FC<StoryViewerProps> = ({ story, user, onClose, onNext, onPrev }) => {
+export const StoryViewer: React.FC<StoryViewerProps> = ({ story, user, onClose, onNext, onPrev, onReply, onLike }) => {
     const [progress, setProgress] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const [replyText, setReplyText] = useState('');
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 100) {
-                    clearInterval(timer);
-                    if (onNext) onNext();
-                    return 100;
-                }
-                return prev + 1;
-            });
+            if (!isPaused) {
+                setProgress((prev) => {
+                    if (prev >= 100) {
+                        clearInterval(timer);
+                        if (onNext) onNext();
+                        return 100;
+                    }
+                    return prev + 1;
+                });
+            }
         }, 50);
         return () => clearInterval(timer);
-    }, [story, onNext]);
+    }, [story, onNext, isPaused]);
+
+    const handleSendReply = () => {
+        if (replyText.trim() && onReply) {
+            onReply(replyText);
+            setReplyText('');
+            // Resume after sending (or maybe close logic handled by parent if needed)
+            setIsPaused(false);
+            alert("Reply sent to inbox");
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
@@ -45,10 +62,30 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, user, onClose, 
                 </div>
                 <div className="absolute inset-y-0 left-0 w-1/3 z-10" onClick={onPrev}></div>
                 <div className="absolute inset-y-0 right-0 w-1/3 z-10" onClick={onNext}></div>
-                <div className="flex-1 flex items-center justify-center bg-black"><img src={story.image} alt="Story" className="w-full h-auto max-h-full object-contain" /></div>
+                
+                {/* Main Image Area with Like trigger */}
+                <div className="flex-1 flex items-center justify-center bg-black" onDoubleClick={onLike}>
+                    <img src={story.image} alt="Story" className="w-full h-auto max-h-full object-contain" />
+                </div>
+                
+                {/* Footer Reply Section */}
                 <div className="absolute bottom-0 left-0 right-0 p-4 z-20 flex items-center gap-2 bg-gradient-to-t from-black/60 to-transparent pt-10">
-                    <input type="text" placeholder="Reply..." className="flex-1 bg-transparent border border-white/60 rounded-full py-2 px-4 text-[#E4E6EB] placeholder-white/70 outline-none focus:border-white" />
-                    <i className="fas fa-thumbs-up text-blue-500 text-2xl cursor-pointer"></i><i className="fas fa-heart text-red-500 text-2xl cursor-pointer"></i>
+                    <div className="flex-1 flex items-center gap-2 bg-transparent border border-white/60 rounded-full px-4 py-2 focus-within:border-white focus-within:bg-black/40">
+                        <input 
+                            type="text" 
+                            placeholder="Reply..." 
+                            className="bg-transparent text-[#E4E6EB] placeholder-white/70 outline-none w-full text-sm"
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            onFocus={() => setIsPaused(true)}
+                            onBlur={() => !replyText && setIsPaused(false)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSendReply(); }}
+                        />
+                        {replyText && (
+                            <i className="fas fa-paper-plane text-white cursor-pointer hover:text-[#1877F2]" onClick={handleSendReply}></i>
+                        )}
+                    </div>
+                    <i className="fas fa-heart text-red-500 text-3xl cursor-pointer hover:scale-110 transition-transform drop-shadow-md" onClick={onLike}></i>
                 </div>
             </div>
         </div>

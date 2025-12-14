@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { ReactionButton } from './Feed';
 import { MOCK_SONGS } from '../constants';
 
+// --- CREATE REEL COMPONENT (TIKTOK STYLE) ---
 interface CreateReelProps {
     currentUser: User;
     onClose: () => void;
@@ -12,127 +13,291 @@ interface CreateReelProps {
 }
 
 export const CreateReel: React.FC<CreateReelProps> = ({ currentUser, onClose, onSubmit }) => {
+    const [step, setStep] = useState<'upload' | 'editor' | 'details'>('upload');
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [videoPreview, setVideoPreview] = useState<string | null>(null);
+    
+    // Editor State
+    const [activeTool, setActiveTool] = useState<'music' | 'text' | 'effects' | 'trim' | null>(null);
+    const [overlayText, setOverlayText] = useState<{id: number, text: string, x: number, y: number}[]>([]);
+    const [tempText, setTempText] = useState('');
+    const [selectedSong, setSelectedSong] = useState<string>('Original Audio');
+    const [selectedEffect, setSelectedEffect] = useState<string>('');
+    const [trimRange, setTrimRange] = useState([0, 100]); // Mock percentage
+
+    // Details State
     const [caption, setCaption] = useState('');
-    const [selectedSong, setSelectedSong] = useState<Song | null>(null);
-    const [showAudioPicker, setShowAudioPicker] = useState(false);
-    const [isPosting, setIsPosting] = useState(false);
+    const [privacy, setPrivacy] = useState('Public');
     
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { t } = useLanguage();
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
+        if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.type.startsWith('video/')) {
-                setVideoFile(file);
-                setVideoPreview(URL.createObjectURL(file));
-            }
+            const url = URL.createObjectURL(file);
+            setVideoFile(file);
+            setVideoPreview(url);
+            setStep('editor');
         }
     };
 
-    const handleSubmit = async () => {
+    const handleAddText = () => {
+        if (tempText.trim()) {
+            setOverlayText([...overlayText, { id: Date.now(), text: tempText, x: 50, y: 50 }]);
+            setTempText('');
+            setActiveTool(null);
+        }
+    };
+
+    const handlePost = () => {
         if (videoFile) {
-            setIsPosting(true);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            onSubmit(videoFile, caption, selectedSong ? selectedSong.title : "Original Audio", "", false); 
-            setIsPosting(false);
+            onSubmit(videoFile, caption, selectedSong, selectedEffect, false);
             onClose();
         }
     };
 
+    // Tools Configuration
+    const tools = [
+        { id: 'music', icon: 'music', label: 'Sound', action: () => setActiveTool('music') },
+        { id: 'text', icon: 'font', label: 'Text', action: () => setActiveTool('text') },
+        { id: 'effects', icon: 'magic', label: 'Effect', action: () => setActiveTool('effects') },
+        { id: 'trim', icon: 'cut', label: 'Trim', action: () => setActiveTool('trim') },
+        { id: 'voice', icon: 'microphone', label: 'Voice', action: () => alert("Voiceover coming soon") },
+    ];
+
+    const effectsList = ['Neon', 'Vintage', 'Glitch', 'Sparkle', 'B&W'];
+
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-fade-in font-sans">
-            <div className="bg-[#18191A] rounded-xl w-full max-w-[600px] h-[85vh] shadow-2xl flex flex-col overflow-hidden border border-[#3E4042] relative">
-                {isPosting && (
-                    <div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 border-4 border-[#1877F2] border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-white font-bold text-lg">Uploading Reel...</p>
-                    </div>
-                )}
-                
-                {/* Header */}
-                <div className="h-14 border-b border-[#3E4042] flex items-center justify-between px-4 bg-[#242526]">
-                    <h3 className="text-[#E4E6EB] font-bold text-lg">Create Reel</h3>
-                    <div onClick={onClose} className="w-8 h-8 rounded-full bg-[#3A3B3C] flex items-center justify-center cursor-pointer hover:bg-[#4E4F50]">
-                        <i className="fas fa-times text-[#B0B3B8]"></i>
+        <div className="fixed inset-0 z-[200] bg-black flex flex-col font-sans animate-fade-in text-white">
+            {/* Header */}
+            {step !== 'editor' && (
+                <div className="flex items-center justify-between px-6 py-4 bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-50 border-b border-white/5">
+                    <button onClick={step === 'details' ? () => setStep('editor') : onClose} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors">
+                        <i className={`fas ${step === 'details' ? 'fa-arrow-left' : 'fa-times'} text-xl`}></i>
+                    </button>
+                    <h2 className="font-bold text-lg">{step === 'upload' ? 'Upload Video' : 'New Reel'}</h2>
+                    <div className="w-10"></div>
+                </div>
+            )}
+
+            {step === 'upload' && (
+                <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-[#111] to-[#050505] relative overflow-hidden">
+                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FE2C55]/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#25F4EE]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <div 
+                        className="w-full max-w-md bg-[#1A1A1A] border-2 border-dashed border-gray-700 rounded-3xl p-10 flex flex-col items-center text-center cursor-pointer hover:border-[#FE2C55] hover:bg-[#1F1F1F] transition-all duration-300 z-10 group shadow-2xl mx-4"
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <div className="w-20 h-20 bg-[#2F2F2F] rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <i className="fas fa-cloud-upload-alt text-4xl text-[#AAA] group-hover:text-[#FE2C55]"></i>
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2 text-[#EEE]">Select video</h3>
+                        <p className="text-[#888] mb-8 text-sm">Or drag and drop</p>
+                        <button className="bg-[#FE2C55] text-white px-10 py-3 rounded-full font-bold text-base shadow-[0_4px_15px_rgba(254,44,85,0.4)] w-full">
+                            Select File
+                        </button>
+                        <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={handleFileChange} />
                     </div>
                 </div>
+            )}
 
-                <div className="flex-1 flex flex-col overflow-y-auto bg-[#18191A] p-4">
-                     {/* Upload Area */}
-                    {!videoPreview ? (
-                        <div className="flex-1 border-2 border-dashed border-[#3E4042] rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-[#242526] transition-colors min-h-[300px]" onClick={() => fileInputRef.current?.click()}>
-                            <div className="w-20 h-20 bg-[#263951] rounded-full flex items-center justify-center mb-4">
-                                <i className="fas fa-video text-[#1877F2] text-3xl"></i>
-                            </div>
-                            <h3 className="text-[#E4E6EB] font-bold text-xl mb-2">Upload Video</h3>
-                            <p className="text-[#B0B3B8] text-sm text-center px-8">Drag and drop your video here or click to browse</p>
+            {step === 'editor' && videoPreview && (
+                <div className="flex-1 relative bg-black flex flex-col h-full">
+                    {/* Top Bar */}
+                    <div className="absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent">
+                        <button onClick={() => setStep('upload')} className="w-8 h-8 flex items-center justify-center"><i className="fas fa-times text-white text-xl shadow-lg"></i></button>
+                        <div className="bg-black/30 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2">
+                            <i className="fas fa-music text-xs"></i>
+                            <span className="text-xs font-bold max-w-[100px] truncate">{selectedSong}</span>
                         </div>
-                    ) : (
-                        <div className="relative rounded-xl overflow-hidden bg-black mb-4 flex-1 flex items-center justify-center max-h-[50vh]">
-                            <button onClick={() => { setVideoFile(null); setVideoPreview(null); }} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-black/80 z-10">
-                                <i className="fas fa-times"></i>
-                            </button>
-                            <video src={videoPreview} className="max-w-full max-h-full object-contain" controls />
+                    </div>
+
+                    {/* Video Area */}
+                    <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+                        <video 
+                            ref={videoRef}
+                            src={videoPreview} 
+                            className={`w-full h-full object-contain ${selectedEffect === 'B&W' ? 'grayscale' : selectedEffect === 'Vintage' ? 'sepia contrast-125' : ''}`} 
+                            autoPlay 
+                            loop 
+                            playsInline 
+                        />
+                        {/* Overlay Text Layer */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            {overlayText.map(t => (
+                                <div key={t.id} className="absolute text-white font-bold text-2xl drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] bg-black/20 px-2 py-1 rounded top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                    {t.text}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Right Sidebar Tools */}
+                    <div className="absolute right-2 top-20 flex flex-col gap-6 z-20 items-end pr-2">
+                        {tools.map(tool => (
+                            <div key={tool.id} className="flex flex-col items-center gap-1 cursor-pointer group" onClick={tool.action}>
+                                <div className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform border border-white/10">
+                                    <i className={`fas fa-${tool.icon} text-white text-lg`}></i>
+                                </div>
+                                <span className="text-white text-[10px] font-medium drop-shadow-md">{tool.label}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Bottom Actions */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-black/80 to-transparent z-20 flex justify-between items-end">
+                        <div className="text-white text-xs opacity-70">
+                            {overlayText.length > 0 ? `${overlayText.length} text added` : 'No text added'}
+                        </div>
+                        <button 
+                            onClick={() => setStep('details')}
+                            className="bg-[#FE2C55] text-white px-6 py-2.5 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-[#E02045] transition-colors"
+                        >
+                            Next <i className="fas fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+
+                    {/* --- TOOL OVERLAYS --- */}
+                    
+                    {/* Text Tool */}
+                    {activeTool === 'text' && (
+                        <div className="absolute inset-0 bg-black/80 z-30 flex flex-col items-center justify-center p-4 animate-fade-in">
+                            <input 
+                                autoFocus
+                                type="text" 
+                                className="bg-transparent text-center text-white text-3xl font-bold outline-none border-b-2 border-[#FE2C55] w-full max-w-md pb-2 mb-8 placeholder-white/50"
+                                placeholder="Type something..."
+                                value={tempText}
+                                onChange={e => setTempText(e.target.value)}
+                            />
+                            <div className="flex gap-4">
+                                <button onClick={() => setActiveTool(null)} className="px-6 py-2 rounded-full bg-gray-700 font-bold">Cancel</button>
+                                <button onClick={handleAddText} className="px-6 py-2 rounded-full bg-[#FE2C55] font-bold">Done</button>
+                            </div>
                         </div>
                     )}
 
-                    {/* Audio Selector */}
-                    <div className="mt-4">
-                        <label className="text-xs font-bold text-[#B0B3B8] mb-2 block uppercase">Audio</label>
-                        <div 
-                            className="w-full bg-[#242526] border border-[#3E4042] rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-[#2A2B2C]"
-                            onClick={() => setShowAudioPicker(!showAudioPicker)}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-[#1877F2] rounded-full flex items-center justify-center">
-                                    <i className="fas fa-music text-white text-sm"></i>
-                                </div>
-                                <span className="text-[#E4E6EB] text-sm font-medium">{selectedSong ? `${selectedSong.title} - ${selectedSong.artist}` : 'Select Music'}</span>
+                    {/* Music Tool */}
+                    {activeTool === 'music' && (
+                        <div className="absolute inset-x-0 bottom-0 bg-[#18191A] rounded-t-2xl z-30 flex flex-col h-[60%] animate-slide-up border-t border-gray-800">
+                            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+                                <h3 className="font-bold">Select Music</h3>
+                                <button onClick={() => setActiveTool(null)}><i className="fas fa-times"></i></button>
                             </div>
-                            <i className={`fas fa-chevron-${showAudioPicker ? 'up' : 'down'} text-[#B0B3B8]`}></i>
-                        </div>
-                        
-                        {showAudioPicker && (
-                            <div className="mt-2 bg-[#242526] border border-[#3E4042] rounded-lg max-h-[150px] overflow-y-auto">
-                                <div className="p-2 hover:bg-[#333] cursor-pointer flex items-center gap-2" onClick={() => { setSelectedSong(null); setShowAudioPicker(false); }}>
-                                    <div className="w-8 h-8 bg-gray-700 rounded flex items-center justify-center"><i className="fas fa-ban text-white text-xs"></i></div>
-                                    <span className="text-white text-sm">Original Audio</span>
+                            <div className="flex-1 overflow-y-auto p-2">
+                                <div className="p-2 hover:bg-white/5 rounded-lg cursor-pointer flex justify-between items-center" onClick={() => { setSelectedSong('Original Audio'); setActiveTool(null); }}>
+                                    <span className="font-bold">Original Audio</span>
+                                    {selectedSong === 'Original Audio' && <i className="fas fa-check text-[#FE2C55]"></i>}
                                 </div>
-                                {MOCK_SONGS.map(song => (
-                                    <div key={song.id} className="p-2 hover:bg-[#333] cursor-pointer flex items-center gap-2" onClick={() => { setSelectedSong(song); setShowAudioPicker(false); }}>
-                                        <img src={song.cover} className="w-8 h-8 rounded object-cover" alt="" />
-                                        <div className="flex flex-col">
-                                            <span className="text-white text-sm font-bold">{song.title}</span>
-                                            <span className="text-gray-400 text-xs">{song.artist}</span>
+                                {MOCK_SONGS.map(s => (
+                                    <div key={s.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer" onClick={() => { setSelectedSong(s.title); setActiveTool(null); }}>
+                                        <img src={s.cover} className="w-10 h-10 rounded" alt="" />
+                                        <div className="flex-1">
+                                            <div className="font-bold text-sm">{s.title}</div>
+                                            <div className="text-xs text-gray-400">{s.artist}</div>
                                         </div>
+                                        {selectedSong === s.title && <i className="fas fa-check text-[#FE2C55]"></i>}
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
-                    {/* Caption Input */}
-                    <div className="mt-4">
-                        <label className="text-xs font-bold text-[#B0B3B8] mb-2 block uppercase">Caption</label>
+                    {/* Effects Tool */}
+                    {activeTool === 'effects' && (
+                        <div className="absolute inset-x-0 bottom-0 bg-black/90 backdrop-blur-md z-30 p-4 pb-8 animate-slide-up">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-sm">Effects</h3>
+                                <button onClick={() => setActiveTool(null)} className="text-xs">Done</button>
+                            </div>
+                            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+                                <div onClick={() => setSelectedEffect('')} className={`w-16 h-16 rounded-full border-2 flex items-center justify-center flex-shrink-0 cursor-pointer ${!selectedEffect ? 'border-[#FE2C55]' : 'border-gray-600'}`}>
+                                    <span className="text-xs">None</span>
+                                </div>
+                                {effectsList.map(eff => (
+                                    <div key={eff} onClick={() => setSelectedEffect(eff)} className={`w-16 h-16 rounded-full border-2 flex items-center justify-center flex-shrink-0 cursor-pointer bg-gray-800 ${selectedEffect === eff ? 'border-[#FE2C55]' : 'border-transparent'}`}>
+                                        <span className="text-xs font-bold">{eff}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Trim Tool (Mock) */}
+                    {activeTool === 'trim' && (
+                        <div className="absolute inset-x-0 bottom-0 bg-[#18191A] z-30 p-6 pb-10 animate-slide-up border-t border-gray-800">
+                            <div className="flex justify-between mb-6">
+                                <span className="font-bold">Trim Video</span>
+                                <button onClick={() => setActiveTool(null)} className="text-[#FE2C55] font-bold">Done</button>
+                            </div>
+                            <div className="h-12 bg-gray-800 rounded-lg relative overflow-hidden flex items-center px-1">
+                                <div className="absolute inset-y-0 bg-[#FE2C55]/30 border-x-4 border-[#FE2C55] cursor-grab" style={{ left: '0%', right: '0%' }}></div>
+                                <div className="w-full h-8 bg-[url('https://upload.wikimedia.org/wikipedia/commons/1/18/Waveform_1.png')] bg-cover opacity-50"></div>
+                            </div>
+                            <p className="text-center text-xs text-gray-500 mt-4">Drag ends to trim</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Details Step */}
+            {step === 'details' && (
+                <div className="flex-1 flex flex-col bg-[#121212] overflow-y-auto">
+                    <div className="p-4 flex gap-4">
+                        <div className="w-24 h-32 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 relative">
+                            {videoPreview && <video src={videoPreview} className="w-full h-full object-cover" />}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                <i className="fas fa-play text-white/80"></i>
+                            </div>
+                        </div>
                         <textarea 
-                            className="w-full bg-[#242526] border border-[#3E4042] rounded-lg p-3 text-sm text-[#E4E6EB] outline-none focus:border-[#1877F2] resize-none h-20" 
-                            placeholder="Write a caption..." 
-                            value={caption} 
-                            onChange={(e) => setCaption(e.target.value)} 
+                            className="flex-1 bg-transparent text-white outline-none resize-none text-sm placeholder-gray-500 mt-2"
+                            placeholder="Write a caption... #hashtags"
+                            value={caption}
+                            onChange={e => setCaption(e.target.value)}
+                            rows={4}
+                            autoFocus
                         />
                     </div>
-                </div>
 
-                {/* Footer Post Button */}
-                <div className="p-4 border-t border-[#3E4042] bg-[#242526]">
-                    <button onClick={handleSubmit} disabled={!videoFile} className="w-full py-3 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Post Reel</button>
-                </div>
+                    <div className="h-px bg-gray-800 mx-4"></div>
 
-                <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={handleFileChange} />
-            </div>
+                    <div className="p-4 space-y-4">
+                        <div className="flex items-center justify-between py-2 cursor-pointer" onClick={() => setPrivacy(privacy === 'Public' ? 'Friends' : 'Public')}>
+                            <div className="flex items-center gap-3">
+                                <i className="fas fa-user-friends text-gray-400"></i>
+                                <span>Who can watch this video</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                {privacy} <i className="fas fa-chevron-right"></i>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between py-2">
+                            <div className="flex items-center gap-3">
+                                <i className="fas fa-comment-dots text-gray-400"></i>
+                                <span>Allow comments</span>
+                            </div>
+                            <input type="checkbox" defaultChecked className="accent-[#FE2C55] w-5 h-5" />
+                        </div>
+
+                        <div className="flex items-center justify-between py-2">
+                            <div className="flex items-center gap-3">
+                                <i className="fas fa-download text-gray-400"></i>
+                                <span>Save to device</span>
+                            </div>
+                            <input type="checkbox" className="accent-[#FE2C55] w-5 h-5" />
+                        </div>
+                    </div>
+
+                    <div className="mt-auto p-4 flex gap-3 border-t border-gray-800 bg-[#121212]">
+                        <button onClick={() => onClose()} className="flex-1 py-3.5 rounded-lg font-bold bg-gray-800 text-white">Drafts</button>
+                        <button onClick={handlePost} className="flex-1 py-3.5 rounded-lg font-bold bg-[#FE2C55] text-white">Post</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -140,7 +305,7 @@ export const CreateReel: React.FC<CreateReelProps> = ({ currentUser, onClose, on
 interface ReelsFeedProps {
     reels: Reel[];
     users: User[];
-    currentUser: User;
+    currentUser: User | null; // Allow null
     onProfileClick: (id: number) => void;
     onCreateReelClick: () => void;
     onLoadMore?: () => void;
@@ -215,6 +380,10 @@ export const ReelsFeed: React.FC<ReelsFeedProps> = ({ reels, users, currentUser,
     }, [activeReelId, activeCommentReelId, activeShareReelId]);
 
     const handleDoubleTap = (reelId: number) => {
+        if(!currentUser) {
+            alert("Please login to like reels.");
+            return;
+        }
         const reel = reels.find(r => r.id === reelId);
         if (reel) {
             onReact(reelId, 'like');
@@ -236,13 +405,16 @@ export const ReelsFeed: React.FC<ReelsFeedProps> = ({ reels, users, currentUser,
 
     return (
         <div className="w-full h-[calc(100vh-56px)] flex justify-center bg-[#18191A] overflow-hidden relative font-sans">
-            <button onClick={onCreateReelClick} className="fixed bottom-8 right-8 z-50 bg-gradient-to-r from-[#FF0050] to-[#00F2EA] text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:scale-105 transition-transform"><i className="fas fa-plus"></i> {t('create_reel')}</button>
+            {/* Hide Create Button if Guest */}
+            {currentUser && (
+                <button onClick={onCreateReelClick} className="fixed bottom-8 right-8 z-50 bg-gradient-to-r from-[#FF0050] to-[#00F2EA] text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:scale-105 transition-transform"><i className="fas fa-plus"></i> {t('create_reel')}</button>
+            )}
             <div ref={containerRef} className="w-full max-w-[450px] h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide scroll-smooth">
                 {reels.map((reel, index) => {
                     const author = users.find(u => u.id === reel.userId);
-                    const myReaction = reel.reactions.find(r => r.userId === currentUser.id)?.type;
-                    const isFollowing = author ? (author.followers.includes(currentUser.id) || currentUser.following.includes(author.id)) : false;
-                    const isSelf = author?.id === currentUser.id;
+                    const myReaction = currentUser ? reel.reactions.find(r => r.userId === currentUser.id)?.type : undefined;
+                    const isFollowing = author && currentUser ? (author.followers.includes(currentUser.id) || currentUser.following.includes(author.id)) : false;
+                    const isSelf = currentUser && author?.id === currentUser.id;
 
                     if (!author) return null;
                     return (
@@ -255,29 +427,29 @@ export const ReelsFeed: React.FC<ReelsFeedProps> = ({ reels, users, currentUser,
                             <div className="absolute bottom-20 right-4 flex flex-col items-center gap-6 z-20">
                                 <div className="flex flex-col items-center gap-1 cursor-pointer group">
                                     <div className="bg-black/40 backdrop-blur-sm rounded-full w-12 h-12 flex items-center justify-center">
-                                        <ReactionButton currentUserReactions={myReaction} reactionCount={reel.reactions.length} onReact={(type) => onReact(reel.id, type)} />
+                                        <ReactionButton currentUserReactions={myReaction} reactionCount={reel.reactions.length} onReact={(type) => currentUser ? onReact(reel.id, type) : alert("Please login to react")} isGuest={!currentUser} />
                                     </div>
                                     <span className="text-white text-sm font-medium">{reel.reactions.length}</span>
                                 </div>
-                                <div className="flex flex-col items-center gap-1 cursor-pointer group"><div className="w-12 h-12 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm group-hover:bg-black/60 text-white" onClick={(e) => { e.stopPropagation(); setActiveCommentReelId(reel.id); }}><i className="fas fa-comment-dots text-2xl"></i></div><span className="text-white text-sm font-medium">{reel.comments.length}</span></div>
-                                <div className="flex flex-col items-center gap-1 cursor-pointer group"><div className="w-12 h-12 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm group-hover:bg-black/60 text-white" onClick={(e) => { e.stopPropagation(); setActiveShareReelId(reel.id); }}><i className="fas fa-share text-2xl"></i></div><span className="text-white text-sm font-medium">{reel.shares}</span></div>
+                                <div className="flex flex-col items-center gap-1 cursor-pointer group"><div className="w-12 h-12 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm group-hover:bg-black/60 text-white" onClick={(e) => { e.stopPropagation(); currentUser ? setActiveCommentReelId(reel.id) : alert("Please login to comment"); }}><i className="fas fa-comment-dots text-2xl"></i></div><span className="text-white text-sm font-medium">{reel.comments.length}</span></div>
+                                <div className="flex flex-col items-center gap-1 cursor-pointer group"><div className="w-12 h-12 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm group-hover:bg-black/60 text-white" onClick={(e) => { e.stopPropagation(); currentUser ? setActiveShareReelId(reel.id) : alert("Please login to share"); }}><i className="fas fa-share text-2xl"></i></div><span className="text-white text-sm font-medium">{reel.shares}</span></div>
                                 <div className="cursor-pointer mt-4 relative" onClick={(e) => { e.stopPropagation(); onProfileClick(author.id); }}>
                                     <img src={author.profileImage} className="w-12 h-12 rounded-lg border-2 border-white object-cover" alt={author.name} />
-                                    {!isFollowing && !isSelf && <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-white" onClick={(e) => { e.stopPropagation(); onFollow(author.id); }}><i className="fas fa-plus text-white text-[10px]"></i></div>}
+                                    {!isFollowing && !isSelf && currentUser && <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-white" onClick={(e) => { e.stopPropagation(); onFollow(author.id); }}><i className="fas fa-plus text-white text-[10px]"></i></div>}
                                 </div>
                             </div>
                             <div className="absolute bottom-0 left-0 w-full p-4 z-20 pb-8 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
                                 <div className="flex items-center gap-3 mb-3 pointer-events-auto cursor-pointer" onClick={() => onProfileClick(author.id)}>
                                     <img src={author.profileImage} className="w-10 h-10 rounded-full border border-white object-cover" alt="" />
-                                    <span className="text-white font-bold text-[16px] drop-shadow-md">{author.name}</span>
+                                    <span className="text-white font-bold text-[17px] drop-shadow-md">{author.name}</span>
                                     {author.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-[14px] drop-shadow-md"></i>}
-                                    {!isSelf && <button onClick={(e) => { e.stopPropagation(); onFollow(author.id); }} className={`border text-xs font-semibold px-3 py-1 rounded-md backdrop-blur-sm transition-colors ${isFollowing ? 'bg-white/20 border-white/20 text-white' : 'bg-transparent border-white/60 text-white hover:bg-white/20'}`}>{isFollowing ? 'Following' : 'Follow'}</button>}
+                                    {!isSelf && currentUser && <button onClick={(e) => { e.stopPropagation(); onFollow(author.id); }} className={`border text-xs font-semibold px-3 py-1 rounded-md backdrop-blur-sm transition-colors ${isFollowing ? 'bg-white/20 border-white/20 text-white' : 'bg-transparent border-white/60 text-white hover:bg-white/20'}`}>{isFollowing ? 'Following' : 'Follow'}</button>}
                                 </div>
                                 <div className="mb-3 pointer-events-auto"><p className="text-white text-[15px] line-clamp-2 drop-shadow-sm">{reel.caption}</p>{reel.effectName && <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-gray-800/60 rounded-md text-xs text-white/90 backdrop-blur-sm"><i className="fas fa-magic text-yellow-400 text-xs"></i> {reel.effectName}</div>}</div>
                                 <div className="flex items-center gap-2 text-white/90 text-sm bg-white/10 px-3 py-1 rounded-full w-fit backdrop-blur-sm pointer-events-auto"><i className="fas fa-music text-xs"></i><div className="overflow-hidden max-w-[200px]"><div className="whitespace-nowrap">{reel.songName}</div></div></div>
                             </div>
                             
-                            {activeCommentReelId === reel.id && (
+                            {activeCommentReelId === reel.id && currentUser && (
                                 <div className="absolute inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setActiveCommentReelId(null)}>
                                     <div className="bg-[#242526] rounded-t-2xl h-[60%] w-full flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                                         <div className="p-3 border-b border-[#3E4042] flex justify-between items-center"><h3 className="font-bold text-center flex-1 text-[#E4E6EB]">Comments ({reel.comments.length})</h3><div onClick={() => setActiveCommentReelId(null)} className="p-2 cursor-pointer hover:bg-[#3A3B3C] rounded-full"><i className="fas fa-times text-[#B0B3B8]"></i></div></div>
@@ -291,7 +463,7 @@ export const ReelsFeed: React.FC<ReelsFeedProps> = ({ reels, users, currentUser,
                                     </div>
                                 </div>
                             )}
-                            {activeShareReelId === reel.id && (
+                            {activeShareReelId === reel.id && currentUser && (
                                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in" onClick={() => setActiveShareReelId(null)}>
                                     <div className="bg-[#242526] rounded-xl w-[90%] max-w-[320px] overflow-hidden" onClick={e => e.stopPropagation()}>
                                         <div className="p-4 border-b border-[#3E4042] text-center font-bold text-[#E4E6EB]">Share to</div>
