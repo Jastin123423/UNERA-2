@@ -108,6 +108,65 @@ export default function App() {
         }
     }, []);
 
+    // --- REAL-TIME WEBSOCKET CONNECTION ---
+    useEffect(() => {
+        let ws: WebSocket;
+        const connectWs = () => {
+            // Using the user-provided URL, typically would be dynamic based on env
+            const wsUrl = "wss://unera-2.pages.dev/live_feed"; 
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log("Connected to Live Feed");
+            };
+
+            ws.onmessage = (evt) => {
+                try {
+                    const message = JSON.parse(evt.data);
+                    console.log("Live update:", message);
+                    
+                    if (message.type === 'new_post') {
+                        // Transform basic post data to full UI Post object if needed
+                        const rawPost = message.data;
+                        const newPost: PostType = {
+                            id: rawPost.id,
+                            authorId: rawPost.user_id,
+                            content: rawPost.content,
+                            image: rawPost.media_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? rawPost.media_url : undefined,
+                            video: rawPost.media_url?.match(/\.(mp4|webm|mov)$/i) ? rawPost.media_url : undefined,
+                            timestamp: "Just now",
+                            createdAt: Date.now(),
+                            reactions: [],
+                            comments: [],
+                            shares: 0,
+                            type: rawPost.media_url ? (rawPost.media_url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image') : 'text',
+                            visibility: 'Public'
+                        };
+                        
+                        setPosts(prev => [newPost, ...prev]);
+                    }
+                } catch (e) {
+                    console.error("Error parsing live message", e);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log("Disconnected from Live Feed, retrying in 5s...");
+                setTimeout(connectWs, 5000);
+            };
+            
+            ws.onerror = (e) => {
+                console.log("WS Error", e);
+            };
+        };
+
+        connectWs();
+
+        return () => {
+            if (ws) ws.close();
+        };
+    }, []);
+
     // --- API INTEGRATION ---
     useEffect(() => {
         const fetchAllData = async () => {
@@ -146,8 +205,6 @@ export default function App() {
                         following: [],
                         isOnline: false
                     }));
-                    // Merge with initials to keep mock admin/demo users if needed, or fully replace
-                    // For demo stability, we merge unique by ID
                     setUsers(prev => {
                         const existingIds = new Set(prev.map(u => u.id));
                         const newUsers = mappedUsers.filter(u => !existingIds.has(u.id));
