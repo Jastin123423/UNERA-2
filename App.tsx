@@ -22,6 +22,7 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { User, Post as PostType, Story, Reel, Notification, Message, Event, Product, Comment, CommentReply, ReactionType, LinkPreview, Group, GroupPost, AudioTrack, Song, Episode, Brand } from './types';
 import { INITIAL_USERS, INITIAL_POSTS, INITIAL_STORIES, INITIAL_REELS, INITIAL_EVENTS, INITIAL_GROUPS, MOCK_SONGS, MOCK_EPISODES, INITIAL_BRANDS, INITIAL_PRODUCTS } from './constants';
 import { rankFeed } from './utils/ranking'; 
+import { api } from './services/api';
 
 // Helper for Timestamp
 const getTimeAgo = (timestamp: number) => {
@@ -76,6 +77,43 @@ export default function App() {
     const [activeProduct, setActiveProduct] = useState<Product | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     
+    // --- API INTEGRATION ---
+    useEffect(() => {
+        const fetchRemoteData = async () => {
+            try {
+                const remotePosts = await api.getPosts();
+                if (Array.isArray(remotePosts)) {
+                    const mappedPosts: PostType[] = remotePosts.map((p: any) => ({
+                        id: p.id,
+                        authorId: p.user_id,
+                        content: p.content,
+                        image: p.media_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? p.media_url : undefined,
+                        video: p.media_url?.match(/\.(mp4|webm|mov)$/i) ? p.media_url : undefined,
+                        timestamp: "Remote",
+                        createdAt: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
+                        reactions: [],
+                        comments: [],
+                        shares: 0,
+                        type: p.media_url ? (p.media_url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image') : 'text',
+                        visibility: 'Public'
+                    }));
+                    setPosts(prev => {
+                        // Merge avoiding duplicates by ID
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const uniqueNewPosts = mappedPosts.filter(p => !existingIds.has(p.id));
+                        return [...uniqueNewPosts, ...prev];
+                    });
+                }
+
+                // If Users API was available for fetching list:
+                // const remoteUsers = await api.getUsers(); ...
+            } catch (err) {
+                console.error("Background sync failed", err);
+            }
+        };
+        fetchRemoteData();
+    }, []);
+
     // --- ENRICH STORIES WITH USER DATA ---
     const enrichedStories = useMemo(() => {
         return stories.map(story => {
@@ -171,7 +209,27 @@ export default function App() {
     }, []);
 
     // Handlers
-    const handleLogin = (email: string, pass: string) => {
+    const handleLogin = async (email: string, pass: string) => {
+        try {
+            // Attempt API Login
+            const response = await api.login({ email, password: pass });
+            if (response && !response.error) { // Adjust based on actual API success shape
+                // Assuming successful login returns some user data or token
+                // We create a session user based on API data if possible, or mapping
+                // For now, we fallback to local mock logic if API doesn't return full user object needed
+                
+                // If API returns user object:
+                // const apiUser = response.user;
+                // const mappedUser = { ... }; 
+                // setCurrentUser(mappedUser);
+                // setView('home');
+                // return;
+            }
+        } catch (e) {
+            console.log("API Login failed, using mock", e);
+        }
+
+        // Mock Fallback
         const user = users.find(u => u.email === email && u.password === pass);
         if (user) {
             setCurrentUser(user);
@@ -183,7 +241,18 @@ export default function App() {
         }
     };
 
-    const handleRegister = (newUser: Partial<User>) => {
+    const handleRegister = async (newUser: Partial<User>) => {
+        try {
+            // Attempt API Signup
+            await api.signup({ 
+                username: newUser.name || 'User',
+                email: newUser.email!, 
+                password: newUser.password! 
+            });
+        } catch (e) {
+            console.log("API Signup failed, continuing with mock", e);
+        }
+
         const user: User = {
             id: users.length + 1,
             name: newUser.name!,
@@ -209,7 +278,7 @@ export default function App() {
         setLoginError('Account created! Please sign in.'); 
     };
 
-    const handleCreatePost = (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview) => {
+    const handleCreatePost = async (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview) => {
         if (!currentUser) return;
         
         let image = undefined;
@@ -221,6 +290,17 @@ export default function App() {
             if (type === 'video') video = url;
         } else if (type === 'image' && !background && !linkPreview) { 
              if (text.startsWith('http')) image = text; 
+        }
+
+        // API Call
+        try {
+            await api.createPost({
+                user_id: currentUser.id,
+                content: text,
+                media_url: image || video
+            });
+        } catch (e) {
+            console.error("Failed to post to API", e);
         }
 
         const newPost: PostType = {
@@ -247,6 +327,8 @@ export default function App() {
 
     const handleReaction = (postId: number, type: ReactionType) => {
         if (!currentUser) return;
+        
+        // Optimistic UI Update
         const updatePostReaction = (postList: PostType[]) => {
             return postList.map(p => {
                 if (p.id === postId) {
@@ -279,10 +361,25 @@ export default function App() {
             });
         };
         setPosts(prev => updatePostReaction(prev));
+
+        // API Call
+        api.createLike({
+            user_id: currentUser.id,
+            target_id: postId,
+            target_type: 'post'
+        }).catch(err => console.error("Like API failed", err));
     };
 
     const handleComment = (postId: number, text: string, attachment?: any, parentId?: number) => {
         if (!currentUser) return;
+        
+        // API Call
+        api.createComment({
+            post_id: postId,
+            user_id: currentUser.id,
+            content: text
+        }).catch(err => console.error("Comment API failed", err));
+
         const isMainPost = posts.some(p => p.id === postId);
         if (isMainPost) {
             const updatePostComment = (postList: PostType[]) => {
@@ -360,6 +457,15 @@ export default function App() {
     // Group handlers
     const handleCreateGroup = (groupData: Partial<Group>) => {
         if (!currentUser) return;
+        
+        // API Call
+        api.createGroup({
+            owner_id: currentUser.id,
+            name: groupData.name!,
+            description: groupData.description || '',
+            privacy: (groupData.type === 'public' || groupData.type === 'private') ? groupData.type : 'public'
+        }).catch(err => console.error("Create Group API failed", err));
+
         const newGroup: Group = {
             id: `g${Date.now()}`,
             name: groupData.name!, description: groupData.description!, type: groupData.type || 'public',
@@ -392,6 +498,16 @@ export default function App() {
     // Brands Handlers
     const handleCreateBrand = (brandData: Partial<Brand>) => {
         if (!currentUser) return;
+        
+        // API Call
+        api.createBrand({
+            owner_id: currentUser.id,
+            name: brandData.name!,
+            description: brandData.description || '',
+            category: brandData.category || 'Business',
+            logo_url: brandData.profileImage
+        }).catch(err => console.error("Create Brand API failed", err));
+
         const newBrand: Brand = {
             id: 10000 + brands.length + 1,
             name: brandData.name!,
