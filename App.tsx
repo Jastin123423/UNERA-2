@@ -24,6 +24,23 @@ import { INITIAL_USERS, INITIAL_POSTS, INITIAL_STORIES, INITIAL_REELS, INITIAL_E
 import { rankFeed } from './utils/ranking'; 
 import { api } from './services/api';
 
+// --- COOKIE HELPERS ---
+const setCookie = (name: string, value: string, days: number) => {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
+};
+
+const getCookie = (name: string) => {
+    return document.cookie.split('; ').reduce((r, v) => {
+        const parts = v.split('=');
+        return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+    }, '');
+};
+
+const deleteCookie = (name: string) => {
+    setCookie(name, '', -1);
+};
+
 // Helper for Timestamp
 const getTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -34,6 +51,7 @@ const getTimeAgo = (timestamp: number) => {
 };
 
 export default function App() {
+    // Data State - Initialize with empty arrays to be populated by API
     const [users, setUsers] = useState<User[]>(INITIAL_USERS);
     const [posts, setPosts] = useState<PostType[]>(INITIAL_POSTS);
     const [stories, setStories] = useState<Story[]>(INITIAL_STORIES.map(s => ({...s, createdAt: Date.now()}))); 
@@ -43,7 +61,7 @@ export default function App() {
     const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS);
     const [brands, setBrands] = useState<Brand[]>(INITIAL_BRANDS);
     
-    // Lifted Audio State
+    // Audio State
     const [songs, setSongs] = useState<Song[]>(MOCK_SONGS);
     const [episodes, setEpisodes] = useState<Episode[]>(MOCK_EPISODES);
     
@@ -58,7 +76,7 @@ export default function App() {
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
     const [activeReelId, setActiveReelId] = useState<number | null>(null);
     
-    // Audio State
+    // Audio Player State
     const [currentAudioTrack, setCurrentAudioTrack] = useState<AudioTrack | null>(null);
     const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
@@ -77,19 +95,74 @@ export default function App() {
     const [activeProduct, setActiveProduct] = useState<Product | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     
+    // --- SESSION RESTORATION ---
+    useEffect(() => {
+        const storedUser = getCookie('unera_user');
+        if (storedUser) {
+            try {
+                const user = JSON.parse(storedUser);
+                setCurrentUser(user);
+            } catch (e) {
+                console.error("Failed to restore session", e);
+            }
+        }
+    }, []);
+
     // --- API INTEGRATION ---
     useEffect(() => {
-        const fetchRemoteData = async () => {
+        const fetchAllData = async () => {
             try {
-                const remotePosts = await api.getPosts();
-                if (Array.isArray(remotePosts)) {
+                // Parallel fetch for better performance
+                const [
+                    remoteUsers, 
+                    remotePosts, 
+                    remoteGroups, 
+                    remoteBrands, 
+                    remoteEvents, 
+                    remoteVideos, 
+                    remoteMusic, 
+                    remotePodcasts
+                ] = await Promise.all([
+                    api.getUsers(),
+                    api.getPosts(),
+                    api.getGroups(),
+                    api.getBrands(),
+                    api.getEvents(),
+                    api.getVideos(),
+                    api.getMusic(),
+                    api.getPodcasts()
+                ]);
+
+                if (remoteUsers) {
+                    // Map API users to frontend User type
+                    const mappedUsers: User[] = remoteUsers.map((u: any) => ({
+                        id: u.id,
+                        name: u.username || u.name || `User ${u.id}`,
+                        email: u.email,
+                        profileImage: u.profile_url || `https://ui-avatars.com/api/?name=${u.username}&background=random`,
+                        coverImage: u.cover_url,
+                        bio: u.bio,
+                        followers: [], // Needs backend support
+                        following: [],
+                        isOnline: false
+                    }));
+                    // Merge with initials to keep mock admin/demo users if needed, or fully replace
+                    // For demo stability, we merge unique by ID
+                    setUsers(prev => {
+                        const existingIds = new Set(prev.map(u => u.id));
+                        const newUsers = mappedUsers.filter(u => !existingIds.has(u.id));
+                        return [...prev, ...newUsers];
+                    });
+                }
+
+                if (remotePosts) {
                     const mappedPosts: PostType[] = remotePosts.map((p: any) => ({
                         id: p.id,
                         authorId: p.user_id,
                         content: p.content,
                         image: p.media_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? p.media_url : undefined,
                         video: p.media_url?.match(/\.(mp4|webm|mov)$/i) ? p.media_url : undefined,
-                        timestamp: "Remote",
+                        timestamp: getTimeAgo(p.created_at ? new Date(p.created_at).getTime() : Date.now()),
                         createdAt: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
                         reactions: [],
                         comments: [],
@@ -98,20 +171,112 @@ export default function App() {
                         visibility: 'Public'
                     }));
                     setPosts(prev => {
-                        // Merge avoiding duplicates by ID
                         const existingIds = new Set(prev.map(p => p.id));
                         const uniqueNewPosts = mappedPosts.filter(p => !existingIds.has(p.id));
                         return [...uniqueNewPosts, ...prev];
                     });
                 }
 
-                // If Users API was available for fetching list:
-                // const remoteUsers = await api.getUsers(); ...
+                if (remoteGroups) {
+                    const mappedGroups: Group[] = remoteGroups.map((g: any) => ({
+                        id: g.id.toString(),
+                        name: g.name,
+                        description: g.description,
+                        type: g.privacy || 'public',
+                        image: g.image_url || `https://ui-avatars.com/api/?name=${g.name}&background=random`,
+                        coverImage: g.cover_url || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
+                        adminId: g.owner_id,
+                        members: [g.owner_id], // Basic member list
+                        posts: [],
+                        createdDate: Date.now()
+                    }));
+                    setGroups(prev => [...mappedGroups, ...prev.filter(pg => !mappedGroups.find(mg => mg.id === pg.id))]);
+                }
+
+                if (remoteBrands) {
+                    const mappedBrands: Brand[] = remoteBrands.map((b: any) => ({
+                        id: b.id,
+                        name: b.name,
+                        description: b.description,
+                        category: b.category,
+                        profileImage: b.logo_url || `https://ui-avatars.com/api/?name=${b.name}`,
+                        coverImage: 'https://images.unsplash.com/photo-1557683316-973673baf926',
+                        adminId: b.owner_id,
+                        followers: [],
+                        joinedDate: new Date().toISOString()
+                    }));
+                    setBrands(prev => [...mappedBrands, ...prev.filter(pb => !mappedBrands.find(mb => mb.id === pb.id))]);
+                }
+
+                if (remoteEvents) {
+                    const mappedEvents: Event[] = remoteEvents.map((e: any) => ({
+                        id: e.id,
+                        organizerId: e.creator_id,
+                        title: e.title,
+                        description: e.description,
+                        date: e.event_date,
+                        time: new Date(e.event_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                        location: e.location,
+                        image: e.cover_url || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4',
+                        attendees: [],
+                        interestedIds: []
+                    }));
+                    setEvents(prev => [...mappedEvents, ...prev.filter(pe => !mappedEvents.find(me => me.id === pe.id))]);
+                }
+
+                if (remoteVideos) {
+                    const mappedReels: Reel[] = remoteVideos.map((v: any) => ({
+                        id: v.id,
+                        userId: v.user_id,
+                        videoUrl: v.video_url,
+                        caption: v.description || v.title,
+                        songName: 'Original Audio',
+                        reactions: [],
+                        comments: [],
+                        shares: 0
+                    }));
+                    setReels(prev => [...mappedReels, ...prev.filter(pr => !mappedReels.find(mr => mr.id === pr.id))]);
+                }
+
+                if (remoteMusic) {
+                    const mappedSongs: Song[] = remoteMusic.map((m: any) => ({
+                        id: m.id.toString(),
+                        title: m.title,
+                        artist: m.artist,
+                        album: 'Single',
+                        cover: m.cover_url || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745',
+                        duration: '3:00',
+                        audioUrl: m.audio_url,
+                        stats: { plays: 0, downloads: 0, shares: 0, likes: 0, reelsUse: 0 },
+                        uploaderId: m.user_id
+                    }));
+                    setSongs(prev => [...mappedSongs, ...prev.filter(ps => !mappedSongs.find(ms => ms.id === ps.id))]);
+                }
+
+                if (remotePodcasts) {
+                    const mappedEpisodes: Episode[] = remotePodcasts.map((p: any) => ({
+                        id: p.id.toString(),
+                        podcastId: `pod_${p.id}`,
+                        title: p.title,
+                        description: p.description,
+                        date: 'Recently',
+                        duration: '45:00',
+                        audioUrl: p.audio_url,
+                        thumbnail: p.cover_url || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f',
+                        stats: { plays: 0, downloads: 0, shares: 0, likes: 0, reelsUse: 0 },
+                        uploaderId: p.creator_id,
+                        host: `Creator ${p.creator_id}`
+                    }));
+                    setEpisodes(prev => [...mappedEpisodes, ...prev.filter(pe => !mappedEpisodes.find(me => me.id === pe.id))]);
+                }
+
             } catch (err) {
-                console.error("Background sync failed", err);
+                console.warn("Error fetching initial data", err);
+            } finally {
+                setIsLoading(false);
             }
         };
-        fetchRemoteData();
+        fetchAllData();
     }, []);
 
     // --- ENRICH STORIES WITH USER DATA ---
@@ -190,49 +355,61 @@ export default function App() {
 
     }, [posts, groups, currentUser, users, products, events]);
 
-    // Simulate loading
+    // Simulate page routing for static pages
     useEffect(() => { 
-        setTimeout(() => {
-            setIsLoading(false);
-            const path = window.location.pathname.toLowerCase();
-            if (path.includes('help-support')) {
-                setView('help');
-                setActiveTab('');
-            } else if (path.includes('privacy-policy')) {
-                setView('privacy');
-                setActiveTab('');
-            } else if (path.includes('terms-of-service')) {
-                setView('terms');
-                setActiveTab('');
-            }
-        }, 2500); 
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('help-support')) {
+            setView('help');
+            setActiveTab('');
+        } else if (path.includes('privacy-policy')) {
+            setView('privacy');
+            setActiveTab('');
+        } else if (path.includes('terms-of-service')) {
+            setView('terms');
+            setActiveTab('');
+        }
     }, []);
 
     // Handlers
     const handleLogin = async (email: string, pass: string) => {
         try {
-            // Attempt API Login
             const response = await api.login({ email, password: pass });
-            if (response && !response.error) { // Adjust based on actual API success shape
-                // Assuming successful login returns some user data or token
-                // We create a session user based on API data if possible, or mapping
-                // For now, we fallback to local mock logic if API doesn't return full user object needed
+            
+            if (response && response.user) {
+                const user: User = {
+                    id: response.user.id || 999, // Fallback ID if API varies
+                    name: response.user.username || response.user.email.split('@')[0],
+                    email: response.user.email,
+                    profileImage: response.user.profile_url || `https://ui-avatars.com/api/?name=${response.user.email}&background=random`,
+                    coverImage: 'https://images.unsplash.com/photo-1557683316-973673baf926',
+                    followers: [],
+                    following: [],
+                    isOnline: true,
+                    role: 'user',
+                    joinedDate: new Date().toISOString()
+                };
                 
-                // If API returns user object:
-                // const apiUser = response.user;
-                // const mappedUser = { ... }; 
-                // setCurrentUser(mappedUser);
-                // setView('home');
-                // return;
+                setCurrentUser(user);
+                // Store session in cookie
+                setCookie('unera_user', JSON.stringify(user), 7); // 7 days
+                
+                setLoginError('');
+                setView('home');
+                setActiveTab('home');
+                return;
+            } else if (response && response.error) {
+                setLoginError(response.error);
+                return;
             }
         } catch (e) {
-            console.log("API Login failed, using mock", e);
+            console.log("API Login unavailable, checking local records.");
         }
 
         // Mock Fallback
         const user = users.find(u => u.email === email && u.password === pass);
         if (user) {
             setCurrentUser(user);
+            setCookie('unera_user', JSON.stringify(user), 7);
             setLoginError('');
             setView('home');
             setActiveTab('home');
@@ -243,39 +420,45 @@ export default function App() {
 
     const handleRegister = async (newUser: Partial<User>) => {
         try {
-            // Attempt API Signup
             await api.signup({ 
                 username: newUser.name || 'User',
                 email: newUser.email!, 
                 password: newUser.password! 
             });
+            alert("Account created successfully! Please login.");
+            setShowRegister(false);
         } catch (e) {
-            console.log("API Signup failed, continuing with mock", e);
+            console.log("API Signup unavailable, using local mock.");
+            const user: User = {
+                id: users.length + 100,
+                name: newUser.name!,
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
+                email: newUser.email,
+                password: newUser.password,
+                profileImage: newUser.profileImage!,
+                coverImage: newUser.coverImage,
+                isOnline: true,
+                followers: [],
+                following: [],
+                nationality: newUser.nationality,
+                location: newUser.location,
+                birthDate: newUser.birthDate,
+                gender: newUser.gender,
+                bio: newUser.bio,
+                joinedDate: new Date().toISOString(),
+                interests: []
+            };
+            setUsers([...users, user]);
+            setShowRegister(false);
+            setLoginError('Account created locally! Please sign in.');
         }
+    };
 
-        const user: User = {
-            id: users.length + 1,
-            name: newUser.name!,
-            firstName: newUser.firstName,
-            lastName: newUser.lastName,
-            email: newUser.email,
-            password: newUser.password,
-            profileImage: newUser.profileImage!,
-            coverImage: newUser.coverImage,
-            isOnline: true,
-            followers: [],
-            following: [],
-            nationality: newUser.nationality,
-            location: newUser.location,
-            birthDate: newUser.birthDate,
-            gender: newUser.gender,
-            bio: newUser.bio,
-            joinedDate: new Date().toISOString(),
-            interests: []
-        };
-        setUsers([...users, user]);
-        setShowRegister(false);
-        setLoginError('Account created! Please sign in.'); 
+    const handleLogout = () => {
+        setCurrentUser(null);
+        deleteCookie('unera_user');
+        setView('home');
     };
 
     const handleCreatePost = async (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview) => {
@@ -300,7 +483,7 @@ export default function App() {
                 media_url: image || video
             });
         } catch (e) {
-            console.error("Failed to post to API", e);
+            console.warn("Failed to post to API, saving locally.");
         }
 
         const newPost: PostType = {
@@ -367,7 +550,7 @@ export default function App() {
             user_id: currentUser.id,
             target_id: postId,
             target_type: 'post'
-        }).catch(err => console.error("Like API failed", err));
+        }).catch(err => console.warn("Like API unavailable"));
     };
 
     const handleComment = (postId: number, text: string, attachment?: any, parentId?: number) => {
@@ -378,7 +561,7 @@ export default function App() {
             post_id: postId,
             user_id: currentUser.id,
             content: text
-        }).catch(err => console.error("Comment API failed", err));
+        }).catch(err => console.warn("Comment API unavailable"));
 
         const isMainPost = posts.some(p => p.id === postId);
         if (isMainPost) {
@@ -436,6 +619,7 @@ export default function App() {
             following: isFollowing ? currentUser.following.filter(id => id !== userId) : [...currentUser.following, userId]
         };
         setCurrentUser(updatedCurrentUser);
+        setCookie('unera_user', JSON.stringify(updatedCurrentUser), 7);
         setUsers(prevUsers => prevUsers.map(u => {
             if (u.id === currentUser.id) return updatedCurrentUser;
             if (u.id === userId) {
@@ -464,7 +648,7 @@ export default function App() {
             name: groupData.name!,
             description: groupData.description || '',
             privacy: (groupData.type === 'public' || groupData.type === 'private') ? groupData.type : 'public'
-        }).catch(err => console.error("Create Group API failed", err));
+        }).catch(err => console.warn("Create Group API unavailable"));
 
         const newGroup: Group = {
             id: `g${Date.now()}`,
@@ -506,7 +690,7 @@ export default function App() {
             description: brandData.description || '',
             category: brandData.category || 'Business',
             logo_url: brandData.profileImage
-        }).catch(err => console.error("Create Brand API failed", err));
+        }).catch(err => console.warn("Create Brand API unavailable"));
 
         const newBrand: Brand = {
             id: 10000 + brands.length + 1,
@@ -533,6 +717,7 @@ export default function App() {
         setBrands(prev => prev.map(b => { if (b.id === brandId) { return { ...b, followers: isFollowing ? b.followers.filter(id => id !== currentUser.id) : [...b.followers, currentUser.id] }; } return b; }));
         const updatedUser = { ...currentUser, following: isFollowing ? currentUser.following.filter(id => id !== brandId) : [...currentUser.following, brandId] };
         setCurrentUser(updatedUser);
+        setCookie('unera_user', JSON.stringify(updatedUser), 7);
         setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
     };
     const handlePostAsBrand = (brandId: number, contentData: any) => {
@@ -590,7 +775,7 @@ export default function App() {
 
     return (
         <div className="bg-[#18191A] min-h-screen text-[#E4E6EB] font-sans">
-            <Header onHomeClick={() => { setView('home'); setActiveTab('home'); }} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReelsClick={() => { setView('reels'); setActiveTab('reels'); }} onMarketplaceClick={() => { setView('marketplace'); setActiveTab('marketplace'); }} onGroupsClick={() => { setView('groups'); setActiveTab('groups'); }} currentUser={currentUser} notifications={notifications} users={users} groups={groups} brands={brands} onLogout={() => { setCurrentUser(null); setView('home'); }} onLoginClick={() => setView('')} onMarkNotificationsRead={() => setNotifications(prev => prev.map(n => ({...n, read: true})))} activeTab={activeTab} onNavigate={navigateTo} />
+            <Header onHomeClick={() => { setView('home'); setActiveTab('home'); }} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReelsClick={() => { setView('reels'); setActiveTab('reels'); }} onMarketplaceClick={() => { setView('marketplace'); setActiveTab('marketplace'); }} onGroupsClick={() => { setView('groups'); setActiveTab('groups'); }} currentUser={currentUser} notifications={notifications} users={users} groups={groups} brands={brands} onLogout={handleLogout} onLoginClick={() => setView('')} onMarkNotificationsRead={() => setNotifications(prev => prev.map(n => ({...n, read: true})))} activeTab={activeTab} onNavigate={navigateTo} />
             <div className="flex justify-center">
                 <Sidebar currentUser={currentUser || INITIAL_USERS[0]} onProfileClick={(id) => { if(currentUser) { setSelectedUserId(id); setView('profile'); } else alert("Login to view profiles"); }} onReelsClick={() => { setView('reels'); setActiveTab('reels'); }} onMarketplaceClick={() => { setView('marketplace'); setActiveTab('marketplace'); }} onGroupsClick={() => { setView('groups'); setActiveTab('groups'); }} />
                 <div className="flex-1 w-full max-w-[700px] min-h-screen relative">

@@ -13,7 +13,7 @@ async function request<T>(endpoint: string, method: string = 'GET', body?: any):
     };
     
     // Optional: Add token logic here if backend requires it
-    // const token = localStorage.getItem('unera_token');
+    // const token = getCookie('unera_token');
     // if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const config: RequestInit = {
@@ -24,11 +24,14 @@ async function request<T>(endpoint: string, method: string = 'GET', body?: any):
 
     try {
         const response = await fetch(`${API_BASE}${endpoint}`, config);
-        // We generally return the json even if status is not 200 to handle error messages from backend
+        if (!response.ok) {
+            // If response is not ok (e.g. 404, 500), treat as failure
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return await response.json();
     } catch (error) {
-        console.error(`API Request failed: ${endpoint}`, error);
-        throw error;
+        console.warn(`API Request failed: ${endpoint}.`, error);
+        return null as any;
     }
 }
 
@@ -39,6 +42,9 @@ export const api = {
     
     login: (data: { email: string; password: string }) => 
         request<any>('/users/login', 'POST', data),
+        
+    getUsers: () => 
+        request<any[]>('/users'),
 
     // 2. Posts
     createPost: (data: { user_id: number; content: string; media_url?: string }) => 
@@ -72,23 +78,38 @@ export const api = {
     getGroups: () => 
         request<any[]>('/groups'),
 
-    // 7. Videos
+    // 7. Videos (Reels)
     uploadVideo: (data: { user_id: number; title: string; description: string; video_url: string; thumbnail_url?: string }) => 
         request('/videos', 'POST', data),
+        
+    getVideos: () => 
+        request<any[]>('/videos'),
 
     // 8. Music
     uploadMusic: (data: { user_id: number; title: string; artist: string; audio_url: string; cover_url?: string }) => 
         request('/music', 'POST', data),
+        
+    getMusic: () => 
+        request<any[]>('/music'),
 
     // 9. Brands & Pages
     createBrand: (data: { owner_id: number; name: string; description: string; logo_url?: string; category: string }) => 
         request('/brands_pages', 'POST', data),
+        
+    getBrands: () => 
+        request<any[]>('/brands_pages'),
 
     // 10. Events
     createEvent: (data: { creator_id: number; title: string; description: string; event_date: string; location: string; cover_url?: string }) => 
         request('/events', 'POST', data),
+        
+    getEvents: () => 
+        request<any[]>('/events'),
 
     // 11. Podcasts
     uploadPodcast: (data: { creator_id: number; title: string; description: string; audio_url: string; cover_url?: string }) => 
         request('/podcasts', 'POST', data),
+        
+    getPodcasts: () => 
+        request<any[]>('/podcasts'),
 };
