@@ -1,1 +1,10 @@
+// functions/test-db.js
+export async function onRequest({ env }) {
+  const { results } = await env.DB.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table';"
+  ).all();
 
+  return new Response(JSON.stringify(results), {
+    headers: { "Content-Type": "application/json" }
+  });
+}
