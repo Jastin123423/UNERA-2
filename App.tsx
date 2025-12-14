@@ -181,11 +181,10 @@ export default function App() {
             interests: []
         };
         setUsers([...users, user]);
-        setCurrentUser(user);
+        // Instead of logging in automatically, go back to Login screen
         setShowRegister(false);
-        // 1. Redirect to Homepage after registration
-        setView('home');
-        setActiveTab('home');
+        setLoginError('Account created! Please sign in.'); 
+        // Do NOT setCurrentUser(user) to avoid loading the main app
     };
 
     const handleCreatePost = (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview) => {
@@ -628,9 +627,11 @@ export default function App() {
     // Public pages check (Help, Terms, Privacy)
     const isPublicPage = ['help', 'terms', 'privacy'].includes(view);
 
+    // IMPORTANT: Check Register state BEFORE Login check to allow immediate switching
+    if (showRegister) return <Register onRegister={handleRegister} onBackToLogin={() => setShowRegister(false)} />;
+
     // If not public page and not logged in, show Login
     if (!currentUser && !view && !isPublicPage) return <Login onLogin={handleLogin} onNavigateToRegister={() => setShowRegister(true)} onClose={() => setView('home')} error={loginError} />;
-    if (showRegister) return <Register onRegister={handleRegister} onBackToLogin={() => setShowRegister(false)} />;
 
     return (
         <div className="bg-[#18191A] min-h-screen text-[#E4E6EB] font-sans">
