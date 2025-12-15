@@ -1,19 +1,25 @@
 name = "unera-2"
 compatibility_date = "2024-11-01"
 
-# ===== D1 DATABASE BINDING =====
+# =====================================================
+# D1 DATABASE (UNERA)
+# =====================================================
 [[d1_databases]]
 binding = "DB"
-database_name = "UNERA_DB"
+database_name = "unera"
 database_id = "fd656687-7a46-4250-849a-28eb60ea9173"
 
-# ===== DURABLE OBJECT (REAL-TIME) =====
+# =====================================================
+# DURABLE OBJECT – REAL-TIME FEED
+# =====================================================
 [durable_objects]
 bindings = [
   { name = "LIVE_FEED_DO", class_name = "LiveFeed" }
 ]
 
-# ===== MIGRATIONS (required for Durable Objects) =====
+# =====================================================
+# DURABLE OBJECT MIGRATIONS
+# =====================================================
 [[migrations]]
 tag = "v1"
 new_classes = ["LiveFeed"]
