@@ -4,7 +4,10 @@ export async function onRequest({ request, env }) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const { username, email, password } = await request.json();
+  const data = await request.json();
+  const username = data.username.trim();
+  const email = data.email.trim().toLowerCase();
+  const password = data.password.trim();
 
   const result = await env.DB.prepare(
     "INSERT INTO users (username, email, password, joined_date) VALUES (?, ?, ?, ?)"

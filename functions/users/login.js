@@ -4,7 +4,9 @@ export async function onRequest({ request, env }) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const { email, password } = await request.json();
+  const data = await request.json();
+  const email = data.email.trim().toLowerCase();
+  const password = data.password.trim();
 
   const { results } = await env.DB.prepare(
     "SELECT id, username, email FROM users WHERE email = ? AND password = ?"
