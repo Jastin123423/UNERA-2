@@ -69,7 +69,7 @@ export const api = {
         request<any[]>('/comments'),
 
     // 4. Likes
-    createLike: (data: { user_id: number; target_id: number; target_type: 'post' | 'comment' }) => 
+    createLike: (data: { user_id: number; target_id: number; target_type: 'post' | 'comment'; like_type: string }) => 
         request('/likes', 'POST', data),
 
     // 5. Messages
