@@ -2,14 +2,16 @@
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
 
-  // Helper: Try to add the missing column if it doesn't exist
-  async function ensureLikeTypeColumn() {
-    try {
-      await env.DB.prepare("ALTER TABLE likes ADD COLUMN like_type TEXT DEFAULT 'like'").run();
-    } catch (e) {
-      // Ignore error if column already exists or other non-critical issue
-      // Some SQLite versions might throw if it exists, others are silent
-    }
+  // Helper: Self-heal database schema for both likes and notifications
+  async function ensureSchema() {
+    // Likes table columns
+    try { await env.DB.prepare("ALTER TABLE likes ADD COLUMN like_type TEXT DEFAULT 'like'").run(); } catch (e) {}
+    
+    // Notifications table columns
+    try { await env.DB.prepare("ALTER TABLE notifications ADD COLUMN sender_id INTEGER").run(); } catch (e) {}
+    try { await env.DB.prepare("ALTER TABLE notifications ADD COLUMN post_id INTEGER").run(); } catch (e) {}
+    try { await env.DB.prepare("ALTER TABLE notifications ADD COLUMN created_at INTEGER").run(); } catch (e) {}
+    try { await env.DB.prepare("ALTER TABLE notifications ADD COLUMN read INTEGER DEFAULT 0").run(); } catch (e) {}
   }
 
   // ======================
@@ -17,7 +19,7 @@ export async function onRequest({ request, env }) {
   // ======================
   if (request.method === "GET") {
     const target_id = url.searchParams.get("target_id");
-    const target_type = url.searchParams.get("target_type"); // "post" or "comment"
+    const target_type = url.searchParams.get("target_type");
 
     if (!target_id || !target_type) {
       return new Response(JSON.stringify({ error: "Missing target_id or target_type" }), { status: 400 });
@@ -28,7 +30,6 @@ export async function onRequest({ request, env }) {
             "SELECT like_type, COUNT(*) as count FROM likes WHERE target_id = ? AND target_type = ? GROUP BY like_type"
         ).bind(target_id, target_type).all();
 
-        // Build a map: { "like": 10, "love": 5, ... }
         const reactions = {};
         results.forEach(r => { reactions[r.like_type || "like"] = r.count; });
         return reactions;
@@ -36,20 +37,15 @@ export async function onRequest({ request, env }) {
 
     try {
       const reactions = await fetchReactions();
-      return new Response(JSON.stringify({ reactions }), {
-        headers: { "Content-Type": "application/json" }
-      });
+      return new Response(JSON.stringify({ reactions }), { headers: { "Content-Type": "application/json" } });
     } catch (e) {
-      // Self-heal: If column missing, add it and retry
-      if (e.message && e.message.includes("no such column: like_type")) {
+      if (e.message && e.message.includes("no such column")) {
+          await ensureSchema();
           try {
-              await ensureLikeTypeColumn();
-              const reactions = await fetchReactions();
-              return new Response(JSON.stringify({ reactions }), {
-                headers: { "Content-Type": "application/json" }
-              });
-          } catch (retryError) {
-              return new Response(JSON.stringify({ error: retryError.message }), { status: 500 });
+            const reactions = await fetchReactions();
+            return new Response(JSON.stringify({ reactions }), { headers: { "Content-Type": "application/json" } });
+          } catch(err) {
+            return new Response(JSON.stringify({ error: err.message }), { status: 500 });
           }
       }
       return new Response(JSON.stringify({ error: e.message }), { status: 500 });
@@ -57,7 +53,7 @@ export async function onRequest({ request, env }) {
   }
 
   // ======================
-  // POST: toggle or switch reaction
+  // POST: toggle reaction & notify
   // ======================
   if (request.method === "POST") {
     try {
@@ -69,26 +65,25 @@ export async function onRequest({ request, env }) {
       }
 
       const executeLogic = async () => {
-          // Check if user already reacted (any type)
+          // Check existing reaction
           const { results } = await env.DB.prepare(
             "SELECT id, like_type FROM likes WHERE user_id = ? AND target_id = ? AND target_type = ?"
           ).bind(user_id, target_id, target_type).all();
 
           if (results.length > 0) {
             const existing = results[0];
-            
             if (existing.like_type === like_type) {
-              // Same reaction -> Toggle OFF (Remove)
+              // Toggle OFF (Remove)
               await env.DB.prepare("DELETE FROM likes WHERE id = ?").bind(existing.id).run();
               return { success: true, reacted: false, type: like_type };
             } else {
-              // Different reaction -> Switch (Update)
+              // Switch Reaction
               await env.DB.prepare("UPDATE likes SET like_type = ? WHERE id = ?").bind(like_type, existing.id).run();
               return { success: true, reacted: true, type: like_type };
             }
           }
 
-          // Not reacted yet -> Insert
+          // Insert New Reaction
           await env.DB.prepare(
             "INSERT INTO likes (user_id, target_id, target_type, like_type) VALUES (?, ?, ?, ?)"
           ).bind(user_id, target_id, target_type, like_type).run();
@@ -96,22 +91,54 @@ export async function onRequest({ request, env }) {
           return { success: true, reacted: true, type: like_type };
       };
 
+      let responseData;
       try {
-        const responseData = await executeLogic();
-        return new Response(JSON.stringify(responseData), {
-            headers: { "Content-Type": "application/json" }
-        });
+        responseData = await executeLogic();
       } catch (err) {
-        // Self-heal: If column missing, add it and retry
-        if (err.message && err.message.includes("no such column: like_type")) {
-            await ensureLikeTypeColumn();
-            const responseData = await executeLogic();
-            return new Response(JSON.stringify(responseData), {
-                headers: { "Content-Type": "application/json" }
-            });
+        if (err.message && err.message.includes("no such column")) {
+            await ensureSchema();
+            responseData = await executeLogic();
+        } else {
+            throw err;
         }
-        throw err;
       }
+
+      // --- NOTIFICATION LOGIC ---
+      if (responseData.reacted && target_type === 'post') {
+          try {
+              // 1. Get Post Author
+              const post = await env.DB.prepare("SELECT user_id FROM posts WHERE id = ?").bind(target_id).first();
+              
+              // 2. Create Notification if author exists and is not the liker
+              if (post && post.user_id !== user_id) {
+                  const content = `reacted ${like_type} to your post.`;
+                  const now = Date.now();
+                  
+                  const insertNotif = async () => {
+                      await env.DB.prepare(
+                          "INSERT INTO notifications (user_id, sender_id, type, content, post_id, created_at, read) VALUES (?, ?, 'like', ?, ?, ?, 0)"
+                      ).bind(post.user_id, user_id, content, target_id, now).run();
+                  };
+
+                  try {
+                      await insertNotif();
+                  } catch (notifErr) {
+                      // Retry once if column missing
+                      if (notifErr.message.includes("no such column")) {
+                          await ensureSchema();
+                          await insertNotif();
+                      } else {
+                          console.error("Notification insert error:", notifErr);
+                      }
+                  }
+              }
+          } catch (e) {
+              console.error("Failed to process notification:", e);
+          }
+      }
+      // --------------------------
+
+      return new Response(JSON.stringify(responseData), { headers: { "Content-Type": "application/json" } });
 
     } catch (e) {
       return new Response(JSON.stringify({ error: e.message }), { status: 500 });
