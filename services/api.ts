@@ -12,10 +12,6 @@ async function request<T>(endpoint: string, method: string = 'GET', body?: any):
         'Content-Type': 'application/json',
     };
     
-    // Optional: Add token logic here if backend requires it
-    // const token = getCookie('unera_token');
-    // if (token) headers['Authorization'] = `Bearer ${token}`;
-
     const config: RequestInit = {
         method,
         headers,
@@ -25,7 +21,6 @@ async function request<T>(endpoint: string, method: string = 'GET', body?: any):
     try {
         const response = await fetch(`${API_BASE}${endpoint}`, config);
         if (!response.ok) {
-            // Check if response is JSON to parse error
             const errJson = await response.json().catch(() => null);
             if (errJson && errJson.error) throw new Error(errJson.error);
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -54,12 +49,18 @@ export const api = {
     getUsers: () => 
         request<any[]>('/users'),
 
+    followUser: (data: { follower_id: number, following_id: number }) =>
+        request('/users/follow', 'POST', data),
+
     // 2. Posts
     createPost: (data: { user_id: number; content: string; media_url?: string }) => 
         request('/posts', 'POST', data),
     
     getPosts: () => 
         request<any[]>('/posts'),
+
+    sharePost: (data: { user_id: number; original_post_id: number; caption: string; group_id?: string }) =>
+        request('/posts/share', 'POST', data),
 
     // 3. Comments
     createComment: (data: { post_id: number; user_id: number; content: string }) => 
@@ -68,9 +69,15 @@ export const api = {
     getComments: () => 
         request<any[]>('/comments'),
 
-    // 4. Likes
+    // 4. Likes & Notifications
     createLike: (data: { user_id: number; target_id: number; target_type: 'post' | 'comment'; like_type: string }) => 
         request('/likes', 'POST', data),
+
+    getNotifications: (userId: number) =>
+        request<any[]>(`/notifications?user_id=${userId}`),
+
+    markNotificationRead: (data: { notification_id?: number, user_id?: number, all?: boolean }) =>
+        request('/notifications/read', 'POST', data),
 
     // 5. Messages
     sendMessage: (data: { sender_id: number; receiver_id: number; content: string; media_url?: string }) => 
