@@ -24,8 +24,8 @@ export async function onRequest({ request, env }) {
 
       // 2. Increment followers count
       await env.DB.prepare(
-        "UPDATE users SET followers = followers + 1 WHERE id = ?"
-      ).bind(following_id).run();
+  "UPDATE users SET followers = followers + 1 WHERE id IN (?, ?)"
+).bind(follower_id, following_id).run();
 
       // 3. Store notification
       await env.DB.prepare(
