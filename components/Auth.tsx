@@ -2,6 +2,157 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { User } from '../types';
+import { api } from '../services/api';
+
+interface ForgotPasswordProps {
+    onClose: () => void;
+}
+
+const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onClose }) => {
+    const [step, setStep] = useState(1);
+    const [email, setEmail] = useState('');
+    const [foundUser, setFoundUser] = useState<User | null>(null);
+    const [code, setCode] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleFindAccount = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setIsLoading(true);
+        try {
+            const res = await api.findUser(email);
+            if (res.user) {
+                setFoundUser(res.user);
+                setStep(2);
+                // Simulate sending code
+                console.log("Code sent: 123456");
+            } else {
+                setError("No account found with that email.");
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to search.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleVerifyCode = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (code === '123456') { // Mock verification
+            setStep(3);
+            setError('');
+        } else {
+            setError("Incorrect code. Please try again.");
+        }
+    };
+
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newPassword.length < 6) {
+            setError("Password must be at least 6 characters.");
+            return;
+        }
+        setIsLoading(true);
+        try {
+            await api.resetPassword(email, newPassword);
+            alert("Password updated successfully. Please login.");
+            onClose();
+        } catch (err: any) {
+            setError(err.message || "Failed to reset password.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] bg-white/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in font-sans">
+            <div className="bg-white w-full max-w-[500px] rounded-lg shadow-xl border border-gray-200 overflow-hidden">
+                <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 className="font-bold text-gray-800 text-lg">Find Your Account</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl font-bold">&times;</button>
+                </div>
+                
+                <div className="p-6">
+                    {step === 1 && (
+                        <form onSubmit={handleFindAccount}>
+                            <p className="text-gray-600 mb-4 text-base">Please enter your email address or mobile number to search for your account.</p>
+                            <input 
+                                type="text" 
+                                className="w-full border border-gray-300 rounded p-3 mb-4 outline-none focus:border-[#1877F2] focus:shadow-sm" 
+                                placeholder="Email address or mobile number" 
+                                value={email} 
+                                onChange={e => setEmail(e.target.value)} 
+                                autoFocus
+                            />
+                            {error && <div className="text-red-600 text-sm mb-4 bg-red-50 p-2 border border-red-200 rounded">{error}</div>}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-2">
+                                <button type="button" onClick={onClose} className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded transition-colors">Cancel</button>
+                                <button type="submit" disabled={isLoading} className="bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-2 px-6 rounded transition-colors disabled:opacity-70">
+                                    {isLoading ? 'Searching...' : 'Search'}
+                                </button>
+                            </div>
+                        </form>
+                    )}
+
+                    {step === 2 && foundUser && (
+                        <form onSubmit={handleVerifyCode}>
+                            <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-4">
+                                <img src={foundUser.profileImage} className="w-16 h-16 rounded-full border border-gray-300" alt="Profile" />
+                                <div>
+                                    <h4 className="font-bold text-lg text-gray-800">{foundUser.name || foundUser.username}</h4>
+                                    <p className="text-gray-500 text-sm">UNERA User</p>
+                                </div>
+                            </div>
+                            <p className="text-gray-600 mb-4">We sent a code to your email: <strong>{email}</strong></p>
+                            <p className="text-xs text-gray-400 mb-2">Use code 123456 for demo</p>
+                            <input 
+                                type="text" 
+                                className="w-full border border-gray-300 rounded p-3 mb-4 outline-none focus:border-[#1877F2] text-center text-xl tracking-widest" 
+                                placeholder="Enter Code" 
+                                value={code} 
+                                onChange={e => setCode(e.target.value)} 
+                                maxLength={6}
+                            />
+                            {error && <div className="text-red-600 text-sm mb-4 bg-red-50 p-2 border border-red-200 rounded">{error}</div>}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-2">
+                                <button type="button" onClick={() => setStep(1)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded transition-colors">Not you?</button>
+                                <button type="submit" className="bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-2 px-6 rounded transition-colors">Continue</button>
+                            </div>
+                        </form>
+                    )}
+
+                    {step === 3 && (
+                        <form onSubmit={handleResetPassword}>
+                            <h4 className="font-bold text-gray-800 mb-2">Choose a New Password</h4>
+                            <p className="text-gray-600 text-sm mb-4">Create a new password that is at least 6 characters long. A strong password is a combination of letters, numbers, and punctuation marks.</p>
+                            
+                            <div className="mb-4">
+                                <input 
+                                    type="text" 
+                                    className="w-full border border-gray-300 rounded p-3 outline-none focus:border-[#1877F2]" 
+                                    placeholder="New password" 
+                                    value={newPassword} 
+                                    onChange={e => setNewPassword(e.target.value)} 
+                                />
+                            </div>
+                            
+                            {error && <div className="text-red-600 text-sm mb-4 bg-red-50 p-2 border border-red-200 rounded">{error}</div>}
+                            
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-2">
+                                <button type="button" onClick={onClose} className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded transition-colors">Skip</button>
+                                <button type="submit" disabled={isLoading} className="bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-2 px-6 rounded transition-colors disabled:opacity-70">
+                                    {isLoading ? 'Processing...' : 'Continue'}
+                                </button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 interface LoginProps {
     onLogin: (email: string, pass: string) => void;
@@ -14,12 +165,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showForgot, setShowForgot] = useState(false);
     const { t, setLanguage, language } = useLanguage();
     
     const handleSubmit = (e: React.FormEvent) => { 
         e.preventDefault(); 
         onLogin(email, password); 
     };
+
+    if (showForgot) {
+        return <ForgotPassword onClose={() => setShowForgot(false)} />;
+    }
 
     return (
         <div className="min-h-screen bg-[#18191A] flex flex-col justify-between p-4 relative animate-fade-in">
@@ -69,7 +225,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
                     </form>
                     
                     <div className="text-center">
-                        <span className="text-[#1877F2] text-[14px] hover:underline cursor-pointer">{t('forgot_password')}</span>
+                        <span className="text-[#1877F2] text-[14px] hover:underline cursor-pointer" onClick={() => setShowForgot(true)}>{t('forgot_password')}</span>
                     </div>
                     
                     <div className="border-b border-[#3E4042] my-1"></div>

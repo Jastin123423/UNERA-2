@@ -25,13 +25,15 @@ async function request<T>(endpoint: string, method: string = 'GET', body?: any):
     try {
         const response = await fetch(`${API_BASE}${endpoint}`, config);
         if (!response.ok) {
-            // If response is not ok (e.g. 404, 500), treat as failure
+            // Check if response is JSON to parse error
+            const errJson = await response.json().catch(() => null);
+            if (errJson && errJson.error) throw new Error(errJson.error);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         return await response.json();
-    } catch (error) {
+    } catch (error: any) {
         console.warn(`API Request failed: ${endpoint}.`, error);
-        return null as any;
+        return { error: error.message } as any;
     }
 }
 
@@ -42,6 +44,12 @@ export const api = {
     
     login: (data: { email: string; password: string }) => 
         request<any>('/users/login', 'POST', data),
+    
+    findUser: (email: string) => 
+        request<any>('/users/find', 'POST', { email }),
+
+    resetPassword: (email: string, newPassword: string) => 
+        request<any>('/users/reset-password', 'POST', { email, newPassword }),
         
     getUsers: () => 
         request<any[]>('/users'),

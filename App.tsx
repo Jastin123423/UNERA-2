@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Login, Register } from './components/Auth';
 import { Header, Sidebar, RightSidebar, MenuOverlay } from './components/Layout';
@@ -24,21 +23,45 @@ import { INITIAL_USERS, INITIAL_POSTS, INITIAL_STORIES, INITIAL_REELS, INITIAL_E
 import { rankFeed } from './utils/ranking'; 
 import { api } from './services/api';
 
-// --- COOKIE HELPERS ---
-const setCookie = (name: string, value: string, days: number) => {
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
+// --- SESSION HELPERS ---
+const setSession = (user: User) => {
+    // 1. Set Cookie (Fallback/Server compatible)
+    const expires = new Date(Date.now() + 30 * 864e5).toUTCString(); // 30 days
+    document.cookie = 'unera_user=' + encodeURIComponent(JSON.stringify(user)) + '; expires=' + expires + '; path=/';
+    
+    // 2. Set LocalStorage (Better for PWA/WebView)
+    try {
+        localStorage.setItem('unera_user', JSON.stringify(user));
+    } catch (e) {
+        console.error("LocalStorage unavailable");
+    }
 };
 
-const getCookie = (name: string) => {
-    return document.cookie.split('; ').reduce((r, v) => {
+const getSession = (): User | null => {
+    // 1. Try LocalStorage
+    try {
+        const local = localStorage.getItem('unera_user');
+        if (local) return JSON.parse(local);
+    } catch (e) {}
+
+    // 2. Try Cookie
+    const cookie = document.cookie.split('; ').reduce((r, v) => {
         const parts = v.split('=');
-        return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+        return parts[0] === 'unera_user' ? decodeURIComponent(parts[1]) : r;
     }, '');
+    
+    if (cookie) {
+        try {
+            return JSON.parse(cookie);
+        } catch (e) {}
+    }
+    
+    return null;
 };
 
-const deleteCookie = (name: string) => {
-    setCookie(name, '', -1);
+const clearSession = () => {
+    document.cookie = 'unera_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    try { localStorage.removeItem('unera_user'); } catch (e) {}
 };
 
 // Helper for Timestamp
@@ -97,14 +120,9 @@ export default function App() {
     
     // --- SESSION RESTORATION ---
     useEffect(() => {
-        const storedUser = getCookie('unera_user');
+        const storedUser = getSession();
         if (storedUser) {
-            try {
-                const user = JSON.parse(storedUser);
-                setCurrentUser(user);
-            } catch (e) {
-                console.error("Failed to restore session", e);
-            }
+            setCurrentUser(storedUser);
         }
     }, []);
 
@@ -434,7 +452,7 @@ export default function App() {
             
             if (response && response.user) {
                 const user: User = {
-                    id: response.user.id || 999, // Fallback ID if API varies
+                    id: response.user.id || 999,
                     name: response.user.username || response.user.email.split('@')[0],
                     email: response.user.email,
                     profileImage: response.user.profile_url || `https://ui-avatars.com/api/?name=${response.user.email}&background=random`,
@@ -447,8 +465,7 @@ export default function App() {
                 };
                 
                 setCurrentUser(user);
-                // Store session in cookie
-                setCookie('unera_user', JSON.stringify(user), 7); // 7 days
+                setSession(user); // Persistent Login
                 
                 setLoginError('');
                 setView('home');
@@ -466,7 +483,7 @@ export default function App() {
         const user = users.find(u => u.email === email && u.password === pass);
         if (user) {
             setCurrentUser(user);
-            setCookie('unera_user', JSON.stringify(user), 7);
+            setSession(user);
             setLoginError('');
             setView('home');
             setActiveTab('home');
@@ -477,13 +494,17 @@ export default function App() {
 
     const handleRegister = async (newUser: Partial<User>) => {
         try {
+            // 1. Sign up API call
             await api.signup({ 
                 username: newUser.name || 'User',
                 email: newUser.email!, 
                 password: newUser.password! 
             });
-            alert("Account created successfully! Please login.");
+            
+            // 2. Auto-Login Immediately
+            await handleLogin(newUser.email!, newUser.password!);
             setShowRegister(false);
+            
         } catch (e) {
             console.log("API Signup unavailable, using local mock.");
             const user: User = {
@@ -507,14 +528,20 @@ export default function App() {
                 interests: []
             };
             setUsers([...users, user]);
+            
+            // Auto Login Local
+            setCurrentUser(user);
+            setSession(user);
+            
             setShowRegister(false);
-            setLoginError('Account created locally! Please sign in.');
+            setLoginError('');
+            setView('home');
         }
     };
 
     const handleLogout = () => {
         setCurrentUser(null);
-        deleteCookie('unera_user');
+        clearSession();
         setView('home');
     };
 
@@ -676,7 +703,7 @@ export default function App() {
             following: isFollowing ? currentUser.following.filter(id => id !== userId) : [...currentUser.following, userId]
         };
         setCurrentUser(updatedCurrentUser);
-        setCookie('unera_user', JSON.stringify(updatedCurrentUser), 7);
+        setSession(updatedCurrentUser);
         setUsers(prevUsers => prevUsers.map(u => {
             if (u.id === currentUser.id) return updatedCurrentUser;
             if (u.id === userId) {
@@ -774,7 +801,7 @@ export default function App() {
         setBrands(prev => prev.map(b => { if (b.id === brandId) { return { ...b, followers: isFollowing ? b.followers.filter(id => id !== currentUser.id) : [...b.followers, currentUser.id] }; } return b; }));
         const updatedUser = { ...currentUser, following: isFollowing ? currentUser.following.filter(id => id !== brandId) : [...currentUser.following, brandId] };
         setCurrentUser(updatedUser);
-        setCookie('unera_user', JSON.stringify(updatedUser), 7);
+        setSession(updatedUser);
         setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
     };
     const handlePostAsBrand = (brandId: number, contentData: any) => {
@@ -867,7 +894,14 @@ export default function App() {
                     {view === 'create_event' && <EventsPage events={events} currentUser={currentUser!} onJoinEvent={(eid) => setEvents(prev => prev.map(e => e.id === eid ? { ...e, attendees: [...e.attendees, currentUser!.id] } : e))} onCreateEventClick={() => setShowCreateEventModal(true)} />}
                     {view === 'birthdays' && currentUser && <BirthdaysPage currentUser={currentUser} users={users} onMessage={(id) => { setActiveChatUser(users.find(u => u.id === id) || null); }} />}
                     {view === 'memories' && currentUser && <MemoriesPage currentUser={currentUser} posts={posts} users={users} />}
-                    {view === 'settings' && <SettingsPage currentUser={currentUser} onUpdateUser={(data) => { setUsers(prev => prev.map(u => u.id === currentUser!.id ? { ...u, ...data } : u)); setCurrentUser(prev => prev ? { ...prev, ...data } : null); }} />}
+                    {view === 'settings' && <SettingsPage currentUser={currentUser} onUpdateUser={(data) => { 
+                        if (currentUser) {
+                            const updatedUser = { ...currentUser, ...data };
+                            setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u)); 
+                            setCurrentUser(updatedUser); 
+                            setSession(updatedUser);
+                        }
+                    }} />}
                 </div>
                 <RightSidebar contacts={users.filter(u => currentUser && currentUser.following.includes(u.id))} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} />
             </div>
