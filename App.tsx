@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Login, Register } from './components/Auth';
 import { Header, Sidebar, RightSidebar, MenuOverlay } from './components/Layout';
@@ -439,6 +438,36 @@ export default function App() {
         if (destination.startsWith('post-')) { setView('home'); } else { setView(destination); setActiveTab(destination); }
     };
 
+    // --- HELPER FOR VIDEO CLICK (OPEN IN REELS) ---
+    const handleVideoClick = (post: PostType) => {
+        if (post.type !== 'video' || !post.video) return;
+
+        // Check if this post already exists as a reel to avoid duplicates or missing context
+        const existingReel = reels.find(r => r.id === post.id);
+
+        if (!existingReel) {
+            // Convert the Post to a Reel object temporarily for the feed
+            const newReel: Reel = {
+                id: post.id,
+                userId: post.authorId,
+                videoUrl: post.video,
+                caption: post.content || '',
+                songName: 'Original Audio', // Default if not specified in post
+                reactions: post.reactions,
+                comments: post.comments,
+                shares: post.shares,
+                isCompressed: false
+            };
+            // Add to reels state so it appears in the feed
+            setReels(prev => [newReel, ...prev]);
+        }
+
+        // Navigate to Reels view and focus this video
+        setActiveReelId(post.id);
+        setView('reels');
+        setActiveTab('reels');
+    };
+
     if (isLoading) return <Spinner />;
     const isPublicPage = ['help', 'terms', 'privacy'].includes(view);
     if (showRegister) return <Register onRegister={handleRegister} onBackToLogin={() => setShowRegister(false)} />;
@@ -461,13 +490,17 @@ export default function App() {
                                 return (
                                     <Post key={post.id} post={post} author={author as any} currentUser={currentUser} users={users}
                                         onProfileClick={(id) => { if (brands.some(b => b.id === id)) { setView('brands'); } else { setSelectedUserId(id); setView('profile'); } }}
-                                        onReact={handleReaction} onShare={(id) => setActiveSharePostId(id)} onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))} onEdit={(id, content) => setPosts(prev => prev.map(p => p.id === id ? { ...p, content } : p))} onHashtagClick={() => {}} onViewImage={(url) => setFullScreenImage(url)} onOpenComments={(id) => setActiveCommentsPostId(id)} onVideoClick={(post) => { if(post.type === 'video') setFullScreenImage(post.video!); }} onViewProduct={(p) => setActiveProduct(p)} onFollow={handleFollow} isFollowing={currentUser ? currentUser.following.includes(author.id) : false} onPlayAudio={(track) => { setCurrentAudioTrack(track); setIsAudioPlaying(true); }} sharedPost={(post as any).embeddedSharedPost}
+                                        onReact={handleReaction} onShare={(id) => setActiveSharePostId(id)} onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))} onEdit={(id, content) => setPosts(prev => prev.map(p => p.id === id ? { ...p, content } : p))} onHashtagClick={() => {}} onViewImage={(url) => setFullScreenImage(url)} onOpenComments={(id) => setActiveCommentsPostId(id)} 
+                                        onVideoClick={handleVideoClick} 
+                                        onViewProduct={(p) => setActiveProduct(p)} onFollow={handleFollow} isFollowing={currentUser ? currentUser.following.includes(author.id) : false} onPlayAudio={(track) => { setCurrentAudioTrack(track); setIsAudioPlaying(true); }} sharedPost={(post as any).embeddedSharedPost}
                                     />
                                 );
                             })}
                         </div>
                     )}
-                    {view === 'profile' && selectedUserId && <UserProfile user={users.find(u => u.id === selectedUserId)!} currentUser={currentUser} users={users} groups={groups} brands={brands} posts={posts} reels={reels} songs={songs} episodes={episodes} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onFollow={handleFollow} onReact={handleReaction} onComment={handleComment} onShare={(id) => setActiveSharePostId(id)} onMessage={(id) => { setActiveChatUser(users.find(u => u.id === id) || null); }} onCreatePost={handleCreatePost} onUpdateProfileImage={(file) => { if (currentUser) { const url = URL.createObjectURL(file); setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, profileImage: url } : u)); setCurrentUser(prev => prev ? { ...prev, profileImage: url } : null); } }} onUpdateCoverImage={(file) => { if (currentUser) { const url = URL.createObjectURL(file); setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, coverImage: url } : u)); setCurrentUser(prev => prev ? { ...prev, coverImage: url } : null); } }} onUpdateUserDetails={(data) => { if (currentUser) { setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, ...data } : u)); setCurrentUser(prev => prev ? { ...prev, ...data } : null); } }} onDeletePost={(id) => setPosts(prev => prev.filter(p => p.id !== id))} onEditPost={(id, content) => setPosts(prev => prev.map(p => p.id === id ? { ...p, content } : p))} getCommentAuthor={(id) => users.find(u => u.id === id)} onViewImage={(url) => setFullScreenImage(url)} onCreateEventClick={() => setShowCreateEventModal(true)} onOpenComments={(id) => setActiveCommentsPostId(id)} onVideoClick={(post) => { if(post.type === 'video') setFullScreenImage(post.video!); }} onPlayAudio={(track) => { setCurrentAudioTrack(track); setIsAudioPlaying(true); }} />}
+                    {view === 'profile' && selectedUserId && <UserProfile user={users.find(u => u.id === selectedUserId)!} currentUser={currentUser} users={users} groups={groups} brands={brands} posts={posts} reels={reels} songs={songs} episodes={episodes} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onFollow={handleFollow} onReact={handleReaction} onComment={handleComment} onShare={(id) => setActiveSharePostId(id)} onMessage={(id) => { setActiveChatUser(users.find(u => u.id === id) || null); }} onCreatePost={handleCreatePost} onUpdateProfileImage={(file) => { if (currentUser) { const url = URL.createObjectURL(file); setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, profileImage: url } : u)); setCurrentUser(prev => prev ? { ...prev, profileImage: url } : null); } }} onUpdateCoverImage={(file) => { if (currentUser) { const url = URL.createObjectURL(file); setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, coverImage: url } : u)); setCurrentUser(prev => prev ? { ...prev, coverImage: url } : null); } }} onUpdateUserDetails={(data) => { if (currentUser) { setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, ...data } : u)); setCurrentUser(prev => prev ? { ...prev, ...data } : null); } }} onDeletePost={(id) => setPosts(prev => prev.filter(p => p.id !== id))} onEditPost={(id, content) => setPosts(prev => prev.map(p => p.id === id ? { ...p, content } : p))} getCommentAuthor={(id) => users.find(u => u.id === id)} onViewImage={(url) => setFullScreenImage(url)} onCreateEventClick={() => setShowCreateEventModal(true)} onOpenComments={(id) => setActiveCommentsPostId(id)} 
+                    onVideoClick={handleVideoClick} 
+                    onPlayAudio={(track) => { setCurrentAudioTrack(track); setIsAudioPlaying(true); }} />}
                     {view === 'marketplace' && <MarketplacePage currentUser={currentUser} products={products} onNavigateHome={() => { setView('home'); setActiveTab('home'); }} onCreateProduct={(p) => setProducts([{ id: Date.now(), sellerId: currentUser!.id, sellerName: currentUser!.name, sellerAvatar: currentUser!.profileImage, date: Date.now(), views: 0, ratings: [], comments: [], images: [], title: '', category: '', description: '', country: '', address: '', mainPrice: 0, quantity: 1, phoneNumber: '', status: 'active', shareId: '', ...p } as Product, ...products])} onViewProduct={(p) => setActiveProduct(p)} />}
                     {view === 'reels' && <ReelsFeed reels={reels} users={users} currentUser={currentUser} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onCreateReelClick={() => setShowCreateReelModal(true)} onReact={(rid, type) => { setReels(prev => prev.map(r => r.id === rid ? { ...r, reactions: [...r.reactions, { userId: currentUser!.id, type }] } : r)); api.createLike({ user_id: currentUser!.id, target_id: rid, target_type: 'post', like_type: type }); }} onComment={(rid, text) => setReels(prev => prev.map(r => r.id === rid ? { ...r, comments: [...r.comments, { id: Date.now(), userId: currentUser!.id, text, timestamp: "Just now", likes: 0 }] } : r))} onShare={(rid) => setReels(prev => prev.map(r => r.id === rid ? { ...r, shares: r.shares + 1 } : r))} onFollow={handleFollow} getCommentAuthor={(id) => users.find(u => u.id === id)} initialReelId={activeReelId} />}
                     {view === 'groups' && <GroupsPage currentUser={currentUser} groups={groups} users={users} onCreateGroup={handleCreateGroup} onJoinGroup={handleJoinGroup} onLeaveGroup={(gid) => setGroups(prev => prev.map(g => g.id === gid ? { ...g, members: g.members.filter(m => m !== currentUser!.id) } : g))} onDeleteGroup={(gid) => setGroups(prev => prev.filter(g => g.id !== gid))} onUpdateGroupImage={(gid, type, file) => { const url = URL.createObjectURL(file); setGroups(prev => prev.map(g => g.id === gid ? { ...g, [type === 'cover' ? 'coverImage' : 'image']: url } : g)); }} onPostToGroup={handlePostToGroup} onCreateGroupEvent={(gid, event) => setGroups(prev => prev.map(g => g.id === gid ? { ...g, events: [...(g.events || []), { id: Date.now(), organizerId: currentUser!.id, attendees: [currentUser!.id], ...event } as Event] } : g))} onInviteToGroup={() => alert("Invitation sent!")} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onLikePost={(gid, pid) => { setGroups(prev => prev.map(g => g.id === gid ? { ...g, posts: g.posts.map(p => p.id === pid ? { ...p, reactions: [...(p.reactions || []), { userId: currentUser!.id, type: 'like' }] } : p) } : g)); api.createLike({ user_id: currentUser!.id, target_id: pid, target_type: 'post', like_type: 'like' }); }} onOpenComments={(gid, pid) => setActiveCommentsPostId(pid)} onSharePost={(gid, pid) => setActiveSharePostId(pid)} onDeleteGroupPost={(pid) => setGroups(prev => prev.map(g => ({ ...g, posts: g.posts.filter(p => p.id !== pid) })))} onRemoveMember={(gid, uid) => setGroups(prev => prev.map(g => g.id === gid ? { ...g, members: g.members.filter(m => m !== uid) } : g))} onUpdateGroupSettings={(gid, settings) => setGroups(prev => prev.map(g => g.id === gid ? { ...g, ...settings } : g))} />}
