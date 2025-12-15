@@ -76,6 +76,9 @@ export const api = {
     getNotifications: (userId: number) =>
         request<any[]>(`/notifications?user_id=${userId}`),
 
+    getUnreadNotificationsCount: (userId: number) =>
+        request<{unread: number}>(`/notifications/unread?user_id=${userId}`),
+
     markNotificationRead: (data: { notification_id?: number, user_id?: number, all?: boolean }) =>
         request('/notifications/read', 'POST', data),
 
