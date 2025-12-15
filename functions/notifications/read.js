@@ -1,20 +1,29 @@
 
 export async function onRequest({ request, env }) {
-  if (request.method !== "POST") {
+  // Allow POST (standard) or PATCH (often used for updates)
+  if (request.method !== "POST" && request.method !== "PATCH") {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
   try {
-    const { notification_id, user_id, all } = await request.json();
+    const { user_id, notification_id } = await request.json();
 
-    if (all && user_id) {
-      // Mark all as read for user
-      await env.DB.prepare("UPDATE notifications SET read = 1 WHERE user_id = ?").bind(user_id).run();
-    } else if (notification_id) {
-      // Mark specific notification
-      await env.DB.prepare("UPDATE notifications SET read = 1 WHERE id = ?").bind(notification_id).run();
-    } else {
-        return new Response(JSON.stringify({ error: "Missing parameters" }), { status: 400 });
+    if (!user_id && !notification_id) {
+        return new Response(JSON.stringify({ error: "Missing user_id or notification_id" }), { status: 400 });
+    }
+
+    // 1. Mark ALL notifications as read for a specific user
+    if (user_id) {
+        // We use 'read' column based on previous schema definitions
+        await env.DB.prepare(
+            "UPDATE notifications SET read = 1 WHERE user_id = ?"
+        ).bind(user_id).run();
+    } 
+    // 2. Mark a SINGLE notification as read
+    else if (notification_id) {
+        await env.DB.prepare(
+            "UPDATE notifications SET read = 1 WHERE id = ?"
+        ).bind(notification_id).run();
     }
 
     return new Response(JSON.stringify({ success: true }), {
