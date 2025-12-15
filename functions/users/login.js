@@ -1,16 +1,22 @@
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 export async function onRequest({ request, env }) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   if (request.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: corsHeaders,
+    });
   }
 
   const data = await request.json();
-
-  if (!data.email || !data.password) {
-    return new Response(
-      JSON.stringify({ error: "Email and password required" }),
-      { status: 400 }
-    );
-  }
 
   const email = String(data.email).trim().toLowerCase();
   const password = String(data.password).trim();
@@ -22,12 +28,12 @@ export async function onRequest({ request, env }) {
   if (!results.length) {
     return new Response(
       JSON.stringify({ error: "Invalid credentials" }),
-      { status: 401 }
+      { status: 401, headers: corsHeaders }
     );
   }
 
   return new Response(
     JSON.stringify({ success: true, user: results[0] }),
-    { headers: { "Content-Type": "application/json" } }
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 }
