@@ -65,8 +65,8 @@ export async function onRequest({ request, env }) {
       }
 
       await env.DB.prepare(
-        "UPDATE users SET followers = CASE WHEN followers > 0 THEN followers - 1 ELSE 0 END WHERE id = ?"
-      ).bind(following_id).run();
+  "UPDATE users SET followers = CASE WHEN followers > 0 THEN followers - 1 ELSE 0 END WHERE id IN (?, ?)"
+).bind(follower_id, following_id).run();
 
       return new Response(JSON.stringify({ unfollowed: true }), {
         headers: { "Content-Type": "application/json" }
