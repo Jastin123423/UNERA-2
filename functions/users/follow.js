@@ -3,25 +3,21 @@ export async function onRequest({ request, env }) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const data = await request.json();
-  const { follower_id, following_id, action } = data;
+  const { follower_id, following_id, action } = await request.json();
 
   if (!follower_id || !following_id || !action) {
     return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
   }
 
   if (action === "follow") {
-    // Add follow record
     await env.DB.prepare(
       "INSERT OR IGNORE INTO follows (follower_id, following_id) VALUES (?, ?)"
     ).bind(follower_id, following_id).run();
 
-    // Increment only the followed user's followers
     await env.DB.prepare(
       "UPDATE users SET followers = followers + 1 WHERE id = ?"
     ).bind(following_id).run();
 
-    // Notification
     await env.DB.prepare(
       "INSERT INTO notifications (user_id, type, content, actor_id) VALUES (?, ?, ?, ?)"
     ).bind(
@@ -35,12 +31,10 @@ export async function onRequest({ request, env }) {
   }
 
   if (action === "unfollow") {
-    // Remove follow record
     await env.DB.prepare(
       "DELETE FROM follows WHERE follower_id = ? AND following_id = ?"
     ).bind(follower_id, following_id).run();
 
-    // Decrement followers count (never negative)
     await env.DB.prepare(
       "UPDATE users SET followers = CASE WHEN followers > 0 THEN followers - 1 ELSE 0 END WHERE id = ?"
     ).bind(following_id).run();
