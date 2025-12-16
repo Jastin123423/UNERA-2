@@ -1,0 +1,16 @@
+name = "unera-2"
+compatibility_date = "2024-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "unera"
+database_id = "fd656687-7a46-4250-849a-28eb60ea9173"
+
+[durable_objects]
+bindings = [
+  { name = "LIVE_FEED_DO", class_name = "LiveFeed" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["LiveFeed"]
