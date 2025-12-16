@@ -1,4 +1,4 @@
-@@ -1,20 +1 @@
+
 # === Project Settings ===
 name = "unera-2"                    # your Cloudflare Pages project name
 compatibility_date = "2024-11-01"   # pick the date of your environment
@@ -19,3 +19,4 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_classes = ["LiveFeed"]
+
