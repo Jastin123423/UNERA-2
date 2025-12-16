@@ -1,4 +1,3 @@
-
 export async function onRequest({ request, env }) {
   if (request.method !== "GET") {
     return new Response("Method Not Allowed", { status: 405 });
@@ -11,7 +10,11 @@ export async function onRequest({ request, env }) {
 
   try {
     const { results } = await env.DB.prepare(`
-      SELECT u.id, u.username, u.profile_url, COUNT(*) AS mutuals
+      SELECT 
+        u.id,
+        u.username,
+        u.avatar_url,
+        COUNT(*) AS mutuals
       FROM follows f1
       JOIN follows f2 ON f1.following_id = f2.follower_id
       JOIN users u ON u.id = f2.following_id
@@ -29,6 +32,9 @@ export async function onRequest({ request, env }) {
       headers: { "Content-Type": "application/json" }
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    return new Response(
+      JSON.stringify({ error: e.message }),
+      { status: 500 }
+    );
   }
 }
