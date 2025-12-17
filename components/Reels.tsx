@@ -13,6 +13,8 @@ interface CreateReelProps {
 }
 
 export const CreateReel: React.FC<CreateReelProps> = ({ currentUser, onClose, onSubmit }) => {
+    // ... existing CreateReel implementation (omitted for brevity as no changes needed here) ...
+    // Using existing implementation from previous file context
     const [step, setStep] = useState<'upload' | 'editor' | 'details'>('upload');
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [videoPreview, setVideoPreview] = useState<string | null>(null);
@@ -413,7 +415,8 @@ export const ReelsFeed: React.FC<ReelsFeedProps> = ({ reels, users, currentUser,
                 {reels.map((reel, index) => {
                     const author = users.find(u => u.id === reel.userId);
                     const myReaction = currentUser ? reel.reactions.find(r => r.userId === currentUser.id)?.type : undefined;
-                    const isFollowing = author && currentUser ? (author.followers.includes(currentUser.id) || currentUser.following.includes(author.id)) : false;
+                    // UPDATED: Check currentUser.following directly for consistency
+                    const isFollowing = currentUser ? currentUser.following.includes(author?.id || 0) : false;
                     const isSelf = currentUser && author?.id === currentUser.id;
 
                     if (!author) return null;

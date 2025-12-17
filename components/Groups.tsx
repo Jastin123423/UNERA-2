@@ -96,13 +96,15 @@ interface GroupsPageProps {
     onDeleteGroupPost: (postId: number) => void;
     onRemoveMember: (groupId: string, memberId: number) => void;
     onUpdateGroupSettings: (groupId: string, settings: Partial<Group>) => void;
+    initialGroupId?: string | null;
 }
 
 export const GroupsPage: React.FC<GroupsPageProps> = ({ 
     currentUser, groups, users, 
     onCreateGroup, onJoinGroup, onLeaveGroup, onDeleteGroup, onUpdateGroupImage,
     onPostToGroup, onCreateGroupEvent, onInviteToGroup, 
-    onProfileClick, onLikePost, onOpenComments, onSharePost, onDeleteGroupPost, onRemoveMember, onUpdateGroupSettings
+    onProfileClick, onLikePost, onOpenComments, onSharePost, onDeleteGroupPost, onRemoveMember, onUpdateGroupSettings,
+    initialGroupId
 }) => {
     const [view, setView] = useState<'feed' | 'detail'>('feed');
     const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
@@ -136,6 +138,17 @@ export const GroupsPage: React.FC<GroupsPageProps> = ({
     const [activeBackground, setActiveBackground] = useState('');
     const [postLocation, setPostLocation] = useState('');
     const [postFeeling, setPostFeeling] = useState('');
+
+    useEffect(() => {
+        if (initialGroupId) {
+            const group = groups.find(g => g.id === initialGroupId);
+            if (group) {
+                setActiveGroupId(group.id);
+                setView('detail');
+                setGroupTab('Discussion');
+            }
+        }
+    }, [initialGroupId, groups]);
 
     const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || null, [groups, activeGroupId]);
 
@@ -495,7 +508,7 @@ export const GroupsPage: React.FC<GroupsPageProps> = ({
                 {groupTab === 'Members' && (
                     <div className="bg-[#242526] rounded-xl border border-[#3E4042] mx-4 md:mx-0 overflow-hidden">
                         <div className="p-4 border-b border-[#3E4042]">
-                            <h3 className="font-bold text-[#E4E6EB] text-lg">Members · {activeGroup.members.length}</h3>
+                            <h3 className="text-[#E4E6EB] font-bold text-lg">Members · {activeGroup.members.length}</h3>
                         </div>
                         <div className="p-2">
                             {activeGroup.members.map(memberId => {

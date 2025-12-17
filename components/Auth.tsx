@@ -101,7 +101,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onClose }) => {
                             <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-4">
                                 <img src={foundUser.profileImage} className="w-16 h-16 rounded-full border border-gray-300" alt="Profile" />
                                 <div>
-                                    <h4 className="font-bold text-lg text-gray-800">{foundUser.name || foundUser.username}</h4>
+                                    <h4 className="font-bold text-lg text-gray-800">{foundUser.name}</h4>
                                     <p className="text-gray-500 text-sm">UNERA User</p>
                                 </div>
                             </div>
@@ -159,9 +159,10 @@ interface LoginProps {
     onNavigateToRegister: () => void;
     onClose: () => void;
     error: string;
+    message?: string; // New prop for instruction messages
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onClose, error }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onClose, error, message }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -178,8 +179,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
     }
 
     return (
-        <div className="min-h-screen bg-[#18191A] flex flex-col justify-between p-4 relative animate-fade-in">
-            <div className="absolute top-4 right-4 w-10 h-10 bg-[#3A3B3C] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#4E4F50] transition-colors z-50" onClick={onClose} title="Continue as Guest">
+        <div className="fixed inset-0 z-[200] bg-[#18191A] flex flex-col justify-between p-4 animate-fade-in overflow-y-auto">
+            <div className="absolute top-4 right-4 w-10 h-10 bg-[#3A3B3C] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#4E4F50] transition-colors z-50" onClick={onClose} title="Close">
                 <i className="fas fa-times text-[#E4E6EB] text-xl"></i>
             </div>
             
@@ -194,6 +195,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
                 
                 <div className="bg-[#242526] p-4 rounded-lg shadow-lg w-full max-w-[396px] flex flex-col gap-4 border border-[#3E4042]">
                     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        {message && (
+                            <div className="bg-[#263951] border border-[#2D88FF] text-[#E4E6EB] px-4 py-3 rounded text-sm text-center flex items-center justify-center gap-2">
+                                <i className="fas fa-info-circle text-[#2D88FF]"></i>
+                                {message}
+                            </div>
+                        )}
                         {error && <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded text-sm text-center">{error}</div>}
                         <input 
                             type="email" 
@@ -239,7 +246,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
             </div>
             
             <div className="mt-8 text-center text-xs text-[#B0B3B8]">
-                <p>Login to comment, like, and share posts. <span className="text-[#E4E6EB] font-bold cursor-pointer hover:underline" onClick={onClose}>Continue as Guest</span> to view.</p>
+                <p>Login to fully experience UNERA.</p>
             </div>
             
             <div className="mt-auto pt-8 pb-4 w-full max-w-[1000px] mx-auto border-t border-[#3E4042]">
@@ -265,6 +272,7 @@ interface CountryData {
 }
 
 export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin }) => {
+    // ... existing Register code ...
     const [firstName, setFirstName] = useState('');
     const [surname, setSurname] = useState(''); // Optional
     const [email, setEmail] = useState('');

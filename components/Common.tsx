@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 
 export const Spinner = () => (
     <div className="fixed inset-0 flex flex-col items-center bg-[#18191A] z-[9999]">
@@ -26,25 +26,17 @@ export const Spinner = () => (
 );
 
 interface ImageViewerProps {
-    imageUrl: string;
+    image: string;
     onClose: () => void;
 }
 
-export const ImageViewer: React.FC<ImageViewerProps> = ({ imageUrl, onClose }) => {
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
-
+export const ImageViewer: React.FC<ImageViewerProps> = ({ image, onClose }) => {
     return (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center animate-fade-in" onClick={onClose}>
-            <div className="absolute top-4 right-4 w-10 h-10 bg-[#3A3B3C] hover:bg-[#4E4F50] rounded-full flex items-center justify-center cursor-pointer transition-colors z-50" onClick={onClose}>
+        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center animate-fade-in" onClick={onClose}>
+            <div className="absolute top-4 right-4 z-10 w-10 h-10 bg-[#3A3B3C]/50 hover:bg-[#4E4F50] rounded-full flex items-center justify-center cursor-pointer transition-colors" onClick={onClose}>
                 <i className="fas fa-times text-[#E4E6EB] text-xl"></i>
             </div>
-            <img src={imageUrl} alt="Full screen" className="max-w-full max-h-screen object-contain shadow-2xl cursor-default" onClick={(e) => e.stopPropagation()} />
+            <img src={image} alt="Full screen" className="max-w-full max-h-screen object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
         </div>
     );
 };

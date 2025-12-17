@@ -107,7 +107,8 @@ export interface Post {
     id: number;
     authorId: number;
     content?: string;
-    image?: string;
+    image?: string; // Single image (legacy/simple)
+    images?: string[]; // Multiple images support
     video?: string;
     timestamp: string; // Display string e.g. "2h"
     createdAt?: number; // Actual timestamp for Freshness Algorithm
@@ -141,9 +142,19 @@ export interface Post {
 export interface Story {
     id: number;
     userId: number;
-    image: string;
+    type: 'image' | 'text' | 'video';
+    image?: string; // Used for both Image URL and Video URL
+    text?: string;
+    background?: string;
+    music?: {
+        url: string;
+        title: string;
+        artist: string;
+        cover?: string;
+        startTime?: number; // Start time in seconds or percentage
+    };
     user?: User;
-    createdAt: number; // Added for expiration
+    createdAt: number;
 }
 
 export interface Reel {

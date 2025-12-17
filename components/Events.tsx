@@ -108,3 +108,53 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
         </div>
     );
 };
+
+interface EventsPageProps { events: Event[]; currentUser: User | null; onJoinEvent: (eventId: number) => void; onCreateEventClick: () => void; }
+
+export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventClick, currentUser, onJoinEvent }) => {
+    return (
+        <div className="w-full max-w-[800px] mx-auto p-4 font-sans pb-20 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-[#E4E6EB]">Events</h1>
+                <button onClick={onCreateEventClick} className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
+                    <i className="fas fa-plus"></i> Create Event
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {events.map(event => (
+                    <div key={event.id} className="bg-[#242526] rounded-xl overflow-hidden border border-[#3E4042] group cursor-pointer">
+                        <div className="h-40 overflow-hidden relative">
+                            <img src={event.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            <div className="absolute top-2 left-2 bg-white rounded-lg px-2 py-1 text-center min-w-[50px]">
+                                <span className="block text-red-500 font-bold text-xs uppercase">{new Date(event.date).toLocaleString('default', { month: 'short' })}</span>
+                                <span className="block text-black font-bold text-xl leading-none">{new Date(event.date).getDate()}</span>
+                            </div>
+                        </div>
+                        <div className="p-4">
+                            <h3 className="text-[#E4E6EB] font-bold text-lg mb-1 truncate">{event.title}</h3>
+                            <p className="text-red-500 text-sm font-semibold mb-2">{new Date(event.date).toDateString()} • {event.time}</p>
+                            <p className="text-[#B0B3B8] text-sm mb-4"><i className="fas fa-map-marker-alt mr-1"></i> {event.location}</p>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[#B0B3B8] text-xs">{event.attendees.length} people going</span>
+                                <button 
+                                    onClick={() => onJoinEvent(event.id)} 
+                                    className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-4 py-1.5 rounded-lg font-bold text-sm transition-colors"
+                                >
+                                    Interested
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            
+            {events.length === 0 && (
+                <div className="text-center py-10 text-[#B0B3B8]">
+                    <i className="fas fa-calendar-times text-4xl mb-3"></i>
+                    <p>No upcoming events found.</p>
+                </div>
+            )}
+        </div>
+    );
+};

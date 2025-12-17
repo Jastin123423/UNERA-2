@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, useMemo } from 'react';
-import { User, Brand, Post as PostType, Event } from '../types';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { User, Brand, Post as PostType, Event, LinkPreview } from '../types';
 import { Post, CreatePostModal, CreatePost } from './Feed';
 import { BRAND_CATEGORIES, LOCATIONS_DATA } from '../constants';
 import { CreateEventModal } from './Events';
@@ -170,18 +170,18 @@ interface BrandsPageProps {
     onProfileClick: (id: number) => void;
     onPostAsBrand: (brandId: number, content: any) => void;
     onReact: (postId: number, type: any) => void;
-    onComment: (postId: number, text: string) => void;
     onShare: (postId: number) => void;
     onOpenComments: (postId: number) => void;
     onUpdateBrand?: (brandId: number, data: Partial<Brand>) => void; // New prop
     onMessage?: (brandId: number) => void; // New prop
     onCreateEvent?: (brandId: number, event: Partial<Event>) => void; // New prop
+    initialBrandId?: number | null;
 }
 
 export const BrandsPage: React.FC<BrandsPageProps> = ({ 
     currentUser, brands, posts, users, onCreateBrand, onFollowBrand, 
-    onProfileClick, onPostAsBrand, onReact, onComment, onShare, onOpenComments,
-    onUpdateBrand, onMessage, onCreateEvent
+    onProfileClick, onPostAsBrand, onReact, onShare, onOpenComments,
+    onUpdateBrand, onMessage, onCreateEvent, initialBrandId
 }) => {
     const [view, setView] = useState<'list' | 'detail'>('list');
     const [activeBrandId, setActiveBrandId] = useState<number | null>(null);
@@ -195,6 +195,17 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
     // Refs for image uploads
     const profileInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (initialBrandId) {
+            const brand = brands.find(b => b.id === initialBrandId);
+            if (brand) {
+                setActiveBrandId(brand.id);
+                setView('detail');
+                setActiveTab('Posts');
+            }
+        }
+    }, [initialBrandId, brands]);
 
     const activeBrand = useMemo(() => brands.find(b => b.id === activeBrandId), [brands, activeBrandId]);
     const isAdmin = currentUser && activeBrand && activeBrand.adminId === currentUser.id;
@@ -212,9 +223,9 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
         window.scrollTo(0, 0);
     };
 
-    const handleCreatePost = (text: string, file: File | null, type: any, visibility: any) => {
+    const handleCreatePost = (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview) => {
         if (!activeBrand) return;
-        onPostAsBrand(activeBrand.id, { text, file, type, visibility });
+        onPostAsBrand(activeBrand.id, { text, file, type, visibility, location, feeling, taggedUsers, background, linkPreview });
         setShowCreatePostModal(false);
     };
 
@@ -465,7 +476,6 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
                                         users={users} 
                                         onProfileClick={() => {}}
                                         onReact={onReact}
-                                        onComment={onComment}
                                         onShare={onShare}
                                         onOpenComments={onOpenComments}
                                         onVideoClick={() => {}}

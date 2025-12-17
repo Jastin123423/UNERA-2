@@ -1,5 +1,4 @@
 
-
 import { User, Post, Story, Reel, LocationData, Event, Group, Song, Album, Podcast, Episode, Brand, Product } from './types';
 
 export const LOCATIONS_DATA: LocationData[] = [
@@ -675,9 +674,9 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
 };
 
 export const INITIAL_STORIES: Story[] = [
-    { id: 1, userId: 1, image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
-    { id: 2, userId: 2, image: "https://images.unsplash.com/photo-1542596594-649edbc13630?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
-    { id: 3, userId: 3, image: "https://images.unsplash.com/photo-1492633423870-43d1cd2775eb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
+    { id: 1, userId: 1, type: 'image', image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
+    { id: 2, userId: 2, type: 'image', image: "https://images.unsplash.com/photo-1542596594-649edbc13630?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
+    { id: 3, userId: 3, type: 'image', image: "https://images.unsplash.com/photo-1492633423870-43d1cd2775eb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
 ];
 
 export const INITIAL_REELS: Reel[] = [

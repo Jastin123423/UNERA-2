@@ -6,7 +6,7 @@ import { Post } from './Feed';
 
 // --- SUGGESTED PROFILES PAGE (Now DISCOVERY PAGE) ---
 interface SuggestedProfilesPageProps {
-    currentUser: User;
+    currentUser: User | null;
     users: User[];
     groups?: Group[];
     products?: Product[];
@@ -31,20 +31,20 @@ export const SuggestedProfilesPage: React.FC<SuggestedProfilesPageProps> = ({
     // Logic to find suggestions
     // Filter out already following, self, admin, and hidden
     const availableUsers = users.filter(u => {
-        if (u.id === currentUser.id) return false; 
-        if (currentUser.following.includes(u.id)) return false; 
+        if (currentUser && u.id === currentUser.id) return false; 
+        if (currentUser && currentUser.following.includes(u.id)) return false; 
         if (u.id === 0) return false; 
         if (hiddenUserIds.includes(u.id)) return false;
         return true;
     }).map(u => {
         let score = 0;
         let reason = "Suggested for you";
-        if(u.location === currentUser.location) score += 5;
+        if(currentUser && u.location === currentUser.location) score += 5;
         return { user: u, score, reason };
     }).sort((a, b) => b.score - a.score);
 
     // Filter Groups
-    const availableGroups = groups.filter(g => !g.members.includes(currentUser.id) && !hiddenGroupIds.includes(g.id));
+    const availableGroups = groups.filter(g => (!currentUser || !g.members.includes(currentUser.id)) && !hiddenGroupIds.includes(g.id));
     
     // Filter Events
     const availableEvents = events.filter(e => !hiddenEventIds.includes(e.id)); // Assuming simple hide logic, real app would check interest
@@ -59,16 +59,28 @@ export const SuggestedProfilesPage: React.FC<SuggestedProfilesPageProps> = ({
     const displayedProducts = availableProducts.slice(0, 5);
 
     const handleFollow = (id: number) => {
+        if (!currentUser) {
+            alert("Please login to follow.");
+            return;
+        }
         onFollow(id);
         setHiddenUserIds(prev => [...prev, id]);
     };
 
     const handleJoinGroup = (id: string) => {
+        if (!currentUser) {
+            alert("Please login to join groups.");
+            return;
+        }
         if(onJoinGroup) onJoinGroup(id);
         setHiddenGroupIds(prev => [...prev, id]);
     };
 
     const handleInterestedEvent = (id: number) => {
+        if (!currentUser) {
+            alert("Please login.");
+            return;
+        }
         if(onJoinEvent) onJoinEvent(id);
         setHiddenEventIds(prev => [...prev, id]);
     };
@@ -252,50 +264,6 @@ export const BirthdaysPage: React.FC<BirthdaysPageProps> = ({ currentUser, users
     );
 };
 
-interface EventsPageProps { events: Event[]; currentUser: User; onJoinEvent: (eventId: number) => void; onCreateEventClick: () => void; }
-export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventClick }) => {
-    return (
-        <div className="w-full max-w-[800px] mx-auto p-4 font-sans pb-20 animate-fade-in">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-[#E4E6EB]">Events</h1>
-                <button onClick={onCreateEventClick} className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
-                    <i className="fas fa-plus"></i> Create Event
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {events.map(event => (
-                    <div key={event.id} className="bg-[#242526] rounded-xl overflow-hidden border border-[#3E4042] group cursor-pointer">
-                        <div className="h-40 overflow-hidden relative">
-                            <img src={event.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
-                            <div className="absolute top-2 left-2 bg-white rounded-lg px-2 py-1 text-center min-w-[50px]">
-                                <span className="block text-red-500 font-bold text-xs uppercase">{new Date(event.date).toLocaleString('default', { month: 'short' })}</span>
-                                <span className="block text-black font-bold text-xl leading-none">{new Date(event.date).getDate()}</span>
-                            </div>
-                        </div>
-                        <div className="p-4">
-                            <h3 className="text-[#E4E6EB] font-bold text-lg mb-1 truncate">{event.title}</h3>
-                            <p className="text-red-500 text-sm font-semibold mb-2">{new Date(event.date).toDateString()} • {event.time}</p>
-                            <p className="text-[#B0B3B8] text-sm mb-4"><i className="fas fa-map-marker-alt mr-1"></i> {event.location}</p>
-                            <div className="flex justify-between items-center">
-                                <span className="text-[#B0B3B8] text-xs">{event.attendees.length} people going</span>
-                                <button className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-4 py-1.5 rounded-lg font-bold text-sm transition-colors">Interested</button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-            
-            {events.length === 0 && (
-                <div className="text-center py-10 text-[#B0B3B8]">
-                    <i className="fas fa-calendar-times text-4xl mb-3"></i>
-                    <p>No upcoming events found.</p>
-                </div>
-            )}
-        </div>
-    );
-};
-
 // --- MEMORIES PAGE ---
 interface MemoriesPageProps {
     currentUser: User;
@@ -325,6 +293,7 @@ export const MemoriesPage: React.FC<MemoriesPageProps> = ({ currentUser, posts, 
                                 post={post}
                                 author={author}
                                 currentUser={currentUser}
+                                users={users}
                                 onProfileClick={() => {}}
                                 onReact={() => {}}
                                 onShare={() => {}}

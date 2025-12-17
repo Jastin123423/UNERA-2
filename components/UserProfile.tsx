@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Post as PostType, ReactionType, Reel, AudioTrack, Song, Episode, Group, Brand } from '../types';
+import { User, Post as PostType, ReactionType, Reel, AudioTrack, Song, Episode, Group, Brand, LinkPreview } from '../types';
 import { CreatePost, Post, CreatePostModal } from './Feed';
 
 // --- EDIT PROFILE MODAL ---
@@ -107,7 +107,7 @@ interface UserProfileProps {
     onComment: (postId: number, text: string) => void;
     onShare: (postId: number) => void;
     onMessage: (id: number) => void;
-    onCreatePost: (text: string, file: File | null, type: any, visibility: any) => void;
+    onCreatePost: (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview) => void;
     onUpdateProfileImage: (file: File) => void;
     onUpdateCoverImage: (file: File) => void;
     onUpdateUserDetails: (data: Partial<User>) => void;
@@ -160,6 +160,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
     // Suggestions Logic for Current User
     const suggestedGroups = isCurrentUser ? groups.filter(g => !g.members.includes(currentUser!.id)).slice(0, 3) : [];
     const suggestedBrands = isCurrentUser ? brands.filter(b => !b.followers.includes(currentUser!.id)).slice(0, 3) : [];
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'profile') => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (type === 'cover') {
+                onUpdateCoverImage(file);
+            } else {
+                onUpdateProfileImage(file);
+            }
+        }
+    };
 
     const renderContent = () => {
         switch (activeTab) {
@@ -246,11 +257,27 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
                         {userReels.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                                 {userReels.map(reel => (
-                                    <div key={reel.id} className="aspect-[9/16] relative bg-black rounded-lg overflow-hidden cursor-pointer group">
+                                    <div 
+                                        key={reel.id} 
+                                        className="aspect-[9/16] relative bg-black rounded-lg overflow-hidden cursor-pointer group hover:opacity-90"
+                                        onClick={() => onVideoClick({ 
+                                            id: reel.id, 
+                                            type: 'video', 
+                                            video: reel.videoUrl, 
+                                            authorId: reel.userId, 
+                                            content: reel.caption,
+                                            reactions: reel.reactions,
+                                            comments: reel.comments,
+                                            shares: reel.shares,
+                                            visibility: 'Public',
+                                            timestamp: 'Reel',
+                                            createdAt: Date.now()
+                                        } as PostType)}
+                                    >
                                         <video src={reel.videoUrl} className="w-full h-full object-cover" />
                                         <div className="absolute inset-0 bg-black/20 flex items-end p-2">
                                             <div className="flex items-center gap-1 text-white text-[14px] font-bold">
-                                                <i className="fas fa-play"></i> {reel.reactions.length * 10 + reel.shares * 5} {/* Mock view count */}
+                                                <i className="fas fa-play"></i> {reel.reactions.length * 10 + reel.shares * 5}
                                             </div>
                                         </div>
                                     </div>
@@ -510,8 +537,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
 
     return (
         <div className="w-full bg-[#18191A] min-h-screen">
-            <input type="file" ref={profileInputRef} className="hidden" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files[0]) onUpdateProfileImage(e.target.files[0]); }} />
-            <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files[0]) onUpdateCoverImage(e.target.files[0]); }} />
+            <input type="file" ref={profileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'profile')} />
+            <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'cover')} />
             
             <div className="bg-[#242526] shadow-sm">
                 <div className="max-w-[1095px] mx-auto w-full relative">

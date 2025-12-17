@@ -73,7 +73,7 @@ const FeedWidgetContainer: React.FC<RecommendationWidgetProps> = ({ title, onSee
     </div>
 );
 
-export const SuggestedProductsWidget: React.FC<{ products: Product[]; onViewProduct: (p: Product) => void; onSeeAll: () => void }> = ({ products, onViewProduct, onSeeAll }) => {
+export const SuggestedProductsWidget: React.FC<{ products: Product[]; currentUser: User; onViewProduct: (p: Product) => void; onSeeAll: () => void }> = ({ products, currentUser, onViewProduct, onSeeAll }) => {
     return (
         <FeedWidgetContainer title="Suggested for you" onSeeAll={onSeeAll}>
             {products.slice(0, 6).map(product => (
@@ -355,16 +355,13 @@ export const CreatePost: React.FC<any> = ({ currentUser, onProfileClick, onClick
 };
 
 export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, onCreatePost, onCreateEventClick }) => {
-    // ... existing CreatePostModal implementation ...
-    // To save tokens, I'll assume CreatePostModal is fine as is or can be copied from previous response if needed.
-    // Focusing on the requested changes.
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [visibility, setVisibility] = useState('Public');
     const [background, setBackground] = useState('');
     const [location, setLocation] = useState('');
     const [feeling, setFeeling] = useState('');
-    const [view, setView] = useState<'main' | 'background' | 'feeling' | 'location'>('main');
+    const [showOptions, setShowOptions] = useState(true); // Always show list now
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSubmit = () => {
@@ -390,29 +387,115 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
         }
     };
 
+    const OptionRow = ({ icon, color, label, onClick, subtext }: { icon: string, color: string, label: string, onClick?: () => void, subtext?: string }) => (
+        <div className="flex items-center gap-3 p-3 hover:bg-[#3A3B3C] active:bg-[#3A3B3C] transition-colors cursor-pointer rounded-lg mx-2" onClick={onClick}>
+            <div className="w-8 flex justify-center"><i className={`${icon} text-[22px]`} style={{ color }}></i></div>
+            <div className="flex flex-col">
+                <span className="text-[#E4E6EB] text-[16px] font-medium">{label}</span>
+                {subtext && <span className="text-[#B0B3B8] text-[12px]">{subtext}</span>}
+            </div>
+        </div>
+    );
+
     return (
-        <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4 animate-fade-in font-sans">
-            <div className="bg-[#242526] w-full max-w-[500px] rounded-xl border border-[#3E4042] shadow-2xl flex flex-col max-h-[90vh]">
-                <div className="p-4 border-b border-[#3E4042] flex justify-between items-center relative">
-                    <h3 className="text-xl font-bold text-[#E4E6EB] w-full text-center">Create Post</h3>
-                    <div onClick={onClose} className="w-9 h-9 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] flex items-center justify-center cursor-pointer absolute right-4"><i className="fas fa-times text-[#B0B3B8]"></i></div>
+        <div className="fixed inset-0 z-[150] bg-[#18191A] flex flex-col font-sans animate-slide-up">
+            {/* Header */}
+            <div className="flex items-center px-4 py-3 border-b border-[#3E4042] bg-[#242526] shadow-sm relative">
+                <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2 -ml-2 rounded-full hover:bg-[#3A3B3C] transition-colors" onClick={onClose}></i>
+                <h3 className="text-[#E4E6EB] text-[18px] font-medium ml-4">Create Post</h3>
+                {/* Header Post Button (Optional, requested bottom but commonly top too, hiding for strict adherence to 'bottom' request but keeping layout balanced) */}
+                <div className="flex-1"></div>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto flex flex-col">
+                {/* User Info */}
+                <div className="px-4 pt-4 pb-2 flex items-center gap-3">
+                    <img src={currentUser.profileImage} className="w-12 h-12 rounded-full object-cover border border-[#3E4042]" alt="" />
+                    <div>
+                        <div className="font-bold text-[#E4E6EB] text-[16px]">{currentUser.name}</div>
+                        <div className="flex items-center gap-1 mt-0.5 cursor-pointer" onClick={() => setVisibility(visibility === 'Public' ? 'Friends' : 'Public')}>
+                            <div className="bg-[#3A3B3C] px-2 py-1 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042]">
+                                <i className={`fas ${visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-xs`}></i>
+                                <span>{visibility}</span>
+                                <i className="fas fa-caret-down text-[10px]"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <div className="p-4 flex-1 overflow-y-auto">
-                    {/* ... (truncated for brevity, standard create post form) ... */}
+
+                {/* Text Input */}
+                <div 
+                    className={`flex-1 min-h-[150px] relative transition-all ${background ? 'flex items-center justify-center text-center p-8' : 'p-4'}`}
+                    style={{ background: background.includes('url') ? background : background, backgroundSize: 'cover' }}
+                >
                     <textarea 
-                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none ${background ? 'text-center font-bold text-2xl drop-shadow-md placeholder-white/70' : 'text-xl'}`} 
-                        placeholder={`What's on your mind, ${currentUser.name.split(' ')[0]}?`}
+                        autoFocus
+                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none h-full ${background ? 'text-center font-bold text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
+                        placeholder="What's new in your world?"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        rows={background ? 4 : 5}
-                        style={{ background: background.includes('url') ? background : background, backgroundSize: 'cover', padding: background ? '2rem' : '0' }}
+                        style={{ height: 'auto', minHeight: '120px' }}
                     />
-                    {/* ... */}
-                    <button onClick={handleSubmit} disabled={!text && !file && !background} className="w-full bg-[#1877F2] text-white font-bold py-2 rounded-lg disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] transition-colors mt-4">Post</button>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
+                </div>
+
+                {/* Media Preview */}
+                {file && (
+                    <div className="mx-4 mb-4 relative rounded-lg overflow-hidden border border-[#3E4042] max-h-[300px] bg-black">
+                        {file.type.startsWith('video') ? (
+                            <video src={URL.createObjectURL(file)} className="w-full h-full object-contain" controls />
+                        ) : (
+                            <img src={URL.createObjectURL(file)} className="w-full h-full object-contain" />
+                        )}
+                        <div onClick={() => { setFile(null); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10 hover:bg-black/80"><i className="fas fa-times text-white"></i></div>
+                    </div>
+                )}
+
+                {/* Background Picker (Only if no file) */}
+                {!file && (
+                    <div className="px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide mb-2 border-t border-[#3E4042]/30 pt-3">
+                         <div 
+                            className={`w-8 h-8 rounded-lg cursor-pointer border-2 bg-[#3A3B3C] flex items-center justify-center flex-shrink-0 ${!background ? 'border-white' : 'border-[#3E4042]'}`}
+                            onClick={() => setBackground('')}
+                         >
+                             <div className="w-5 h-5 bg-white rounded flex items-center justify-center"><i className="fas fa-font text-black text-[10px]"></i></div>
+                         </div>
+                         {BACKGROUNDS.filter(b => b.id !== 'none').map(bg => (
+                             <div 
+                                key={bg.id} 
+                                className={`w-8 h-8 rounded-lg cursor-pointer border-2 flex-shrink-0 ${background === bg.value ? 'border-white' : 'border-transparent'}`}
+                                style={{ background: bg.value, backgroundSize: 'cover' }}
+                                onClick={() => setBackground(bg.value)}
+                             ></div>
+                         ))}
+                    </div>
+                )}
+
+                {/* Options List */}
+                <div className="border-t border-[#3E4042] pb-20">
+                    <OptionRow icon="fas fa-images" color="#45BD62" label="Photos/videos" onClick={() => fileInputRef.current?.click()} />
+                    <OptionRow icon="fas fa-user-tag" color="#1877F2" label="Tag people" onClick={() => alert('Tagging feature coming soon')} />
+                    <OptionRow icon="fas fa-map-marker-alt" color="#F02849" label="Add location" onClick={() => { const loc = prompt("Enter location:"); if(loc) setLocation(loc); }} subtext={location ? `Selected: ${location}` : ''} />
+                    <OptionRow icon="far fa-smile" color="#F7B928" label="Feeling/activity" onClick={() => { const feel = prompt("How are you feeling?"); if(feel) setFeeling(feel); }} subtext={feeling ? `Feeling: ${feeling}` : ''} />
+                    <OptionRow icon="fab fa-facebook-messenger" color="#A033FF" label="Get messages" />
+                    <OptionRow icon="fas fa-calendar-alt" color="#F02849" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} />
+                    <OptionRow icon="fas fa-video" color="#F02849" label="Go live" subtext="Coming soon" />
                 </div>
             </div>
+
+            {/* Footer with Post Button */}
+            <div className="p-3 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-20">
+                <button 
+                    onClick={handleSubmit} 
+                    disabled={!text.trim() && !file && !background} 
+                    className="w-full bg-[#1877F2] text-white font-bold text-[16px] py-3 rounded-lg hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] disabled:cursor-not-allowed transition-colors shadow-md"
+                >
+                    POST
+                </button>
+            </div>
+
+            {/* Hidden File Input */}
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
         </div>
     );
 };
@@ -439,12 +522,13 @@ interface PostProps {
     canDelete?: boolean; 
     onMessage?: (userId: number) => void;
     onJoinEvent?: (eventId: number) => void;
+    sharedPost?: PostType;
 }
 
 export const Post: React.FC<PostProps> = ({ 
     post, author, currentUser, users, onProfileClick, onReact, onShare, onDelete, onEdit, 
     onHashtagClick, onViewImage, onOpenComments, onViewProduct, onVideoClick, onFollow, 
-    isFollowing, onPlayAudio, onGroupClick, canDelete, onMessage, onJoinEvent
+    isFollowing, onPlayAudio, onGroupClick, canDelete, onMessage, onJoinEvent, sharedPost
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(post.content || '');
@@ -461,7 +545,6 @@ export const Post: React.FC<PostProps> = ({
         setIsEditing(false);
     };
 
-    const sharedPost = post.embeddedSharedPost;
     const isVideo = post.type === 'video';
 
     // Special Layout for Video Posts in Feed (Reel Style)
@@ -472,7 +555,7 @@ export const Post: React.FC<PostProps> = ({
                     <div className="flex gap-2">
                         <img src={author.profileImage} alt={author.name} className="w-10 h-10 rounded-full object-cover border border-[#3E4042] cursor-pointer" onClick={() => onProfileClick(author.id)} />
                         <div>
-                            <span className="font-bold text-[#E4E6EB] text-[15px] hover:underline cursor-pointer" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                            <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             <div className="text-[#B0B3B8] text-[13px]">{post.timestamp}</div>
                         </div>
                     </div>
@@ -514,7 +597,7 @@ export const Post: React.FC<PostProps> = ({
                     </div>
                 </div>
                 
-                {post.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[18px] leading-relaxed"><RichText text={post.content} users={users} onProfileClick={onProfileClick} /></div>}
+                {post.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[19px] leading-relaxed"><RichText text={post.content} users={users} onProfileClick={onProfileClick} /></div>}
 
                 <div className="relative bg-black cursor-pointer group" onClick={() => onVideoClick(post)}>
                     <video src={post.video} className="w-full h-auto max-h-[600px] object-cover mx-auto" />
@@ -548,14 +631,14 @@ export const Post: React.FC<PostProps> = ({
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-1">
-                            <span className="font-bold text-[#E4E6EB] text-[15px] hover:underline cursor-pointer" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                            <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             {author.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
                             {post.feeling && <span className="text-[#B0B3B8] text-[15px]">is feeling {post.feeling}</span>}
                             {post.location && <span className="text-[#B0B3B8] text-[15px]">in {post.location}</span>}
                             {post.groupName && post.groupId && (
                                 <>
                                     <i className="fas fa-caret-right text-[#B0B3B8] text-xs mx-1"></i>
-                                    <span className="font-bold text-[#E4E6EB] text-[15px] hover:underline cursor-pointer" onClick={() => onGroupClick && onGroupClick(post.groupId!)}>{post.groupName}</span>
+                                    <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onGroupClick && onGroupClick(post.groupId!)}>{post.groupName}</span>
                                 </>
                             )}
                         </div>
@@ -604,7 +687,7 @@ export const Post: React.FC<PostProps> = ({
             </div>
 
             {/* Content */}
-            <div className="px-3 pb-2 text-[#E4E6EB] text-[18px] leading-relaxed">
+            <div className="px-3 pb-2 text-[#E4E6EB] text-[19px] leading-relaxed">
                 {isEditing ? (
                     <div className="mb-2">
                         <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded p-2 text-[#E4E6EB]" value={editContent} onChange={e => setEditContent(e.target.value)} />
