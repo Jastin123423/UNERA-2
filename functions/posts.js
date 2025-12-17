@@ -1,4 +1,3 @@
-
 export async function onRequest({ request, env }) {
 
   // ===== GET POSTS =====
@@ -44,14 +43,25 @@ export async function onRequest({ request, env }) {
         shares: 0
       };
 
-      // ===== BROADCAST REAL-TIME UPDATE =====
-      // const doId = env.LIVE_FEED_DO.idFromName("global");
-      // const stub = env.LIVE_FEED_DO.get(doId);
+      // ===== SAFE REAL-TIME BROADCAST =====
+      if (env.LIVE_FEED_DO) {
+        try {
+          const doId = env.LIVE_FEED_DO.idFromName("global");
+          const stub = env.LIVE_FEED_DO.get(doId);
 
-      // await stub.fetch("https://dummy.url/broadcast", {
-      //   method: "POST",
-      //   body: JSON.stringify({ type: "new_post", data: newPost })
-      // });
+          await stub.fetch("https://do/broadcast", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "new_post",
+              data: newPost
+            })
+          });
+        } catch (err) {
+          // ❗ Never break post creation if realtime fails
+          console.warn("Live feed broadcast failed:", err.message);
+        }
+      }
 
       return new Response(JSON.stringify({
         success: true,
