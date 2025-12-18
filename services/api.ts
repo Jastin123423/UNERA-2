@@ -1,4 +1,3 @@
-
 const API_BASE = "https://unera-2.pages.dev";
 
 interface APIResponse<T> {
@@ -62,7 +61,7 @@ export const api = {
     sharePost: (data: { user_id: number; original_post_id: number; caption: string; group_id?: string }) =>
         request('/posts/share', 'POST', data),
 
-    // 3. Comments
+    // 3. Comments (Standard Posts)
     createComment: (data: { post_id: number; user_id: number; content: string }) => 
         request('/comments', 'POST', data),
     
@@ -96,7 +95,7 @@ export const api = {
     getGroups: () => 
         request<any[]>('/groups'),
 
-    // 7. Videos (Reels)
+    // 7. Videos (Legacy/Simple)
     uploadVideo: (data: { user_id: number; title: string; description: string; video_url: string; thumbnail_url?: string }) => 
         request('/videos', 'POST', data),
         
@@ -112,10 +111,16 @@ export const api = {
 
     // 9. Brands & Pages
     createBrand: (data: { owner_id: number; name: string; description: string; logo_url?: string; category: string }) => 
-        request('/brands_pages', 'POST', data),
+        request('/pages', 'POST', data),
         
     getBrands: () => 
-        request<any[]>('/brands_pages'),
+        request<any[]>('/pages'),
+
+    followBrand: (data: { page_id: number; user_id: number; action: 'follow' | 'unfollow' }) =>
+        request('/pages/follow', 'POST', data),
+
+    getBrandPosts: (pageId: number) =>
+        request<any[]>(`/pages/posts?page_id=${pageId}`),
 
     // 10. Events
     createEvent: (data: { creator_id: number; title: string; description: string; event_date: string; location: string; cover_url?: string }) => 
@@ -130,4 +135,26 @@ export const api = {
         
     getPodcasts: () => 
         request<any[]>('/podcasts'),
+
+    // 12. Reels (New & Extended)
+    getReels: () => 
+        request<any[]>('/reels'),
+        
+    createReel: (data: { user_id: number; video_url: string; caption?: string }) => 
+        request('/reels', 'POST', data),
+        
+    incrementReelView: (reelId: number) =>
+        request('/reels/view', 'POST', { reel_id: reelId }),
+
+    reactToReel: (data: { reel_id: number; user_id: number; emoji: string }) =>
+        request('/reels/react', 'POST', data),
+
+    getReelComments: (reelId: number) =>
+        request<any[]>(`/reels/comments?reel_id=${reelId}`),
+
+    addReelComment: (data: { reel_id: number; user_id: number; content: string }) =>
+        request('/reels/comments', 'POST', data),
+
+    getReelAnalytics: (reelId: number) =>
+        request<any>(`/reels/analytics?reel_id=${reelId}`),
 };

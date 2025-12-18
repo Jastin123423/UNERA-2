@@ -361,7 +361,6 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     const [background, setBackground] = useState('');
     const [location, setLocation] = useState('');
     const [feeling, setFeeling] = useState('');
-    const [showOptions, setShowOptions] = useState(true); // Always show list now
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSubmit = () => {
@@ -403,7 +402,6 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
             <div className="flex items-center px-4 py-3 border-b border-[#3E4042] bg-[#242526] shadow-sm relative">
                 <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2 -ml-2 rounded-full hover:bg-[#3A3B3C] transition-colors" onClick={onClose}></i>
                 <h3 className="text-[#E4E6EB] text-[18px] font-medium ml-4">Create Post</h3>
-                {/* Header Post Button (Optional, requested bottom but commonly top too, hiding for strict adherence to 'bottom' request but keeping layout balanced) */}
                 <div className="flex-1"></div>
             </div>
 
@@ -472,7 +470,7 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                 )}
 
                 {/* Options List */}
-                <div className="border-t border-[#3E4042] pb-20">
+                <div className="border-t border-[#3E4042] pb-24">
                     <OptionRow icon="fas fa-images" color="#45BD62" label="Photos/videos" onClick={() => fileInputRef.current?.click()} />
                     <OptionRow icon="fas fa-user-tag" color="#1877F2" label="Tag people" onClick={() => alert('Tagging feature coming soon')} />
                     <OptionRow icon="fas fa-map-marker-alt" color="#F02849" label="Add location" onClick={() => { const loc = prompt("Enter location:"); if(loc) setLocation(loc); }} subtext={location ? `Selected: ${location}` : ''} />
