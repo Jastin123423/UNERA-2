@@ -147,7 +147,6 @@ export default function App() {
         if (user) { setCurrentUser(user); setSession(user); setView('home'); } else setLoginError('Invalid email or password');
     };
 
-    /* Missing handlers added below to fix reported errors */
     const handleCreateGroup = (groupData: Partial<Group>) => {
         if (!currentUser) return;
         const newGroup: Group = {
@@ -284,7 +283,7 @@ export default function App() {
         setEvents([...events, newEvent]);
     };
 
-    const handleCreatePost = (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview) => {
+    const handleCreatePost = (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview, wantsMessages?: boolean) => {
         if (!currentUser) return;
         
         let mediaUrl = undefined;
@@ -301,6 +300,7 @@ export default function App() {
             background,
             location,
             feeling,
+            taggedUsers,
             visibility,
             type,
             timestamp: 'Just now',
@@ -309,7 +309,8 @@ export default function App() {
             comments: [],
             shares: 0,
             views: 0,
-            linkPreview
+            linkPreview,
+            wantsMessages
         };
 
         setPosts([newPost, ...posts]);
@@ -402,7 +403,7 @@ export default function App() {
                             {rankedPosts.map(post => {
                                 const author = users.find(u => u.id === post.authorId) || brands.find(b => b.id === post.authorId);
                                 if (!author) return null;
-                                return <Post key={post.id} post={post} author={author as any} currentUser={currentUser} users={users} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReact={(pid, t) => { setPosts(prev => prev.map(p => p.id === pid ? { ...p, reactions: [...p.reactions, { userId: currentUser!.id, type: t }] } : p)); api.createLike({ user_id: currentUser!.id, target_id: pid, target_type: 'post', like_type: t }); }} onShare={(id) => setActiveSharePostId(id)} onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))} onEdit={(id, c) => setPosts(prev => prev.map(p => p.id === id ? { ...p, content: c } : p))} onViewImage={setFullScreenImage} onOpenComments={setActiveCommentsPostId} onVideoClick={handleVideoClick} onViewProduct={setActiveProduct} onFollow={async (id) => { api.followUser({ follower_id: currentUser!.id, following_id: id }); setUsers(prev => prev.map(u => u.id === id ? { ...u, followers: [...u.followers, currentUser!.id] } : u)); }} isFollowing={currentUser?.following.includes(author.id)} onPlayAudio={(track) => { setCurrentAudioTrack(track); setIsAudioPlaying(true); }} sharedPost={(post as any).embeddedSharedPost} />;
+                                return <Post key={post.id} post={post} author={author as any} currentUser={currentUser} users={users} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReact={(pid, t) => { setPosts(prev => prev.map(p => p.id === pid ? { ...p, reactions: [...p.reactions, { userId: currentUser!.id, type: t }] } : p)); api.createLike({ user_id: currentUser!.id, target_id: pid, target_type: 'post', like_type: t }); }} onShare={(id) => setActiveSharePostId(id)} onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))} onEdit={(id, c) => setPosts(prev => prev.map(p => p.id === id ? { ...p, content: c } : p))} onViewImage={setFullScreenImage} onOpenComments={setActiveCommentsPostId} onVideoClick={handleVideoClick} onViewProduct={setActiveProduct} onFollow={async (id) => { api.followUser({ follower_id: currentUser!.id, following_id: id }); setUsers(prev => prev.map(u => u.id === id ? { ...u, followers: [...u.followers, currentUser!.id] } : u)); }} isFollowing={currentUser?.following.includes(author.id)} onPlayAudio={(track) => { setCurrentAudioTrack(track); setIsAudioPlaying(true); }} sharedPost={(post as any).embeddedSharedPost} onMessage={(uid) => { setActiveChatUser(users.find(u => u.id === uid) || null); }} />;
                             })}
                         </div>
                     )}

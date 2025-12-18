@@ -10,7 +10,6 @@ const RichText = ({ text, users, onProfileClick, onHashtagClick }: { text: strin
     if (!text) return null;
 
     // Regex to capture @Mentions and #Hashtags
-    // Handles @[Name] or #Tag
     const regex = /(@[\w\s]+|#\w+)/g;
     const parts = text.split(regex);
 
@@ -24,7 +23,7 @@ const RichText = ({ text, users, onProfileClick, onHashtagClick }: { text: strin
                         return (
                             <span 
                                 key={index} 
-                                className="text-[#1877F2] font-bold cursor-pointer hover:underline" 
+                                className="text-[#1877F2] font-black cursor-pointer hover:underline" 
                                 onClick={(e) => { e.stopPropagation(); onProfileClick(user.id); }}
                             >
                                 {part}
@@ -36,7 +35,7 @@ const RichText = ({ text, users, onProfileClick, onHashtagClick }: { text: strin
                     return (
                         <span 
                             key={index} 
-                            className="text-[#1877F2] font-semibold cursor-pointer hover:underline"
+                            className="text-[#1877F2] font-bold cursor-pointer hover:underline"
                             onClick={(e) => { e.stopPropagation(); if(onHashtagClick) onHashtagClick(part); }}
                         >
                             {part}
@@ -334,7 +333,7 @@ export const CommentsSheet: React.FC<any> = ({ post, currentUser, users, onClose
                                         <img src={author.profileImage} alt="" className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => onProfileClick(author.id)} />
                                         <div className="flex flex-col">
                                             <div className="bg-[#3A3B3C] px-3 py-2 rounded-2xl">
-                                                <span className="font-semibold text-[13px] text-[#E4E6EB] cursor-pointer hover:underline" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                                                <span className="font-black text-[13px] text-[#E4E6EB] cursor-pointer hover:underline" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                                                 <p className="text-[15px] text-[#E4E6EB] leading-snug">
                                                     <RichText text={comment.text} users={users} onProfileClick={onProfileClick} />
                                                 </p>
@@ -412,6 +411,8 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     const [background, setBackground] = useState('');
     const [location, setLocation] = useState('');
     const [feeling, setFeeling] = useState('');
+    const [taggedPeople, setTaggedPeople] = useState<string>('');
+    const [wantsMessages, setWantsMessages] = useState(false);
     
     // Mention Suggestion State
     const [mentionQuery, setMentionQuery] = useState('');
@@ -432,7 +433,11 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
 
         const linkPreview = getLinkPreview(text);
 
-        onCreatePost(text, file, type, visibility, location, feeling, [], background, linkPreview || undefined);
+        // Include metadata in content for simulation
+        let finalContent = text;
+        if (taggedPeople) finalContent = `${finalContent} — with ${taggedPeople}`;
+
+        onCreatePost(finalContent, file, type, visibility, location, feeling, [], background, linkPreview || undefined);
         onClose();
     };
 
@@ -447,14 +452,11 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
         const value = e.target.value;
         setText(value);
 
-        // Logic to detect '@' for mentions
-        const lastChar = value[e.target.selectionStart - 1];
         const textBeforeCursor = value.substring(0, e.target.selectionStart);
         const lastAtPos = textBeforeCursor.lastIndexOf('@');
 
         if (lastAtPos !== -1) {
             const query = textBeforeCursor.substring(lastAtPos + 1);
-            // Check if there are no spaces between @ and current cursor
             if (!query.includes(' ') || query.length < 15) {
                 setMentionQuery(query);
                 setShowSuggestions(true);
@@ -475,42 +477,47 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
         textareaRef.current?.focus();
     };
 
-    const OptionRow = ({ icon, color, label, onClick, subtext }: { icon: string, color: string, label: string, onClick?: () => void, subtext?: string }) => (
-        <div className="flex items-center gap-3 p-3 hover:bg-[#3A3B3C] active:bg-[#3A3B3C] transition-colors cursor-pointer rounded-lg mx-2" onClick={onClick}>
-            <div className="w-8 flex justify-center"><i className={`${icon} text-[22px]`} style={{ color }}></i></div>
-            <div className="flex flex-col">
-                <span className="text-[#E4E6EB] text-[16px] font-medium">{label}</span>
-                {subtext && <span className="text-[#B0B3B8] text-[12px]">{subtext}</span>}
+    const OptionRow = ({ icon, color, label, onClick, subtext, active }: { icon: string, color: string, label: string, onClick?: () => void, subtext?: string, active?: boolean }) => (
+        <div className={`flex items-center justify-between p-4 hover:bg-[#3A3B3C] active:bg-[#4E4F50] transition-colors cursor-pointer border-b border-[#3E4042]/30 ${active ? 'bg-[#1877F2]/10' : ''}`} onClick={onClick}>
+            <div className="flex items-center gap-3">
+                <div className="w-8 flex justify-center"><i className={`${icon} text-[22px]`} style={{ color }}></i></div>
+                <div className="flex flex-col">
+                    <span className={`text-[#E4E6EB] text-[16px] ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
+                    {subtext && <span className="text-[#B0B3B8] text-[12px]">{subtext}</span>}
+                </div>
             </div>
+            {active && <i className="fas fa-check text-[#1877F2]"></i>}
         </div>
     );
 
     return (
         <div className="fixed inset-0 z-[150] bg-[#18191A] flex flex-col font-sans animate-slide-up">
-            {/* Header */}
-            <div className="flex items-center px-4 py-3 border-b border-[#3E4042] bg-[#242526] shadow-sm relative">
-                <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2 -ml-2 rounded-full hover:bg-[#3A3B3C] transition-colors" onClick={onClose}></i>
-                <h3 className="text-[#E4E6EB] text-[18px] font-medium ml-4">Create Post</h3>
-                <div className="flex-1"></div>
-            </div>
-
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto flex flex-col relative">
-                {/* User Info */}
-                <div className="px-4 pt-4 pb-2 flex items-center gap-3">
-                    <img src={currentUser.profileImage} className="w-12 h-12 rounded-full object-cover border border-[#3E4042]" alt="" />
-                    <div>
-                        <div className="font-bold text-[#E4E6EB] text-[16px]">{currentUser.name}</div>
-                        <div className="flex items-center gap-1 mt-0.5 cursor-pointer" onClick={() => setVisibility(visibility === 'Public' ? 'Friends' : 'Public')}>
-                            <div className="bg-[#3A3B3C] px-2 py-1 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042]">
-                                <i className={`fas ${visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-xs`}></i>
-                                <span>{visibility}</span>
-                                <i className="fas fa-caret-down text-[10px]"></i>
+            {/* Facebook Style Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#3E4042] bg-[#242526] sticky top-0 z-20">
+                <div className="flex items-center gap-4">
+                    <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2 -ml-2 rounded-full hover:bg-[#3A3B3C]" onClick={onClose}></i>
+                    <div className="flex items-center gap-3">
+                        <img src={currentUser.profileImage} className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" alt="" />
+                        <div>
+                            <div className="font-black text-[#E4E6EB] text-[16px] leading-tight">{currentUser.name}</div>
+                            <div className="flex flex-wrap items-center gap-1">
+                                <div className="flex items-center gap-1 mt-0.5 cursor-pointer" onClick={() => setVisibility(visibility === 'Public' ? 'Friends' : 'Public')}>
+                                    <div className="bg-[#3A3B3C] px-2 py-0.5 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042]">
+                                        <i className={`fas ${visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-[10px]`}></i>
+                                        <span>{visibility}</span>
+                                        <i className="fas fa-caret-down text-[10px]"></i>
+                                    </div>
+                                </div>
+                                {feeling && <span className="text-[#B0B3B8] text-[11px] mt-0.5">• is feeling {feeling}</span>}
                             </div>
                         </div>
                     </div>
                 </div>
+                <h3 className="text-[#E4E6EB] text-[18px] font-bold">Create post</h3>
+            </div>
 
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto flex flex-col relative pb-32">
                 {/* Mention Suggestion Dropdown */}
                 {showSuggestions && (
                     <div className="px-4">
@@ -518,47 +525,55 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                     </div>
                 )}
 
-                {/* Text Input */}
+                {/* Large Text Input Area */}
                 <div 
-                    className={`flex-1 min-h-[150px] relative transition-all ${background ? 'flex items-center justify-center text-center p-8' : 'p-4'}`}
+                    className={`flex-1 min-h-[200px] relative transition-all ${background ? 'flex items-center justify-center text-center p-8' : 'p-4'}`}
                     style={{ background: background.includes('url') ? background : background, backgroundSize: 'cover' }}
                 >
                     <textarea 
                         ref={textareaRef}
                         autoFocus
-                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none h-full ${background ? 'text-center font-bold text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
-                        placeholder="What's new in your world?"
+                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none ${background ? 'text-center font-bold text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
+                        placeholder="What’s new You need To Post?"
                         value={text}
                         onChange={handleTextChange}
-                        style={{ height: 'auto', minHeight: '120px' }}
+                        style={{ height: 'auto', minHeight: '150px' }}
                     />
                 </div>
 
+                {/* Metadata Preview Row */}
+                {(location || taggedPeople) && (
+                   <div className="px-4 py-2 border-t border-[#3E4042]/20 flex flex-wrap gap-2">
+                       {location && <div className="bg-[#3A3B3C] px-3 py-1 rounded-full text-xs font-bold text-[#E4E6EB] flex items-center gap-2"><i className="fas fa-map-marker-alt text-[#F02849]"></i> {location} <i className="fas fa-times cursor-pointer opacity-50" onClick={() => setLocation('')}></i></div>}
+                       {taggedPeople && <div className="bg-[#3A3B3C] px-3 py-1 rounded-full text-xs font-bold text-[#E4E6EB] flex items-center gap-2"><i className="fas fa-user-tag text-[#1877F2]"></i> with {taggedPeople} <i className="fas fa-times cursor-pointer opacity-50" onClick={() => setTaggedPeople('')}></i></div>}
+                   </div>
+                )}
+
                 {/* Media Preview */}
                 {file && (
-                    <div className="mx-4 mb-4 relative rounded-lg overflow-hidden border border-[#3E4042] max-h-[300px] bg-black">
+                    <div className="mx-4 mb-4 relative rounded-lg overflow-hidden border border-[#3E4042] max-h-[300px] bg-black shadow-lg">
                         {file.type.startsWith('video') ? (
                             <video src={URL.createObjectURL(file)} className="w-full h-full object-contain" controls />
                         ) : (
                             <img src={URL.createObjectURL(file)} className="w-full h-full object-contain" />
                         )}
-                        <div onClick={() => { setFile(null); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10 hover:bg-black/80"><i className="fas fa-times text-white"></i></div>
+                        <div onClick={() => { setFile(null); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10 hover:bg-black/80 transition-colors"><i className="fas fa-times text-white"></i></div>
                     </div>
                 )}
 
-                {/* Background Picker (Only if no file) */}
+                {/* Background Picker Row (Scrollable) */}
                 {!file && (
-                    <div className="px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide mb-2 border-t border-[#3E4042]/30 pt-3">
+                    <div className="px-4 py-4 flex items-center gap-3 overflow-x-auto scrollbar-hide border-t border-[#3E4042]/30 bg-[#242526]/50">
                          <div 
-                            className={`w-8 h-8 rounded-lg cursor-pointer border-2 bg-[#3A3B3C] flex items-center justify-center flex-shrink-0 ${!background ? 'border-white' : 'border-[#3E4042]'}`}
+                            className={`w-10 h-10 rounded-lg cursor-pointer border-2 bg-[#3A3B3C] flex items-center justify-center flex-shrink-0 transition-all ${!background ? 'border-[#1877F2] scale-110' : 'border-[#3E4042]'}`}
                             onClick={() => setBackground('')}
                          >
-                             <div className="w-5 h-5 bg-white rounded flex items-center justify-center"><i className="fas fa-font text-black text-[10px]"></i></div>
+                             <div className="w-6 h-6 bg-white rounded flex items-center justify-center"><i className="fas fa-font text-black text-[10px]"></i></div>
                          </div>
                          {BACKGROUNDS.filter(b => b.id !== 'none').map(bg => (
                              <div 
                                 key={bg.id} 
-                                className={`w-8 h-8 rounded-lg cursor-pointer border-2 flex-shrink-0 ${background === bg.value ? 'border-white' : 'border-transparent'}`}
+                                className={`w-10 h-10 rounded-lg cursor-pointer border-2 flex-shrink-0 transition-all ${background === bg.value ? 'border-[#1877F2] scale-110' : 'border-transparent hover:border-white/50'}`}
                                 style={{ background: bg.value, backgroundSize: 'cover' }}
                                 onClick={() => setBackground(bg.value)}
                              ></div>
@@ -567,23 +582,44 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                 )}
 
                 {/* Options List */}
-                <div className="border-t border-[#3E4042] pb-24">
+                <div className="bg-[#242526] border-t border-[#3E4042]">
                     <OptionRow icon="fas fa-images" color="#45BD62" label="Photos/videos" onClick={() => fileInputRef.current?.click()} />
-                    <OptionRow icon="fas fa-user-tag" color="#1877F2" label="Tag people" onClick={() => { setText(prev => prev + ' @'); textareaRef.current?.focus(); }} />
-                    <OptionRow icon="fas fa-map-marker-alt" color="#F02849" label="Add location" onClick={() => { const loc = prompt("Enter location:"); if(loc) setLocation(loc); }} subtext={location ? `Selected: ${location}` : ''} />
-                    <OptionRow icon="far fa-smile" color="#F7B928" label="Feeling/activity" onClick={() => { const feel = prompt("How are you feeling?"); if(feel) setFeeling(feel); }} subtext={feeling ? `Feeling: ${feeling}` : ''} />
-                    <OptionRow icon="fab fa-facebook-messenger" color="#A033FF" label="Get messages" />
-                    <OptionRow icon="fas fa-calendar-alt" color="#F02849" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} />
-                    <OptionRow icon="fas fa-video" color="#F02849" label="Go live" subtext="Coming soon" />
+                    <OptionRow 
+                        icon="fas fa-user-tag" color="#1877F2" label="Tag people" 
+                        onClick={() => { const p = prompt("Who are you with?"); if(p) setTaggedPeople(p); }} 
+                        subtext={taggedPeople ? `Tagged: ${taggedPeople}` : "Friends help you tell your story better"} 
+                    />
+                    <OptionRow 
+                        icon="fas fa-map-marker-alt" color="#F02849" label="Add location" 
+                        onClick={() => { const loc = prompt("Where are you?"); if(loc) setLocation(loc); }} 
+                        subtext={location ? `At: ${location}` : "Add a physical spot to your post"} 
+                    />
+                    <OptionRow 
+                        icon="far fa-smile" color="#F7B928" label="Feeling/activity" 
+                        onClick={() => { const feel = prompt("How are you feeling?"); if(feel) setFeeling(feel); }} 
+                        subtext={feeling ? `Feeling: ${feeling}` : "Share your mood or current action"} 
+                    />
+                    <OptionRow 
+                        icon="fab fa-facebook-messenger" color="#00C6FF" label="Get messages" 
+                        onClick={() => setWantsMessages(!wantsMessages)} 
+                        active={wantsMessages}
+                        subtext="Prompt friends to message you from this post"
+                    />
+                    <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} subtext="Organize a get-together" />
+                    <OptionRow 
+                        icon="fas fa-video" color="#F02849" label="Go live" 
+                        onClick={() => alert("Live streaming is coming soon to UNERA! Stay tuned for updates.")} 
+                        subtext="Broadcast live video to your friends"
+                    />
                 </div>
             </div>
 
-            {/* Footer with Post Button */}
-            <div className="p-3 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-20">
+            {/* Footer with Large POST Button */}
+            <div className="p-4 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
                 <button 
                     onClick={handleSubmit} 
                     disabled={!text.trim() && !file && !background} 
-                    className="w-full bg-[#1877F2] text-white font-bold text-[16px] py-3 rounded-lg hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] disabled:cursor-not-allowed transition-colors shadow-md"
+                    className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg"
                 >
                     POST
                 </button>
@@ -650,7 +686,7 @@ export const Post: React.FC<PostProps> = ({
                     <div className="flex gap-2">
                         <img src={author.profileImage} alt={author.name} className="w-10 h-10 rounded-full object-cover border border-[#3E4042] cursor-pointer" onClick={() => onProfileClick(author.id)} />
                         <div>
-                            <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                            <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer leading-tight block" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             <div className="text-[#B0B3B8] text-[13px]">{post.timestamp}</div>
                         </div>
                     </div>
@@ -662,7 +698,7 @@ export const Post: React.FC<PostProps> = ({
                                     e.stopPropagation(); 
                                     onFollow(author.id); 
                                 }}
-                                className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-bold text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
+                                className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-black text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
                             >
                                 <i className="fas fa-plus text-xs"></i> Follow
                             </button>
@@ -692,7 +728,7 @@ export const Post: React.FC<PostProps> = ({
                     </div>
                 </div>
                 
-                {post.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[19px] leading-relaxed"><RichText text={post.content} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} /></div>}
+                {post.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[20px] leading-relaxed"><RichText text={post.content} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} /></div>}
 
                 <div className="relative bg-black cursor-pointer group" onClick={() => onVideoClick(post)}>
                     <video src={post.video} className="w-full h-auto max-h-[600px] object-cover mx-auto" />
@@ -704,8 +740,8 @@ export const Post: React.FC<PostProps> = ({
                         </div>
                     </div>
 
-                    {/* Views Overlay (Facebook style: bottom left on video) */}
-                    <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs font-semibold pointer-events-none">
+                    {/* Views Overlay */}
+                    <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs font-black pointer-events-none">
                         <i className="fas fa-eye"></i>
                         <span>{post.views ? post.views.toLocaleString() : 0}</span>
                     </div>
@@ -716,7 +752,7 @@ export const Post: React.FC<PostProps> = ({
 
     // Standard & Product Posts
     return (
-        <div className="bg-[#242526] rounded-xl border border-[#3E4042] mb-4 shadow-sm animate-fade-in font-sans">
+        <div className="bg-[#242526] rounded-xl border border-[#3E4042] mb-4 shadow-sm animate-fade-in font-sans overflow-hidden">
             {/* Header */}
             <div className="p-3 flex items-start justify-between">
                 <div className="flex gap-2">
@@ -726,14 +762,14 @@ export const Post: React.FC<PostProps> = ({
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-1">
-                            <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                            <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer leading-tight" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             {author.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
                             {post.feeling && <span className="text-[#B0B3B8] text-[15px]">is feeling {post.feeling}</span>}
                             {post.location && <span className="text-[#B0B3B8] text-[15px]">in {post.location}</span>}
                             {post.groupName && post.groupId && (
                                 <>
                                     <i className="fas fa-caret-right text-[#B0B3B8] text-xs mx-1"></i>
-                                    <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onGroupClick && onGroupClick(post.groupId!)}>{post.groupName}</span>
+                                    <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer" onClick={() => onGroupClick && onGroupClick(post.groupId!)}>{post.groupName}</span>
                                 </>
                             )}
                         </div>
@@ -751,7 +787,7 @@ export const Post: React.FC<PostProps> = ({
                                 e.stopPropagation(); 
                                 onFollow(author.id); 
                             }}
-                            className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-bold text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
+                            className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-black text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
                         >
                             <i className="fas fa-plus text-xs"></i> Follow
                         </button>
@@ -782,107 +818,107 @@ export const Post: React.FC<PostProps> = ({
             </div>
 
             {/* Content */}
-            <div className="px-3 pb-2 text-[#E4E6EB] text-[19px] leading-relaxed">
+            <div className="px-3 pb-2 text-[#E4E6EB] text-[20px] leading-relaxed">
                 {isEditing ? (
                     <div className="mb-2">
                         <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded p-2 text-[#E4E6EB]" value={editContent} onChange={e => setEditContent(e.target.value)} />
                         <div className="flex gap-2 mt-2 justify-end">
                             <button className="text-[#B0B3B8] text-sm" onClick={() => setIsEditing(false)}>Cancel</button>
-                            <button className="bg-[#1877F2] text-white px-3 py-1 rounded text-sm font-bold" onClick={handleSaveEdit}>Save</button>
+                            <button className="bg-[#1877F2] text-white px-3 py-1 rounded text-sm font-black" onClick={handleSaveEdit}>Save</button>
                         </div>
                     </div>
                 ) : (
-                    <div className={`mb-2 ${post.background ? 'text-center font-bold text-2xl py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''}`} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
+                    <div className={`mb-2 ${post.background ? 'text-center font-black text-[24px] py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''}`} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
                         <RichText text={post.content || ''} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} />
                     </div>
                 )}
             </div>
 
-            {/* Media Rendering */}
+            {/* Media Rendering - Full Width */}
             {post.type === 'image' && post.images && post.images.length > 0 && (
-                <div className={`grid gap-1 ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                <div className={`grid gap-0.5 w-full ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {post.images.slice(0, 4).map((img, idx) => (
-                        <div key={idx} className="cursor-pointer bg-black" onClick={() => onViewImage(img)}>
-                            <img src={img} alt="" className="w-full max-h-[500px] object-cover" />
+                        <div key={idx} className="cursor-pointer bg-black w-full" onClick={() => onViewImage(img)}>
+                            <img src={img} alt="" className="w-full max-h-[600px] object-cover" />
                         </div>
                     ))}
                 </div>
             )}
             
             {post.type === 'image' && !post.images && post.image && (
-                <div className="cursor-pointer bg-black" onClick={() => onViewImage(post.image!)}>
-                    <img src={post.image} alt="" className="w-full max-h-[500px] object-contain mx-auto" />
+                <div className="cursor-pointer bg-black w-full" onClick={() => onViewImage(post.image!)}>
+                    <img src={post.image} alt="" className="w-full max-h-[600px] object-contain mx-auto" />
                 </div>
             )}
 
-            {/* Link Preview */}
+            {/* Link Preview - Full Width */}
             {post.linkPreview && !post.image && !post.video && (
-                <div className="mx-3 mb-2 bg-[#3A3B3C] border border-[#3E4042] rounded-lg overflow-hidden cursor-pointer hover:bg-[#4E4F50] transition-colors" onClick={() => window.open(post.linkPreview!.url, '_blank')}>
-                    {post.linkPreview.image && <img src={post.linkPreview.image} alt="" className="w-full h-40 object-cover" />}
+                <div className="w-full mb-2 bg-[#3A3B3C] border-y border-[#3E4042] overflow-hidden cursor-pointer hover:bg-[#4E4F50] transition-colors" onClick={() => window.open(post.linkPreview!.url, '_blank')}>
+                    {post.linkPreview.image && <img src={post.linkPreview.image} alt="" className="w-full h-48 object-cover" />}
                     <div className="p-3">
-                        <div className="text-[#B0B3B8] text-xs uppercase mb-1">{post.linkPreview.domain}</div>
-                        <h4 className="text-[#E4E6EB] font-bold text-[16px] mb-1 line-clamp-1">{post.linkPreview.title}</h4>
-                        <p className="text-[#B0B3B8] text-[14px] line-clamp-2">{post.linkPreview.description}</p>
+                        <div className="text-[#B0B3B8] text-[12px] uppercase mb-1">{post.linkPreview.domain}</div>
+                        <h4 className="text-[#E4E6EB] font-black text-[16px] mb-1 line-clamp-1">{post.linkPreview.title}</h4>
+                        <p className="text-[#B0B3B8] text-[14px] line-clamp-2 leading-snug">{post.linkPreview.description}</p>
                     </div>
                 </div>
             )}
 
-            {/* Embedded Shared Post */}
+            {/* Embedded Shared Post - Full Width */}
             {sharedPost && (
-                <div className="mx-3 mb-2 border border-[#3E4042] rounded-lg overflow-hidden">
-                    <div className="p-3 flex items-center gap-2 bg-[#242526]">
+                <div className="w-full mb-2 border-y border-[#3E4042] bg-[#1C1C1D]">
+                    <div className="p-3 flex items-center gap-2">
                         <img src={users.find(u => u.id === sharedPost.authorId)?.profileImage} alt="" className="w-8 h-8 rounded-full" />
                         <div>
-                            <span className="font-bold text-[#E4E6EB] text-sm">{sharedPost.originalAuthorName || users.find(u => u.id === sharedPost.authorId)?.name}</span>
+                            <span className="font-black text-[#E4E6EB] text-sm">{sharedPost.originalAuthorName || users.find(u => u.id === sharedPost.authorId)?.name}</span>
                             <span className="text-[#B0B3B8] text-xs block">{sharedPost.timestamp}</span>
                         </div>
                     </div>
-                    {sharedPost.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[19px]">{sharedPost.content}</div>}
-                    {sharedPost.image && <img src={sharedPost.image} className="w-full max-h-[300px] object-cover" alt="" />}
+                    {sharedPost.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[20px]">{sharedPost.content}</div>}
+                    {sharedPost.image && <img src={sharedPost.image} className="w-full max-h-[400px] object-cover" alt="" />}
                 </div>
             )}
 
-            {/* Product Card with Actions */}
+            {/* Product Card - Full Width */}
             {post.type === 'product' && post.product && (
-                <div className="mx-3 mb-3 bg-[#3A3B3C] rounded-lg overflow-hidden border border-[#3E4042]">
+                <div className="w-full mb-3 bg-[#3A3B3C] border-y border-[#3E4042]">
                     <div className="cursor-pointer" onClick={() => onViewProduct && onViewProduct(post.product!)}>
-                        <div className="w-full h-[300px] bg-white relative">
+                        <div className="w-full h-[400px] bg-white relative">
                             <img src={post.product.images[0]} alt="" className="w-full h-full object-contain" />
                         </div>
                         <div className="p-4 bg-[#242526]">
-                            <h4 className="font-bold text-[#E4E6EB] text-xl mb-1">{post.product.title}</h4>
-                            <div className="text-[#F02849] font-bold text-2xl">{MARKETPLACE_COUNTRIES.find(c => c.code === post.product!.country)?.symbol}{post.product.mainPrice.toLocaleString()}</div>
+                            <h4 className="font-black text-[#E4E6EB] text-xl mb-1">{post.product.title}</h4>
+                            <div className="text-[#F02849] font-black text-2xl">{MARKETPLACE_COUNTRIES.find(c => c.code === post.product!.country)?.symbol}{post.product.mainPrice.toLocaleString()}</div>
                             <div className="text-[#B0B3B8] text-sm mt-1">{post.product.address}</div>
                         </div>
                     </div>
                     <div className="flex gap-2 p-3 bg-[#242526] border-t border-[#3E4042]">
-                        <button onClick={() => onMessage && onMessage(post.product!.sellerId)} className="flex-1 bg-[#3A3B3C] hover:bg-[#4E4F50] border border-[#3E4042] text-[#E4E6EB] font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <button onClick={() => onMessage && onMessage(post.product!.sellerId)} className="flex-1 bg-[#3A3B3C] hover:bg-[#4E4F50] border border-[#3E4042] text-[#E4E6EB] font-black py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
                             <i className="fab fa-facebook-messenger"></i> Message
                         </button>
-                        <button onClick={() => onViewProduct && onViewProduct(post.product!)} className="flex-1 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <button onClick={() => onViewProduct && onViewProduct(post.product!)} className="flex-1 bg-[#1877F2] hover:bg-[#166FE5] text-white font-black py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
                             <i className="fas fa-eye"></i> View Details
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* Event Card */}
+            {/* Event Card - Full Width */}
             {post.type === 'event' && post.event && (
-                <div className="mx-3 mb-3 rounded-xl overflow-hidden border border-[#3E4042] bg-[#242526]">
-                    <div className="relative h-[200px] w-full overflow-hidden">
+                <div className="w-full mb-3 border-y border-[#3E4042] bg-[#242526]">
+                    <div className="relative h-[250px] w-full overflow-hidden">
                         <img src={post.event.image} alt="" className="w-full h-full object-cover" />
                         <div className="absolute top-3 left-3 bg-white text-black rounded-lg p-2 text-center min-w-[50px] shadow-lg">
-                            <span className="block text-red-600 font-bold text-xs uppercase">{new Date(post.event.date).toLocaleString('default', { month: 'short' })}</span>
-                            <span className="block text-black font-bold text-xl leading-none">{new Date(post.event.date).getDate()}</span>
+                            <span className="block text-red-600 font-black text-xs uppercase">{new Date(post.event.date).toLocaleString('default', { month: 'short' })}</span>
+                            <span className="block text-black font-black text-xl leading-none">{new Date(post.event.date).getDate()}</span>
                         </div>
                     </div>
                     <div className="p-4">
-                        <div className="text-red-500 font-bold text-sm uppercase mb-1">{new Date(post.event.date).toDateString()} AT {post.event.time}</div>
-                        <h3 className="text-[#E4E6EB] font-bold text-xl mb-1">{post.event.title}</h3>
+                        <div className="text-red-500 font-black text-sm uppercase mb-1">{new Date(post.event.date).toDateString()} AT {post.event.time}</div>
+                        <h3 className="text-[#E4E6EB] font-black text-xl mb-1">{post.event.title}</h3>
                         <div className="text-[#B0B3B8] text-sm mb-4">{post.event.location}</div>
                         <div className="flex justify-between items-center border-t border-[#3E4042] pt-3 mt-2">
-                            <div className="text-[#B0B3B8] text-xs font-medium">{post.event.attendees.length} people going</div>
-                            <button onClick={() => onJoinEvent && onJoinEvent(post.event!.id)} className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-6 py-1.5 rounded-lg font-bold text-sm transition-colors border border-[#3E4042]">
+                            <div className="text-[#B0B3B8] text-xs font-black">{post.event.attendees.length} people going</div>
+                            <button onClick={() => onJoinEvent && onJoinEvent(post.event!.id)} className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-6 py-1.5 rounded-lg font-black text-sm transition-colors border border-[#3E4042]">
                                 <i className="far fa-star mr-2"></i> Interested
                             </button>
                         </div>
@@ -890,9 +926,9 @@ export const Post: React.FC<PostProps> = ({
                 </div>
             )}
 
-            {/* Audio Track */}
+            {/* Audio Track - Full Width */}
             {post.type === 'audio' && post.audioTrack && (
-                <div className="mx-3 mb-3 bg-[#1A1A1A] p-3 rounded-lg border border-[#3E4042] flex items-center gap-3 cursor-pointer hover:bg-[#333]" onClick={() => onPlayAudio && onPlayAudio(post.audioTrack!)}>
+                <div className="w-full mb-3 bg-[#1A1A1A] p-4 border-y border-[#3E4042] flex items-center gap-3 cursor-pointer hover:bg-[#333]" onClick={() => onPlayAudio && onPlayAudio(post.audioTrack!)}>
                     <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                         <img src={post.audioTrack.cover} alt="" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -900,9 +936,9 @@ export const Post: React.FC<PostProps> = ({
                         </div>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                        <div className="text-[#E4E6EB] font-bold text-sm truncate">{post.audioTrack.title}</div>
-                        <div className="text-[#B0B3B8] text-xs truncate">{post.audioTrack.artist}</div>
-                        <div className="text-[#1877F2] text-[10px] uppercase font-bold mt-1">{post.audioTrack.type}</div>
+                        <div className="text-[#E4E6EB] font-black text-[18px] truncate">{post.audioTrack.title}</div>
+                        <div className="text-[#B0B3B8] text-[15px] truncate">{post.audioTrack.artist}</div>
+                        <div className="text-[#1877F2] text-[11px] uppercase font-black mt-1">{post.audioTrack.type}</div>
                     </div>
                 </div>
             )}
@@ -911,11 +947,11 @@ export const Post: React.FC<PostProps> = ({
             <div className="px-3 py-2 flex items-center justify-between text-[#B0B3B8] text-[13px]">
                 <div className="flex items-center gap-1">
                     {reactionCount > 0 && <i className="fas fa-thumbs-up text-[#1877F2]"></i>}
-                    <span>{reactionCount > 0 ? reactionCount : ''}</span>
+                    <span className="font-bold">{reactionCount > 0 ? reactionCount : ''}</span>
                 </div>
                 <div className="flex gap-3">
-                    <span>{commentCount} comments</span>
-                    <span>{shareCount} shares</span>
+                    <span className="font-bold">{commentCount} comments</span>
+                    <span className="font-bold">{shareCount} shares</span>
                 </div>
             </div>
 
@@ -924,10 +960,10 @@ export const Post: React.FC<PostProps> = ({
             {/* Action Buttons */}
             <div className="px-1 py-1 flex items-center justify-between">
                 <ReactionButton currentUserReactions={myReaction} reactionCount={reactionCount} onReact={(type) => onReact(post.id, type)} isGuest={!currentUser} />
-                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-semibold text-[15px]" onClick={() => onOpenComments(post.id)}>
+                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-black text-[15px]" onClick={() => onOpenComments(post.id)}>
                     <i className="far fa-comment-alt text-[18px]"></i> Comment
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-semibold text-[15px]" onClick={() => onShare(post.id)}>
+                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-black text-[15px]" onClick={() => onShare(post.id)}>
                     <i className="fas fa-share text-[18px]"></i> Share
                 </button>
             </div>

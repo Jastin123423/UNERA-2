@@ -8,19 +8,19 @@ import { StickerPicker, EmojiPicker } from './Pickers';
 // --- RICH TEXT RENDERER FOR MENTIONS ---
 const RichText = ({ text, users, onProfileClick }: { text: string, users?: User[], onProfileClick: (id: number) => void }) => {
     if (!text) return null;
-    const parts = text.split(/(@\w+(?:\s\w+)?)/g);
+    const parts = text.split(/(@[\w\s]+)/g);
     return (
         <span className="leading-relaxed text-[#E4E6EB] whitespace-pre-wrap break-words">
             {parts.map((part, index) => {
                 if (part.startsWith('@')) {
-                    const name = part.substring(1);
+                    const name = part.substring(1).trim();
                     const user = users?.find(u => u.name.toLowerCase() === name.toLowerCase());
                     if (user) {
-                        return <span key={index} className="text-[#1877F2] font-semibold cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onProfileClick(user.id); }}>{part}</span>;
+                        return <span key={index} className="text-[#1877F2] font-black cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onProfileClick(user.id); }}>{part}</span>;
                     }
-                    return <span key={index} className="text-[#1877F2] font-semibold">{part}</span>;
+                    return <span key={index} className="text-[#1877F2] font-black">{part}</span>;
                 }
-                if (part.startsWith('#')) return <span key={index} className="text-[#1877F2] cursor-pointer hover:underline">{part}</span>;
+                if (part.startsWith('#')) return <span key={index} className="text-[#1877F2] font-bold cursor-pointer hover:underline">{part}</span>;
                 return <span key={index}>{part}</span>;
             })}
         </span>
@@ -51,7 +51,22 @@ const BACKGROUNDS = [
     { id: 'fire', value: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)' },
 ];
 
-const FEELINGS = ['Happy', 'Blessed', 'Loved', 'Sad', 'Excited', 'Thankful', 'Crazy', 'Tired', 'Cool', 'Relaxed'];
+const FEELINGS_DATA = [
+    { name: 'Happy', emoji: '😊' },
+    { name: 'Blessed', emoji: '😇' },
+    { name: 'Loved', emoji: '🥰' },
+    { name: 'Sad', emoji: '😢' },
+    { name: 'Excited', emoji: '🤩' },
+    { name: 'Thankful', emoji: '🙏' },
+    { name: 'Crazy', emoji: '🤪' },
+    { name: 'Tired', emoji: '😴' },
+    { name: 'Cool', emoji: '😎' },
+    { name: 'Relaxed', emoji: '😌' },
+    { name: 'Sick', emoji: '🤒' },
+    { name: 'Angry', emoji: '😡' },
+    { name: 'In Love', emoji: '😍' },
+    { name: 'Thinking', emoji: '🤔' },
+];
 
 // --- WIDGETS ---
 
@@ -285,7 +300,7 @@ export const CommentsSheet: React.FC<any> = ({ post, currentUser, users, onClose
                                         <img src={author.profileImage} alt="" className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => onProfileClick(author.id)} />
                                         <div className="flex flex-col">
                                             <div className="bg-[#3A3B3C] px-3 py-2 rounded-2xl">
-                                                <span className="font-semibold text-[13px] text-[#E4E6EB] cursor-pointer hover:underline" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                                                <span className="font-black text-[13px] text-[#E4E6EB] cursor-pointer hover:underline" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                                                 <p className="text-[15px] text-[#E4E6EB] leading-snug">{comment.text}</p>
                                             </div>
                                             <div className="flex gap-4 ml-3 mt-1">
@@ -360,8 +375,40 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     const [visibility, setVisibility] = useState('Public');
     const [background, setBackground] = useState('');
     const [location, setLocation] = useState('');
-    const [feeling, setFeeling] = useState('');
+    const [feeling, setFeeling] = useState<{name: string, emoji: string} | null>(null);
+    const [taggedFollowers, setTaggedFollowers] = useState<number[]>([]);
+    const [wantsMessages, setWantsMessages] = useState(false);
+    
+    // Feature Tabs State
+    const [activeFeatureTab, setActiveFeatureTab] = useState<'main' | 'tag' | 'location' | 'feeling'>('main');
+    const [locationQuery, setLocationQuery] = useState('');
+    const [locationResults, setLocationResults] = useState<any[]>([]);
+    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Filter followers to tag
+    const followers = users.filter(u => currentUser.followers.includes(u.id));
+
+    // Handle Location Search (Photon API)
+    useEffect(() => {
+        if (activeFeatureTab === 'location' && locationQuery.length > 2) {
+            const timer = setTimeout(async () => {
+                setIsSearchingLocation(true);
+                try {
+                    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(locationQuery)}&limit=10`);
+                    const data = await res.json();
+                    setLocationResults(data.features || []);
+                } catch (e) {
+                    console.error("Location search failed", e);
+                } finally {
+                    setIsSearchingLocation(false);
+                }
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [locationQuery, activeFeatureTab]);
 
     const handleSubmit = () => {
         if (!text.trim() && !file && !background) return;
@@ -375,7 +422,19 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
 
         const linkPreview = getLinkPreview(text);
 
-        onCreatePost(text, file, type, visibility, location, feeling, [], background, linkPreview || undefined);
+        // We extend the create post call with new metadata
+        onCreatePost(
+            text, 
+            file, 
+            type, 
+            visibility, 
+            location, 
+            feeling?.name, 
+            taggedFollowers, 
+            background, 
+            linkPreview || undefined,
+            wantsMessages
+        );
         onClose();
     };
 
@@ -386,22 +445,135 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
         }
     };
 
-    const OptionRow = ({ icon, color, label, onClick, subtext }: { icon: string, color: string, label: string, onClick?: () => void, subtext?: string }) => (
-        <div className="flex items-center gap-3 p-3 hover:bg-[#3A3B3C] active:bg-[#3A3B3C] transition-colors cursor-pointer rounded-lg mx-2" onClick={onClick}>
+    const OptionRow = ({ icon, color, label, onClick, subtext, active }: { icon: string, color: string, label: string, onClick?: () => void, subtext?: string, active?: boolean }) => (
+        <div className={`flex items-center gap-3 p-3 hover:bg-[#3A3B3C] active:bg-[#4E4F50] transition-colors cursor-pointer rounded-lg mx-2 ${active ? 'bg-[#3A3B3C]' : ''}`} onClick={onClick}>
             <div className="w-8 flex justify-center"><i className={`${icon} text-[22px]`} style={{ color }}></i></div>
-            <div className="flex flex-col">
+            <div className="flex flex-col flex-1">
                 <span className="text-[#E4E6EB] text-[16px] font-medium">{label}</span>
                 {subtext && <span className="text-[#B0B3B8] text-[12px]">{subtext}</span>}
             </div>
+            {active && <i className="fas fa-check text-[#1877F2]"></i>}
         </div>
     );
+
+    // --- Sub-Views ---
+
+    if (activeFeatureTab === 'tag') {
+        return (
+            <div className="fixed inset-0 z-[160] bg-[#18191A] flex flex-col font-sans animate-slide-up">
+                <div className="flex items-center px-4 py-3 border-b border-[#3E4042] bg-[#242526]">
+                    <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2" onClick={() => setActiveFeatureTab('main')}></i>
+                    <h3 className="text-[#E4E6EB] text-[18px] font-bold ml-4">Tag People</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4">
+                    <p className="text-[#B0B3B8] text-sm mb-4">Tag your followers in this post</p>
+                    {followers.map(f => (
+                        <div 
+                            key={f.id} 
+                            className="flex items-center gap-3 p-3 hover:bg-[#242526] rounded-xl cursor-pointer"
+                            onClick={() => {
+                                if (taggedFollowers.includes(f.id)) setTaggedFollowers(prev => prev.filter(id => id !== f.id));
+                                else setTaggedFollowers(prev => [...prev, f.id]);
+                            }}
+                        >
+                            <img src={f.profileImage} className="w-10 h-10 rounded-full object-cover" alt="" />
+                            <span className="flex-1 text-[#E4E6EB] font-bold">{f.name}</span>
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${taggedFollowers.includes(f.id) ? 'bg-[#1877F2] border-[#1877F2]' : 'border-[#3E4042]'}`}>
+                                {taggedFollowers.includes(f.id) && <i className="fas fa-check text-white text-xs"></i>}
+                            </div>
+                        </div>
+                    ))}
+                    {followers.length === 0 && <p className="text-center text-[#B0B3B8] py-10 italic">No followers to tag yet.</p>}
+                </div>
+                <div className="p-4 border-t border-[#3E4042] bg-[#242526]">
+                    <button className="w-full bg-[#1877F2] text-white font-bold py-3 rounded-lg" onClick={() => setActiveFeatureTab('main')}>Done</button>
+                </div>
+            </div>
+        );
+    }
+
+    if (activeFeatureTab === 'location') {
+        return (
+            <div className="fixed inset-0 z-[160] bg-[#18191A] flex flex-col font-sans animate-slide-up">
+                <div className="flex items-center px-4 py-3 border-b border-[#3E4042] bg-[#242526]">
+                    <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2" onClick={() => setActiveFeatureTab('main')}></i>
+                    <h3 className="text-[#E4E6EB] text-[18px] font-bold ml-4">Add Location</h3>
+                </div>
+                <div className="p-4">
+                    <div className="relative">
+                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[#B0B3B8]"></i>
+                        <input 
+                            autoFocus
+                            type="text" 
+                            className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-3 pl-10 text-[#E4E6EB] outline-none" 
+                            placeholder="Where are you?"
+                            value={locationQuery}
+                            onChange={(e) => setLocationQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4">
+                    {isSearchingLocation ? (
+                        <div className="flex justify-center py-10"><i className="fas fa-spinner fa-spin text-2xl text-[#1877F2]"></i></div>
+                    ) : (
+                        locationResults.map((feat, idx) => {
+                            const name = feat.properties.name;
+                            const city = feat.properties.city || feat.properties.county || '';
+                            const country = feat.properties.country || '';
+                            const full = [name, city, country].filter(x => !!x).join(', ');
+                            return (
+                                <div 
+                                    key={idx} 
+                                    className="flex items-center gap-3 p-3 hover:bg-[#242526] rounded-xl cursor-pointer border-b border-[#3E4042]/30"
+                                    onClick={() => { setLocation(full); setActiveFeatureTab('main'); }}
+                                >
+                                    <div className="w-10 h-10 bg-[#3A3B3C] rounded-full flex items-center justify-center text-[#E4E6EB]"><i className="fas fa-map-marker-alt"></i></div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[#E4E6EB] font-bold">{name}</span>
+                                        <span className="text-[#B0B3B8] text-xs">{[city, country].filter(x => !!x).join(', ')}</span>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    if (activeFeatureTab === 'feeling') {
+        return (
+            <div className="fixed inset-0 z-[160] bg-[#18191A] flex flex-col font-sans animate-slide-up">
+                <div className="flex items-center px-4 py-3 border-b border-[#3E4042] bg-[#242526]">
+                    <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2" onClick={() => setActiveFeatureTab('main')}></i>
+                    <h3 className="text-[#E4E6EB] text-[18px] font-bold ml-4">How are you feeling?</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        {FEELINGS_DATA.map(f => (
+                            <div 
+                                key={f.name} 
+                                className="bg-[#242526] p-4 rounded-xl border border-[#3E4042] flex flex-col items-center justify-center cursor-pointer hover:bg-[#3A3B3C] transition-colors"
+                                onClick={() => { setFeeling(f); setActiveFeatureTab('main'); }}
+                            >
+                                <span className="text-3xl mb-2">{f.emoji}</span>
+                                <span className="text-[#E4E6EB] font-bold">{f.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- Main View ---
 
     return (
         <div className="fixed inset-0 z-[150] bg-[#18191A] flex flex-col font-sans animate-slide-up">
             {/* Header */}
             <div className="flex items-center px-4 py-3 border-b border-[#3E4042] bg-[#242526] shadow-sm relative">
                 <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2 -ml-2 rounded-full hover:bg-[#3A3B3C] transition-colors" onClick={onClose}></i>
-                <h3 className="text-[#E4E6EB] text-[18px] font-medium ml-4">Create Post</h3>
+                <h3 className="text-[#E4E6EB] text-[18px] font-bold ml-4">Create Post</h3>
                 <div className="flex-1"></div>
             </div>
 
@@ -411,13 +583,28 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                 <div className="px-4 pt-4 pb-2 flex items-center gap-3">
                     <img src={currentUser.profileImage} className="w-12 h-12 rounded-full object-cover border border-[#3E4042]" alt="" />
                     <div>
-                        <div className="font-bold text-[#E4E6EB] text-[16px]">{currentUser.name}</div>
-                        <div className="flex items-center gap-1 mt-0.5 cursor-pointer" onClick={() => setVisibility(visibility === 'Public' ? 'Friends' : 'Public')}>
-                            <div className="bg-[#3A3B3C] px-2 py-1 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042]">
-                                <i className={`fas ${visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-xs`}></i>
+                        <div className="flex flex-wrap items-baseline gap-1">
+                            <span className="font-black text-[#E4E6EB] text-[16px]">{currentUser.name}</span>
+                            {feeling && <span className="text-[#B0B3B8] text-[14px]">is feeling <strong>{feeling.name} {feeling.emoji}</strong></span>}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            <div className="bg-[#3A3B3C] px-2 py-1 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042] cursor-pointer" onClick={() => setVisibility(visibility === 'Public' ? 'Friends' : 'Public')}>
+                                <i className={`fas ${visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-[10px]`}></i>
                                 <span>{visibility}</span>
-                                <i className="fas fa-caret-down text-[10px]"></i>
+                                <i className="fas fa-caret-down text-[8px]"></i>
                             </div>
+                            {location && (
+                                <div className="bg-[#3A3B3C] px-2 py-1 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042]">
+                                    <i className="fas fa-map-marker-alt text-[10px] text-[#F02849]"></i>
+                                    <span className="max-w-[120px] truncate">at {location}</span>
+                                </div>
+                            )}
+                            {taggedFollowers.length > 0 && (
+                                <div className="bg-[#3A3B3C] px-2 py-1 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042]">
+                                    <i className="fas fa-user-tag text-[10px] text-[#1877F2]"></i>
+                                    <span>with {taggedFollowers.length} others</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -428,8 +615,9 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                     style={{ background: background.includes('url') ? background : background, backgroundSize: 'cover' }}
                 >
                     <textarea 
+                        ref={textareaRef}
                         autoFocus
-                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none h-full ${background ? 'text-center font-bold text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
+                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none ${background ? 'text-center font-black text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
                         placeholder="What's new in your world?"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
@@ -439,17 +627,17 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
 
                 {/* Media Preview */}
                 {file && (
-                    <div className="mx-4 mb-4 relative rounded-lg overflow-hidden border border-[#3E4042] max-h-[300px] bg-black">
+                    <div className="mx-4 mb-4 relative rounded-lg overflow-hidden border border-[#3E4042] max-h-[300px] bg-black shadow-lg">
                         {file.type.startsWith('video') ? (
                             <video src={URL.createObjectURL(file)} className="w-full h-full object-contain" controls />
                         ) : (
                             <img src={URL.createObjectURL(file)} className="w-full h-full object-contain" />
                         )}
-                        <div onClick={() => { setFile(null); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10 hover:bg-black/80"><i className="fas fa-times text-white"></i></div>
+                        <div onClick={() => { setFile(null); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10 hover:bg-black/80 transition-colors"><i className="fas fa-times text-white"></i></div>
                     </div>
                 )}
 
-                {/* Background Picker (Only if no file) */}
+                {/* Background Picker */}
                 {!file && (
                     <div className="px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide mb-2 border-t border-[#3E4042]/30 pt-3">
                          <div 
@@ -470,23 +658,23 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                 )}
 
                 {/* Options List */}
-                <div className="border-t border-[#3E4042] pb-24">
+                <div className="border-t border-[#3E4042] pb-24 bg-[#242526]">
                     <OptionRow icon="fas fa-images" color="#45BD62" label="Photos/videos" onClick={() => fileInputRef.current?.click()} />
-                    <OptionRow icon="fas fa-user-tag" color="#1877F2" label="Tag people" onClick={() => alert('Tagging feature coming soon')} />
-                    <OptionRow icon="fas fa-map-marker-alt" color="#F02849" label="Add location" onClick={() => { const loc = prompt("Enter location:"); if(loc) setLocation(loc); }} subtext={location ? `Selected: ${location}` : ''} />
-                    <OptionRow icon="far fa-smile" color="#F7B928" label="Feeling/activity" onClick={() => { const feel = prompt("How are you feeling?"); if(feel) setFeeling(feel); }} subtext={feeling ? `Feeling: ${feeling}` : ''} />
-                    <OptionRow icon="fab fa-facebook-messenger" color="#A033FF" label="Get messages" />
-                    <OptionRow icon="fas fa-calendar-alt" color="#F02849" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} />
-                    <OptionRow icon="fas fa-video" color="#F02849" label="Go live" subtext="Coming soon" />
+                    <OptionRow icon="fas fa-user-tag" color="#1877F2" label="Tag people" onClick={() => setActiveFeatureTab('tag')} active={taggedFollowers.length > 0} />
+                    <OptionRow icon="fas fa-map-marker-alt" color="#F02849" label="Add location" onClick={() => setActiveFeatureTab('location')} active={!!location} subtext={location || ''} />
+                    <OptionRow icon="far fa-smile" color="#F7B928" label="Feeling/activity" onClick={() => setActiveFeatureTab('feeling')} active={!!feeling} subtext={feeling?.name || ''} />
+                    <OptionRow icon="fab fa-facebook-messenger" color="#1877F2" label="Get messages" onClick={() => setWantsMessages(!wantsMessages)} active={wantsMessages} subtext="Adds a Message button to your post" />
+                    <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} />
+                    <OptionRow icon="fas fa-video" color="#F02849" label="Go live" subtext="Feature coming soon" onClick={() => alert("Go Live is currently in moderation and will be available soon.")} />
                 </div>
             </div>
 
             {/* Footer with Post Button */}
-            <div className="p-3 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-20">
+            <div className="p-3 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
                 <button 
                     onClick={handleSubmit} 
                     disabled={!text.trim() && !file && !background} 
-                    className="w-full bg-[#1877F2] text-white font-bold text-[16px] py-3 rounded-lg hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] disabled:cursor-not-allowed transition-colors shadow-md"
+                    className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] disabled:cursor-not-allowed transition-all active:scale-[0.98]"
                 >
                     POST
                 </button>
@@ -545,6 +733,9 @@ export const Post: React.FC<PostProps> = ({
 
     const isVideo = post.type === 'video';
 
+    // Shared UI logic for Full Width Media
+    const mediaContainerClasses = "w-full mb-2";
+
     // Special Layout for Video Posts in Feed (Reel Style)
     if (isVideo && post.video) {
         return (
@@ -553,7 +744,7 @@ export const Post: React.FC<PostProps> = ({
                     <div className="flex gap-2">
                         <img src={author.profileImage} alt={author.name} className="w-10 h-10 rounded-full object-cover border border-[#3E4042] cursor-pointer" onClick={() => onProfileClick(author.id)} />
                         <div>
-                            <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                            <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer leading-tight block" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             <div className="text-[#B0B3B8] text-[13px]">{post.timestamp}</div>
                         </div>
                     </div>
@@ -565,7 +756,7 @@ export const Post: React.FC<PostProps> = ({
                                     e.stopPropagation(); 
                                     onFollow(author.id); 
                                 }}
-                                className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-bold text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
+                                className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-black text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
                             >
                                 <i className="fas fa-plus text-xs"></i> Follow
                             </button>
@@ -595,9 +786,9 @@ export const Post: React.FC<PostProps> = ({
                     </div>
                 </div>
                 
-                {post.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[19px] leading-relaxed"><RichText text={post.content} users={users} onProfileClick={onProfileClick} /></div>}
+                {post.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[20px] leading-relaxed"><RichText text={post.content} users={users} onProfileClick={onProfileClick} /></div>}
 
-                <div className="relative bg-black cursor-pointer group" onClick={() => onVideoClick(post)}>
+                <div className="relative bg-black cursor-pointer group w-full" onClick={() => onVideoClick(post)}>
                     <video src={post.video} className="w-full h-auto max-h-[600px] object-cover mx-auto" />
                     
                     {/* Play Button Overlay */}
@@ -607,19 +798,27 @@ export const Post: React.FC<PostProps> = ({
                         </div>
                     </div>
 
-                    {/* Views Overlay (Facebook style: bottom left on video) */}
-                    <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs font-semibold pointer-events-none">
+                    {/* Views Overlay */}
+                    <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs font-black pointer-events-none">
                         <i className="fas fa-eye"></i>
                         <span>{post.views ? post.views.toLocaleString() : 0}</span>
                     </div>
                 </div>
+                {/* Professionals Message Button */}
+                {post.wantsMessages && (
+                    <div className="p-3 border-t border-[#3E4042] bg-[#242526]">
+                        <button onClick={() => onMessage && onMessage(post.authorId)} className="w-full bg-[#1877F2] text-white py-2.5 rounded-lg font-black text-sm flex items-center justify-center gap-2 hover:bg-[#166FE5] transition-colors">
+                            <i className="fab fa-facebook-messenger"></i> Send Message
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }
 
     // Standard & Product Posts
     return (
-        <div className="bg-[#242526] rounded-xl border border-[#3E4042] mb-4 shadow-sm animate-fade-in font-sans">
+        <div className="bg-[#242526] rounded-xl border border-[#3E4042] mb-4 shadow-sm animate-fade-in font-sans overflow-hidden">
             {/* Header */}
             <div className="p-3 flex items-start justify-between">
                 <div className="flex gap-2">
@@ -629,14 +828,14 @@ export const Post: React.FC<PostProps> = ({
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-1">
-                            <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                            <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer leading-tight" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             {author.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
                             {post.feeling && <span className="text-[#B0B3B8] text-[15px]">is feeling {post.feeling}</span>}
                             {post.location && <span className="text-[#B0B3B8] text-[15px]">in {post.location}</span>}
                             {post.groupName && post.groupId && (
                                 <>
                                     <i className="fas fa-caret-right text-[#B0B3B8] text-xs mx-1"></i>
-                                    <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer" onClick={() => onGroupClick && onGroupClick(post.groupId!)}>{post.groupName}</span>
+                                    <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer" onClick={() => onGroupClick && onGroupClick(post.groupId!)}>{post.groupName}</span>
                                 </>
                             )}
                         </div>
@@ -654,7 +853,7 @@ export const Post: React.FC<PostProps> = ({
                                 e.stopPropagation(); 
                                 onFollow(author.id); 
                             }}
-                            className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-bold text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
+                            className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-black text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
                         >
                             <i className="fas fa-plus text-xs"></i> Follow
                         </button>
@@ -685,107 +884,107 @@ export const Post: React.FC<PostProps> = ({
             </div>
 
             {/* Content */}
-            <div className="px-3 pb-2 text-[#E4E6EB] text-[19px] leading-relaxed">
+            <div className="px-3 pb-2 text-[#E4E6EB] text-[20px] leading-relaxed">
                 {isEditing ? (
                     <div className="mb-2">
                         <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded p-2 text-[#E4E6EB]" value={editContent} onChange={e => setEditContent(e.target.value)} />
                         <div className="flex gap-2 mt-2 justify-end">
                             <button className="text-[#B0B3B8] text-sm" onClick={() => setIsEditing(false)}>Cancel</button>
-                            <button className="bg-[#1877F2] text-white px-3 py-1 rounded text-sm font-bold" onClick={handleSaveEdit}>Save</button>
+                            <button className="bg-[#1877F2] text-white px-3 py-1 rounded text-sm font-black" onClick={handleSaveEdit}>Save</button>
                         </div>
                     </div>
                 ) : (
-                    <div className={`mb-2 ${post.background ? 'text-center font-bold text-2xl py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''}`} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
+                    <div className={`mb-2 ${post.background ? 'text-center font-black text-[24px] py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''}`} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
                         <RichText text={post.content || ''} users={users} onProfileClick={onProfileClick} />
                     </div>
                 )}
             </div>
 
-            {/* Media Rendering */}
+            {/* Media Rendering - Full Width */}
             {post.type === 'image' && post.images && post.images.length > 0 && (
-                <div className={`grid gap-1 ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                <div className={`grid gap-0.5 w-full ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {post.images.slice(0, 4).map((img, idx) => (
-                        <div key={idx} className="cursor-pointer bg-black" onClick={() => onViewImage(img)}>
-                            <img src={img} alt="" className="w-full max-h-[500px] object-cover" />
+                        <div key={idx} className="cursor-pointer bg-black w-full" onClick={() => onViewImage(img)}>
+                            <img src={img} alt="" className="w-full max-h-[600px] object-cover" />
                         </div>
                     ))}
                 </div>
             )}
             
             {post.type === 'image' && !post.images && post.image && (
-                <div className="cursor-pointer bg-black" onClick={() => onViewImage(post.image!)}>
-                    <img src={post.image} alt="" className="w-full max-h-[500px] object-contain mx-auto" />
+                <div className="cursor-pointer bg-black w-full" onClick={() => onViewImage(post.image!)}>
+                    <img src={post.image} alt="" className="w-full max-h-[600px] object-contain mx-auto" />
                 </div>
             )}
 
-            {/* Link Preview */}
+            {/* Link Preview - Full Width */}
             {post.linkPreview && !post.image && !post.video && (
-                <div className="mx-3 mb-2 bg-[#3A3B3C] border border-[#3E4042] rounded-lg overflow-hidden cursor-pointer hover:bg-[#4E4F50] transition-colors" onClick={() => window.open(post.linkPreview!.url, '_blank')}>
-                    {post.linkPreview.image && <img src={post.linkPreview.image} alt="" className="w-full h-40 object-cover" />}
+                <div className="w-full mb-2 bg-[#3A3B3C] border-y border-[#3E4042] overflow-hidden cursor-pointer hover:bg-[#4E4F50] transition-colors" onClick={() => window.open(post.linkPreview!.url, '_blank')}>
+                    {post.linkPreview.image && <img src={post.linkPreview.image} alt="" className="w-full h-48 object-cover" />}
                     <div className="p-3">
-                        <div className="text-[#B0B3B8] text-xs uppercase mb-1">{post.linkPreview.domain}</div>
-                        <h4 className="text-[#E4E6EB] font-bold text-[16px] mb-1 line-clamp-1">{post.linkPreview.title}</h4>
-                        <p className="text-[#B0B3B8] text-[14px] line-clamp-2">{post.linkPreview.description}</p>
+                        <div className="text-[#B0B3B8] text-[12px] uppercase mb-1">{post.linkPreview.domain}</div>
+                        <h4 className="text-[#E4E6EB] font-black text-[16px] mb-1 line-clamp-1">{post.linkPreview.title}</h4>
+                        <p className="text-[#B0B3B8] text-[14px] line-clamp-2 leading-snug">{post.linkPreview.description}</p>
                     </div>
                 </div>
             )}
 
-            {/* Embedded Shared Post */}
+            {/* Embedded Shared Post - Full Width */}
             {sharedPost && (
-                <div className="mx-3 mb-2 border border-[#3E4042] rounded-lg overflow-hidden">
-                    <div className="p-3 flex items-center gap-2 bg-[#242526]">
+                <div className="w-full mb-2 border-y border-[#3E4042] bg-[#1C1C1D]">
+                    <div className="p-3 flex items-center gap-2">
                         <img src={users.find(u => u.id === sharedPost.authorId)?.profileImage} alt="" className="w-8 h-8 rounded-full" />
                         <div>
-                            <span className="font-bold text-[#E4E6EB] text-sm">{sharedPost.originalAuthorName || users.find(u => u.id === sharedPost.authorId)?.name}</span>
+                            <span className="font-black text-[#E4E6EB] text-sm">{sharedPost.originalAuthorName || users.find(u => u.id === sharedPost.authorId)?.name}</span>
                             <span className="text-[#B0B3B8] text-xs block">{sharedPost.timestamp}</span>
                         </div>
                     </div>
-                    {sharedPost.content && <div className="px-3 pb-2 text-[#E4E6EB] text-sm">{sharedPost.content}</div>}
-                    {sharedPost.image && <img src={sharedPost.image} className="w-full max-h-[300px] object-cover" alt="" />}
+                    {sharedPost.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[20px]">{sharedPost.content}</div>}
+                    {sharedPost.image && <img src={sharedPost.image} className="w-full max-h-[400px] object-cover" alt="" />}
                 </div>
             )}
 
-            {/* Product Card with Actions */}
+            {/* Product Card - Full Width */}
             {post.type === 'product' && post.product && (
-                <div className="mx-3 mb-3 bg-[#3A3B3C] rounded-lg overflow-hidden border border-[#3E4042]">
+                <div className="w-full mb-3 bg-[#3A3B3C] border-y border-[#3E4042]">
                     <div className="cursor-pointer" onClick={() => onViewProduct && onViewProduct(post.product!)}>
-                        <div className="w-full h-[300px] bg-white relative">
+                        <div className="w-full h-[400px] bg-white relative">
                             <img src={post.product.images[0]} alt="" className="w-full h-full object-contain" />
                         </div>
                         <div className="p-4 bg-[#242526]">
-                            <h4 className="font-bold text-[#E4E6EB] text-xl mb-1">{post.product.title}</h4>
-                            <div className="text-[#F02849] font-bold text-2xl">{MARKETPLACE_COUNTRIES.find(c => c.code === post.product!.country)?.symbol}{post.product.mainPrice.toLocaleString()}</div>
+                            <h4 className="font-black text-[#E4E6EB] text-xl mb-1">{post.product.title}</h4>
+                            <div className="text-[#F02849] font-black text-2xl">{MARKETPLACE_COUNTRIES.find(c => c.code === post.product!.country)?.symbol}{post.product.mainPrice.toLocaleString()}</div>
                             <div className="text-[#B0B3B8] text-sm mt-1">{post.product.address}</div>
                         </div>
                     </div>
                     <div className="flex gap-2 p-3 bg-[#242526] border-t border-[#3E4042]">
-                        <button onClick={() => onMessage && onMessage(post.product!.sellerId)} className="flex-1 bg-[#3A3B3C] hover:bg-[#4E4F50] border border-[#3E4042] text-[#E4E6EB] font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <button onClick={() => onMessage && onMessage(post.product!.sellerId)} className="flex-1 bg-[#3A3B3C] hover:bg-[#4E4F50] border border-[#3E4042] text-[#E4E6EB] font-black py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
                             <i className="fab fa-facebook-messenger"></i> Message
                         </button>
-                        <button onClick={() => onViewProduct && onViewProduct(post.product!)} className="flex-1 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <button onClick={() => onViewProduct && onViewProduct(post.product!)} className="flex-1 bg-[#1877F2] hover:bg-[#166FE5] text-white font-black py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
                             <i className="fas fa-eye"></i> View Details
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* Event Card */}
+            {/* Event Card - Full Width */}
             {post.type === 'event' && post.event && (
-                <div className="mx-3 mb-3 rounded-xl overflow-hidden border border-[#3E4042] bg-[#242526]">
-                    <div className="relative h-[200px] w-full overflow-hidden">
+                <div className="w-full mb-3 border-y border-[#3E4042] bg-[#242526]">
+                    <div className="relative h-[250px] w-full overflow-hidden">
                         <img src={post.event.image} alt="" className="w-full h-full object-cover" />
                         <div className="absolute top-3 left-3 bg-white text-black rounded-lg p-2 text-center min-w-[50px] shadow-lg">
-                            <span className="block text-red-600 font-bold text-xs uppercase">{new Date(post.event.date).toLocaleString('default', { month: 'short' })}</span>
-                            <span className="block text-black font-bold text-xl leading-none">{new Date(post.event.date).getDate()}</span>
+                            <span className="block text-red-600 font-black text-xs uppercase">{new Date(post.event.date).toLocaleString('default', { month: 'short' })}</span>
+                            <span className="block text-black font-black text-xl leading-none">{new Date(post.event.date).getDate()}</span>
                         </div>
                     </div>
                     <div className="p-4">
-                        <div className="text-red-500 font-bold text-sm uppercase mb-1">{new Date(post.event.date).toDateString()} AT {post.event.time}</div>
-                        <h3 className="text-[#E4E6EB] font-bold text-xl mb-1">{post.event.title}</h3>
+                        <div className="text-red-500 font-black text-sm uppercase mb-1">{new Date(post.event.date).toDateString()} AT {post.event.time}</div>
+                        <h3 className="text-[#E4E6EB] font-black text-xl mb-1">{post.event.title}</h3>
                         <div className="text-[#B0B3B8] text-sm mb-4">{post.event.location}</div>
                         <div className="flex justify-between items-center border-t border-[#3E4042] pt-3 mt-2">
-                            <div className="text-[#B0B3B8] text-xs font-medium">{post.event.attendees.length} people going</div>
-                            <button onClick={() => onJoinEvent && onJoinEvent(post.event!.id)} className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-6 py-1.5 rounded-lg font-bold text-sm transition-colors border border-[#3E4042]">
+                            <div className="text-[#B0B3B8] text-xs font-black">{post.event.attendees.length} people going</div>
+                            <button onClick={() => onJoinEvent && onJoinEvent(post.event!.id)} className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-6 py-1.5 rounded-lg font-black text-sm transition-colors border border-[#3E4042]">
                                 <i className="far fa-star mr-2"></i> Interested
                             </button>
                         </div>
@@ -793,9 +992,9 @@ export const Post: React.FC<PostProps> = ({
                 </div>
             )}
 
-            {/* Audio Track */}
+            {/* Audio Track - Full Width */}
             {post.type === 'audio' && post.audioTrack && (
-                <div className="mx-3 mb-3 bg-[#1A1A1A] p-3 rounded-lg border border-[#3E4042] flex items-center gap-3 cursor-pointer hover:bg-[#333]" onClick={() => onPlayAudio && onPlayAudio(post.audioTrack!)}>
+                <div className="w-full mb-3 bg-[#1A1A1A] p-4 border-y border-[#3E4042] flex items-center gap-3 cursor-pointer hover:bg-[#333]" onClick={() => onPlayAudio && onPlayAudio(post.audioTrack!)}>
                     <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                         <img src={post.audioTrack.cover} alt="" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -803,9 +1002,9 @@ export const Post: React.FC<PostProps> = ({
                         </div>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                        <div className="text-[#E4E6EB] font-bold text-sm truncate">{post.audioTrack.title}</div>
-                        <div className="text-[#B0B3B8] text-xs truncate">{post.audioTrack.artist}</div>
-                        <div className="text-[#1877F2] text-[10px] uppercase font-bold mt-1">{post.audioTrack.type}</div>
+                        <div className="text-[#E4E6EB] font-black text-[18px] truncate">{post.audioTrack.title}</div>
+                        <div className="text-[#B0B3B8] text-[15px] truncate">{post.audioTrack.artist}</div>
+                        <div className="text-[#1877F2] text-[11px] uppercase font-black mt-1">{post.audioTrack.type}</div>
                     </div>
                 </div>
             )}
@@ -814,23 +1013,32 @@ export const Post: React.FC<PostProps> = ({
             <div className="px-3 py-2 flex items-center justify-between text-[#B0B3B8] text-[13px]">
                 <div className="flex items-center gap-1">
                     {reactionCount > 0 && <i className="fas fa-thumbs-up text-[#1877F2]"></i>}
-                    <span>{reactionCount > 0 ? reactionCount : ''}</span>
+                    <span className="font-bold">{reactionCount > 0 ? reactionCount : ''}</span>
                 </div>
                 <div className="flex gap-3">
-                    <span>{commentCount} comments</span>
-                    <span>{shareCount} shares</span>
+                    <span className="font-bold">{commentCount} comments</span>
+                    <span className="font-bold">{shareCount} shares</span>
                 </div>
             </div>
 
             <div className="border-t border-[#3E4042] mx-3"></div>
 
+            {/* Professional Message Button if requested */}
+            {post.wantsMessages && (
+                <div className="px-3 py-2 border-b border-[#3E4042]">
+                    <button onClick={() => onMessage && onMessage(post.authorId)} className="w-full bg-[#1877F2] text-white py-2.5 rounded-lg font-black text-sm flex items-center justify-center gap-2 hover:bg-[#166FE5] transition-colors shadow-md">
+                        <i className="fab fa-facebook-messenger"></i> Send Message
+                    </button>
+                </div>
+            )}
+
             {/* Action Buttons */}
             <div className="px-1 py-1 flex items-center justify-between">
                 <ReactionButton currentUserReactions={myReaction} reactionCount={reactionCount} onReact={(type) => onReact(post.id, type)} isGuest={!currentUser} />
-                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-semibold text-[15px]" onClick={() => onOpenComments(post.id)}>
+                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-black text-[15px]" onClick={() => onOpenComments(post.id)}>
                     <i className="far fa-comment-alt text-[18px]"></i> Comment
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-semibold text-[15px]" onClick={() => onShare(post.id)}>
+                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-black text-[15px]" onClick={() => onShare(post.id)}>
                     <i className="fas fa-share text-[18px]"></i> Share
                 </button>
             </div>
