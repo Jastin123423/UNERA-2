@@ -18,13 +18,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onSa
     const [website, setWebsite] = useState(user.website || '');
     
     const handleSave = () => {
-        onSave({
-            bio,
-            work,
-            education,
-            location,
-            website
-        });
+        onSave({ bio, work, education, location, website });
         onClose();
     };
 
@@ -37,52 +31,31 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onSa
                         <i className="fas fa-times text-[#B0B3B8]"></i>
                     </div>
                 </div>
-                
                 <div className="p-4 overflow-y-auto space-y-4">
                     <div>
-                        <div className="flex justify-between items-center mb-1">
-                             <label className="text-[#E4E6EB] font-bold text-sm">Bio</label>
-                        </div>
+                        <label className="text-[#E4E6EB] font-bold text-sm">Bio</label>
                         <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-3 text-[#E4E6EB] outline-none focus:border-[#1877F2] text-center" rows={3} value={bio} onChange={e => setBio(e.target.value)} placeholder="Describe yourself..." />
                     </div>
-
                     <div className="space-y-4">
                         <h3 className="text-[#E4E6EB] font-bold text-lg">Details</h3>
-                        
                         <div>
-                            <div className="flex items-center gap-2 mb-1 text-[#B0B3B8]">
-                                <i className="fas fa-briefcase w-5 text-center"></i>
-                                <span className="text-sm">Work</span>
-                            </div>
-                            <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={work} onChange={e => setWork(e.target.value)} placeholder="Add a workplace" />
+                            <div className="flex items-center gap-2 mb-1 text-[#B0B3B8]"><i className="fas fa-briefcase w-5 text-center"></i><span className="text-sm">Work</span></div>
+                            <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={work} onChange={e => setWork(e.target.value)} />
                         </div>
-
                         <div>
-                            <div className="flex items-center gap-2 mb-1 text-[#B0B3B8]">
-                                <i className="fas fa-graduation-cap w-5 text-center"></i>
-                                <span className="text-sm">Education</span>
-                            </div>
-                            <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={education} onChange={e => setEducation(e.target.value)} placeholder="Add a high school or university" />
+                            <div className="flex items-center gap-2 mb-1 text-[#B0B3B8]"><i className="fas fa-graduation-cap w-5 text-center"></i><span className="text-sm">Education</span></div>
+                            <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={education} onChange={e => setEducation(e.target.value)} />
                         </div>
-
                         <div>
-                            <div className="flex items-center gap-2 mb-1 text-[#B0B3B8]">
-                                <i className="fas fa-map-marker-alt w-5 text-center"></i>
-                                <span className="text-sm">Location</span>
-                            </div>
-                            <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={location} onChange={e => setLocation(e.target.value)} placeholder="Add current city" />
+                            <div className="flex items-center gap-2 mb-1 text-[#B0B3B8]"><i className="fas fa-map-marker-alt w-5 text-center"></i><span className="text-sm">Location</span></div>
+                            <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={location} onChange={e => setLocation(e.target.value)} />
                         </div>
-
                         <div>
-                            <div className="flex items-center gap-2 mb-1 text-[#B0B3B8]">
-                                <i className="fas fa-link w-5 text-center"></i>
-                                <span className="text-sm">Website</span>
-                            </div>
-                            <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={website} onChange={e => setWebsite(e.target.value)} placeholder="Add website link" />
+                            <div className="flex items-center gap-2 mb-1 text-[#B0B3B8]"><i className="fas fa-link w-5 text-center"></i><span className="text-sm">Website</span></div>
+                            <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={website} onChange={e => setWebsite(e.target.value)} />
                         </div>
                     </div>
                 </div>
-
                 <div className="p-4 border-t border-[#3E4042] bg-[#242526] rounded-b-xl">
                     <button onClick={handleSave} className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white py-2.5 rounded-lg font-bold shadow-md transition-colors">Save Details</button>
                 </div>
@@ -93,7 +66,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onSa
 
 interface UserProfileProps {
     user: User;
-    currentUser: User | null; // Allow null
+    currentUser: User | null;
     users: User[];
     groups?: Group[];
     brands?: Brand[];
@@ -116,30 +89,26 @@ interface UserProfileProps {
     getCommentAuthor: (id: number) => User | undefined;
     onViewImage: (url: string) => void;
     onCreateEventClick?: () => void;
+    onCreateStoryClick?: () => void; // New Prop
     onOpenComments: (postId: number) => void;
     onVideoClick: (post: PostType) => void;
-    
-    // Admin Actions
     onVerifyUser?: (id: number) => void;
     onRestrictUser?: (id: number, type: '24h' | '5d') => void;
     onDeleteUser?: (id: number) => void;
     onMakeModerator?: (id: number) => void;
-    
     onPlayAudio?: (track: AudioTrack) => void; 
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, users, groups = [], brands = [], posts, reels = [], songs = [], episodes = [], onProfileClick, onFollow, onReact, onComment, onShare, onMessage, onCreatePost, onUpdateProfileImage, onUpdateCoverImage, onUpdateUserDetails, onDeletePost, onEditPost, getCommentAuthor, onViewImage, onCreateEventClick, onOpenComments, onVideoClick, onVerifyUser, onRestrictUser, onDeleteUser, onMakeModerator, onPlayAudio }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, users, groups = [], brands = [], posts, reels = [], songs = [], episodes = [], onProfileClick, onFollow, onReact, onComment, onShare, onMessage, onCreatePost, onUpdateProfileImage, onUpdateCoverImage, onUpdateUserDetails, onDeletePost, onEditPost, getCommentAuthor, onViewImage, onCreateEventClick, onCreateStoryClick, onOpenComments, onVideoClick, onVerifyUser, onRestrictUser, onDeleteUser, onMakeModerator, onPlayAudio }) => {
     const [activeTab, setActiveTab] = useState('Posts');
     const [showCreatePostModal, setShowCreatePostModal] = useState(false);
     const [showEditProfile, setShowEditProfile] = useState(false);
     
-    // Filter posts for this user
     const userPosts = posts.filter(post => post.authorId === user.id);
     const userReels = reels.filter(reel => reel.userId === user.id);
     const userSongs = songs.filter(song => song.uploaderId === user.id);
     const userEpisodes = episodes.filter(ep => ep.uploaderId === user.id);
     
-    // Check if viewing own profile
     const isCurrentUser = currentUser && user.id === currentUser.id;
     const isFollowing = currentUser ? user.followers.includes(currentUser.id) : false;
     const followerCount = user.followers.length;
@@ -147,388 +116,115 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
     const profileInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
     
-    // Strict Admin Check
     const isAdmin = currentUser?.role === 'admin';
 
-    // Dashboard Stats Calculation (Dynamic)
     const totalViews = userPosts.reduce((acc, curr) => acc + (curr.views || 0), 0);
     const totalLikes = userPosts.reduce((acc, curr) => acc + curr.reactions.length, 0) + userReels.reduce((acc, curr) => acc + curr.reactions.length, 0);
-    const totalShares = userPosts.reduce((acc, curr) => acc + curr.shares, 0) + userReels.reduce((acc, curr) => acc + curr.shares, 0);
-    const totalComments = userPosts.reduce((acc, curr) => acc + curr.comments.length, 0) + userReels.reduce((acc, curr) => acc + curr.comments.length, 0);
-    const totalEngagement = totalLikes + totalComments + totalShares;
+    const totalEngagement = totalLikes + userPosts.reduce((acc, curr) => acc + curr.comments.length, 0);
 
-    // Suggestions Logic for Current User
     const suggestedGroups = isCurrentUser ? groups.filter(g => !g.members.includes(currentUser!.id)).slice(0, 3) : [];
     const suggestedBrands = isCurrentUser ? brands.filter(b => !b.followers.includes(currentUser!.id)).slice(0, 3) : [];
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'profile') => {
         if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            if (type === 'cover') {
-                onUpdateCoverImage(file);
-            } else {
-                onUpdateProfileImage(file);
-            }
+            if (type === 'cover') onUpdateCoverImage(e.target.files[0]);
+            else onUpdateProfileImage(e.target.files[0]);
         }
     };
 
     const renderContent = () => {
         switch (activeTab) {
             case 'About': return (
-                <div className="bg-[#242526] p-6 text-[#E4E6EB] rounded-xl border border-[#3E4042] mx-4 md:mx-0">
-                    <div className="flex justify-between items-center mb-4">
+                <div className="bg-[#242526] p-6 text-[#E4E6EB] rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold">About</h2>
                         {isCurrentUser && <button onClick={() => setShowEditProfile(true)} className="text-[#1877F2] font-semibold hover:underline">Edit</button>}
                     </div>
-                    <p className="text-[#B0B3B8] text-[16px] italic mb-6">"{user.bio || 'No bio available'}"</p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-[15px]">
-                        <div className="flex flex-col gap-4">
-                            <h3 className="text-xl font-bold">Work & Education</h3>
-                            <div className="flex items-center gap-3">
-                                <i className="fas fa-briefcase text-[#B0B3B8] w-6 text-center"></i>
-                                <span>{user.work ? `Works at ${user.work}` : 'No workplace to show'}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <i className="fas fa-graduation-cap text-[#B0B3B8] w-6 text-center"></i>
-                                <span>{user.education ? `Studied at ${user.education}` : 'No schools to show'}</span>
-                            </div>
+                    <p className="text-[#B0B3B8] text-lg italic mb-8">"{user.bio || 'No bio available'}"</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[15px]">
+                        <div className="flex flex-col gap-5">
+                            <h3 className="text-xl font-bold border-b border-[#3E4042] pb-2">Work & Education</h3>
+                            <div className="flex items-center gap-4"><i className="fas fa-briefcase text-[#B0B3B8] text-xl w-6"></i><span>{user.work || 'No workplace to show'}</span></div>
+                            <div className="flex items-center gap-4"><i className="fas fa-graduation-cap text-[#B0B3B8] text-xl w-6"></i><span>{user.education || 'No schools to show'}</span></div>
                         </div>
-                        <div className="flex flex-col gap-4">
-                            <h3 className="text-xl font-bold">Contact & Basic Info</h3>
-                            <div className="flex items-center gap-3">
-                                <i className="fas fa-map-marker-alt text-[#B0B3B8] w-6 text-center"></i>
-                                <span>{user.location || 'No location to show'}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <i className="fas fa-link text-[#B0B3B8] w-6 text-center"></i>
-                                <span>{user.website ? <a href={user.website.startsWith('http') ? user.website : `https://${user.website}`} target="_blank" rel="noreferrer" className="text-[#1877F2] hover:underline">{user.website}</a> : 'No website'}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <i className="fas fa-birthday-cake text-[#B0B3B8] w-6 text-center"></i>
-                                <span>{user.birthDate || 'No birth date'}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <i className="fas fa-venus-mars text-[#B0B3B8] w-6 text-center"></i>
-                                <span>{user.gender || 'Not specified'}</span>
-                            </div>
+                        <div className="flex flex-col gap-5">
+                            <h3 className="text-xl font-bold border-b border-[#3E4042] pb-2">Contact & Info</h3>
+                            <div className="flex items-center gap-4"><i className="fas fa-map-marker-alt text-[#B0B3B8] text-xl w-6"></i><span>{user.location || 'No location'}</span></div>
+                            <div className="flex items-center gap-4"><i className="fas fa-venus-mars text-[#B0B3B8] text-xl w-6"></i><span>{user.gender || 'Not specified'}</span></div>
                         </div>
                     </div>
                 </div>
             );
             case 'Followers': return (
-                <div className="bg-[#242526] p-4 rounded-xl border border-[#3E4042] mx-4 md:mx-0">
-                    <h2 className="text-xl font-bold text-[#E4E6EB] mb-4">Followers</h2>
-                    {followersList.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {followersList.map(follower => (
-                                <div key={follower.id} className="flex items-center gap-3 p-3 border border-[#3E4042] rounded-lg hover:bg-[#3A3B3C] cursor-pointer" onClick={() => onProfileClick(follower.id)}>
-                                    <img src={follower.profileImage} alt="" className="w-16 h-16 rounded-lg object-cover" />
-                                    <div>
-                                        <h4 className="font-semibold text-[#E4E6EB] text-[16px]">{follower.name}</h4>
-                                        <span className="text-[#B0B3B8] text-[14px]">{follower.location}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : <p className="text-[#B0B3B8]">No followers yet.</p>}
+                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm">
+                    <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Followers ({followerCount})</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {followersList.length > 0 ? followersList.map(follower => (
+                            <div key={follower.id} className="flex items-center gap-4 p-4 border border-[#3E4042] rounded-2xl hover:bg-[#3A3B3C] cursor-pointer transition-colors" onClick={() => onProfileClick(follower.id)}>
+                                <img src={follower.profileImage} alt="" className="w-16 h-16 rounded-2xl object-cover shadow-md" />
+                                <div><h4 className="font-bold text-[#E4E6EB] text-lg leading-tight">{follower.name}</h4><span className="text-[#B0B3B8] text-sm">{follower.location}</span></div>
+                            </div>
+                        )) : <p className="text-[#B0B3B8]">No followers yet.</p>}
+                    </div>
                 </div>
             );
-            case 'Photos': 
-                const photos = userPosts.filter(p => p.type === 'image' && p.image); 
-                return (
-                    <div className="bg-[#242526] p-4 rounded-xl border border-[#3E4042] mx-4 md:mx-0">
-                        <h2 className="text-xl font-bold text-[#E4E6EB] mb-4">Photos</h2>
-                        {photos.length > 0 ? (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
-                                {photos.map(p => (
-                                    <div key={p.id} className="aspect-square cursor-pointer overflow-hidden relative group" onClick={() => p.image && onViewImage(p.image)}>
-                                        <img src={p.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                    </div>
-                                ))}
+            case 'Photos': return (
+                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm">
+                    <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Photos</h2>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                        {userPosts.filter(p => p.type === 'image' && p.image).map(p => (
+                            <div key={p.id} className="aspect-square cursor-pointer overflow-hidden rounded-xl group relative" onClick={() => p.image && onViewImage(p.image)}>
+                                <img src={p.image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             </div>
-                        ) : <p className="text-[#B0B3B8]">No photos shared.</p>}
+                        ))}
                     </div>
-                );
-            case 'Reels': 
-                return (
-                    <div className="bg-[#242526] p-4 rounded-xl border border-[#3E4042] mx-4 md:mx-0">
-                        <h2 className="text-xl font-bold text-[#E4E6EB] mb-4">Reels</h2>
-                        {userReels.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                                {userReels.map(reel => (
-                                    <div 
-                                        key={reel.id} 
-                                        className="aspect-[9/16] relative bg-black rounded-lg overflow-hidden cursor-pointer group hover:opacity-90"
-                                        onClick={() => onVideoClick({ 
-                                            id: reel.id, 
-                                            type: 'video', 
-                                            video: reel.videoUrl, 
-                                            authorId: reel.userId, 
-                                            content: reel.caption,
-                                            reactions: reel.reactions,
-                                            comments: reel.comments,
-                                            shares: reel.shares,
-                                            visibility: 'Public',
-                                            timestamp: 'Reel',
-                                            createdAt: Date.now()
-                                        } as PostType)}
-                                    >
-                                        <video src={reel.videoUrl} className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/20 flex items-end p-2">
-                                            <div className="flex items-center gap-1 text-white text-[14px] font-bold">
-                                                <i className="fas fa-play"></i> {reel.reactions.length * 10 + reel.shares * 5}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : <div className="text-center py-8 text-[#B0B3B8]">No reels posted yet.</div>}
-                    </div>
-                );
-            case 'Music':
-                return (
-                    <div className="bg-[#242526] p-4 rounded-xl border border-[#3E4042] mx-4 md:mx-0">
-                        <h2 className="text-xl font-bold text-[#E4E6EB] mb-4">Music</h2>
-                        {userSongs.length > 0 ? (
-                            <div className="space-y-2">
-                                {userSongs.map((song, i) => (
-                                    <div key={song.id} className="flex items-center gap-3 p-3 hover:bg-[#3A3B3C] rounded-lg transition-colors cursor-pointer group"
-                                        onClick={() => onPlayAudio && onPlayAudio({
-                                            id: song.id,
-                                            url: song.audioUrl,
-                                            title: song.title,
-                                            artist: song.artist,
-                                            cover: song.cover,
-                                            type: 'music',
-                                            uploaderId: song.uploaderId,
-                                            isVerified: user.isVerified
-                                        })}
-                                    >
-                                        <div className="text-[#B0B3B8] w-6 text-center font-mono text-[16px] group-hover:hidden">{i + 1}</div>
-                                        <div className="w-6 text-center hidden group-hover:block text-[#1877F2]"><i className="fas fa-play"></i></div>
-                                        <img src={song.cover} className="w-12 h-12 rounded object-cover" alt="" />
-                                        <div className="flex-1">
-                                            <h4 className="text-[#E4E6EB] font-bold text-[16px]">{song.title}</h4>
-                                            <p className="text-[#B0B3B8] text-[14px]">{song.artist} • {song.album}</p>
-                                        </div>
-                                        <div className="text-[#B0B3B8] text-[14px] font-mono">{song.duration}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : <div className="text-center py-8 text-[#B0B3B8]">No music tracks released yet.</div>}
-                    </div>
-                );
-            case 'Podcast':
-                return (
-                    <div className="bg-[#242526] p-4 rounded-xl border border-[#3E4042] mx-4 md:mx-0">
-                        <h2 className="text-xl font-bold text-[#E4E6EB] mb-4">Podcasts</h2>
-                        {userEpisodes.length > 0 ? (
-                            <div className="space-y-4">
-                                {userEpisodes.map(ep => (
-                                    <div key={ep.id} className="flex gap-4 p-3 bg-[#1A1A1A] rounded-xl hover:bg-[#3A3B3C] transition-colors cursor-pointer group border border-[#3E4042]"
-                                        onClick={() => onPlayAudio && onPlayAudio({
-                                            id: ep.id,
-                                            url: ep.audioUrl,
-                                            title: ep.title,
-                                            artist: ep.host || user.name,
-                                            cover: ep.thumbnail,
-                                            type: 'podcast',
-                                            uploaderId: ep.uploaderId,
-                                            isVerified: user.isVerified
-                                        })}
-                                    >
-                                        <div className="relative w-24 h-24 flex-shrink-0">
-                                            <img src={ep.thumbnail} className="w-full h-full object-cover rounded-lg" alt="" />
-                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <i className="fas fa-play text-white text-2xl"></i>
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                            <h4 className="text-[#E4E6EB] font-bold text-[18px] leading-tight mb-1 truncate">{ep.title}</h4>
-                                            <p className="text-[#B0B3B8] text-[15px] line-clamp-2 mb-2">{ep.description}</p>
-                                            <div className="flex items-center gap-3 text-[13px] text-[#666]">
-                                                <span>{ep.date}</span>
-                                                <span>• {ep.duration}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : <div className="text-center py-8 text-[#B0B3B8]">No podcasts released yet.</div>}
-                    </div>
-                );
+                </div>
+            );
             case 'Posts': default: return (
                 <div className="max-w-[1095px] mx-auto w-full flex flex-col md:flex-row gap-4 px-0 md:px-4 mt-4">
                     <div className="w-full md:w-[380px] flex-shrink-0 flex flex-col gap-4 px-4 md:px-0">
-                        {/* Admin Control Panel - Only visible to Admins, never to guests or regular users */}
                         {isAdmin && !isCurrentUser && (
-                            <div className="bg-[#242526] rounded-xl p-4 shadow-sm border border-red-900/50">
+                            <div className="bg-[#242526] rounded-xl p-4 shadow-md border border-red-900/40">
                                 <h2 className="text-xl font-bold text-red-500 mb-4">Admin Controls</h2>
                                 <div className="flex flex-col gap-2">
-                                    <button onClick={() => onVerifyUser && onVerifyUser(user.id)} className="w-full bg-[#263951] text-[#2D88FF] py-2 rounded font-semibold hover:bg-[#2A3F5A]">
-                                        {user.isVerified ? 'Remove Verification' : 'Verify User'}
-                                    </button>
-                                    <button onClick={() => onRestrictUser && onRestrictUser(user.id, '24h')} className="w-full bg-[#3A3B3C] text-[#E4E6EB] py-2 rounded font-semibold hover:bg-[#4E4F50]">
-                                        Restrict (24h)
-                                    </button>
-                                    <button onClick={() => onDeleteUser && onDeleteUser(user.id)} className="w-full bg-red-900/80 text-white py-2 rounded font-semibold hover:bg-red-800">
-                                        Delete Account
-                                    </button>
+                                    <button onClick={() => onVerifyUser && onVerifyUser(user.id)} className="w-full bg-[#263951] text-[#2D88FF] py-2.5 rounded-xl font-bold hover:bg-[#2A3F5A] transition-all">Verify User</button>
+                                    <button onClick={() => onDeleteUser && onDeleteUser(user.id)} className="w-full bg-red-900/60 text-white py-2.5 rounded-xl font-bold hover:bg-red-800 transition-all">Delete User</button>
                                 </div>
                             </div>
                         )}
-
-                        <div className="bg-[#242526] rounded-xl p-4 shadow-sm border border-[#3E4042]">
+                        <div className="bg-[#242526] rounded-xl p-6 shadow-sm border border-[#3E4042]">
                             <h2 className="text-xl font-bold text-[#E4E6EB] mb-4">Intro</h2>
-                            <div className="flex flex-col gap-3 text-[#E4E6EB] text-[15px]">
-                                <div className="text-center mb-2"><p className="text-[16px]">{user.bio}</p></div>
-                                <div className="h-[1px] bg-[#3E4042] w-full my-1"></div>
-                                {user.work && <div className="flex items-center gap-3"><i className="fas fa-briefcase text-[#B0B3B8] w-5 text-center"></i><span>{user.work}</span></div>}
-                                {user.education && <div className="flex items-center gap-3"><i className="fas fa-graduation-cap text-[#B0B3B8] w-5 text-center"></i><span>{user.education}</span></div>}
-                                {user.location && <div className="flex items-center gap-3"><i className="fas fa-map-marker-alt text-[#B0B3B8] w-5 text-center"></i><span>{user.location}</span></div>}
-                                {user.website && <div className="flex items-center gap-3"><i className="fas fa-link text-[#B0B3B8] w-5 text-center"></i><a href={user.website} target="_blank" rel="noreferrer" className="text-[#1877F2] hover:underline truncate">{user.website}</a></div>}
-                                <div className="flex items-center gap-3"><i className="fas fa-rss text-[#B0B3B8] w-5 text-center"></i><span>{followerCount} Followers</span></div>
-                                {isCurrentUser && <button className="w-full bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#E4E6EB] font-semibold py-2 rounded-md transition-colors text-[16px] mt-2" onClick={() => setShowEditProfile(true)}>Edit Details</button>}
-                            </div>
-                        </div>
-                        
-                        {/* Suggestions Section for Current User */}
-                        {isCurrentUser && (suggestedGroups.length > 0 || suggestedBrands.length > 0) && (
-                            <div className="bg-[#242526] rounded-xl p-4 shadow-sm border border-[#3E4042]">
-                                <h3 className="text-lg font-bold text-[#E4E6EB] mb-3">Suggested for you</h3>
-                                
-                                {suggestedGroups.length > 0 && (
-                                    <div className="mb-4">
-                                        <h4 className="text-[#B0B3B8] text-sm font-semibold mb-2">Groups</h4>
-                                        <div className="flex flex-col gap-2">
-                                            {suggestedGroups.map(group => (
-                                                <div key={group.id} className="flex items-center gap-2">
-                                                    <img src={group.image} className="w-8 h-8 rounded-lg object-cover" alt="" />
-                                                    <div className="flex-1 overflow-hidden">
-                                                        <div className="text-[#E4E6EB] text-sm font-semibold truncate">{group.name}</div>
-                                                        <div className="text-[#B0B3B8] text-xs">{group.members.length} members</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {suggestedBrands.length > 0 && (
-                                    <div>
-                                        <h4 className="text-[#B0B3B8] text-sm font-semibold mb-2">Pages</h4>
-                                        <div className="flex flex-col gap-2">
-                                            {suggestedBrands.map(brand => (
-                                                <div key={brand.id} className="flex items-center gap-2">
-                                                    <img src={brand.profileImage} className="w-8 h-8 rounded-full object-cover" alt="" />
-                                                    <div className="flex-1 overflow-hidden">
-                                                        <div className="text-[#E4E6EB] text-sm font-semibold truncate">{brand.name}</div>
-                                                        <div className="text-[#B0B3B8] text-xs">{brand.category}</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <div className="bg-[#242526] rounded-xl p-4 shadow-sm border border-[#3E4042]">
-                            <div className="flex justify-between items-center mb-3"><h2 className="text-xl font-bold text-[#E4E6EB]">Photos</h2><span className="text-[#1877F2] cursor-pointer hover:underline text-[15px]" onClick={() => setActiveTab('Photos')}>See all</span></div>
-                            <div className="grid grid-cols-3 gap-1 rounded-lg overflow-hidden">
-                                {userPosts.filter(p => p.type === 'image' && p.image).slice(0, 9).map(p => (
-                                    <img key={p.id} src={p.image} className="w-full aspect-square object-cover cursor-pointer hover:opacity-90" alt="" onClick={() => p.image && onViewImage(p.image)} />
-                                ))}
+                            <p className="text-[#E4E6EB] text-center text-[16px] mb-4">{user.bio}</p>
+                            <div className="space-y-4 text-[15px]">
+                                {user.work && <div className="flex items-center gap-3"><i className="fas fa-briefcase text-[#B0B3B8] w-6 text-center"></i><span>Works at <strong>{user.work}</strong></span></div>}
+                                {user.location && <div className="flex items-center gap-3"><i className="fas fa-map-marker-alt text-[#B0B3B8] w-6 text-center"></i><span>Lives in <strong>{user.location}</strong></span></div>}
+                                <div className="flex items-center gap-3"><i className="fas fa-rss text-[#B0B3B8] w-6 text-center"></i><span>Followed by <strong>{followerCount}</strong> people</span></div>
                             </div>
                         </div>
                     </div>
-                    
                     <div className="flex-1 min-w-0">
                         {isCurrentUser && (
-                            <div className="bg-[#242526] rounded-xl p-4 mb-4 border border-[#3E4042] shadow-sm animate-fade-in">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-[#E4E6EB] font-bold text-[18px]">Professional Dashboard</h2>
-                                    <span className="text-[#B0B3B8] text-[13px] bg-[#3A3B3C] px-2 py-1 rounded border border-[#3E4042]">Private to you</span>
+                            <div className="bg-[#242526] rounded-xl p-5 mb-4 border border-[#3E4042] shadow-sm">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-[#E4E6EB] font-bold text-xl">Dashboard</h2>
+                                    <span className="text-[#B0B3B8] text-xs font-bold uppercase tracking-wider">Stats</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-[#3A3B3C] p-3 rounded-lg border border-[#3E4042]">
-                                        <div className="text-[#B0B3B8] text-[13px] font-medium mb-1">Total Views</div>
-                                        <div className="text-[#E4E6EB] font-bold text-xl flex items-center gap-2">
-                                            {totalViews.toLocaleString()} <i className="fas fa-chart-line text-[#45BD62] text-[15px]"></i>
-                                        </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-[#18191A] p-4 rounded-2xl border border-[#3E4042] shadow-inner">
+                                        <div className="text-[#B0B3B8] text-xs font-bold uppercase mb-2">Total Reach</div>
+                                        <div className="text-2xl font-black text-white">{totalViews.toLocaleString()}</div>
                                     </div>
-                                    <div className="bg-[#3A3B3C] p-3 rounded-lg border border-[#3E4042]">
-                                        <div className="text-[#B0B3B8] text-[13px] font-medium mb-1">Engagement</div>
-                                        <div className="text-[#E4E6EB] font-bold text-xl flex items-center gap-2">
-                                            {totalEngagement.toLocaleString()} <i className="fas fa-fire text-[#F02849] text-[15px]"></i>
-                                        </div>
-                                    </div>
-                                    <div className="bg-[#3A3B3C] p-3 rounded-lg border border-[#3E4042]">
-                                        <div className="text-[#B0B3B8] text-[13px] font-medium mb-1">Total Likes</div>
-                                        <div className="text-[#E4E6EB] font-bold text-xl flex items-center gap-2">
-                                            {totalLikes.toLocaleString()} <i className="fas fa-thumbs-up text-[#1877F2] text-[15px]"></i>
-                                        </div>
-                                    </div>
-                                    <div className="bg-[#3A3B3C] p-3 rounded-lg border border-[#3E4042]">
-                                        <div className="text-[#B0B3B8] text-[13px] font-medium mb-1">Content</div>
-                                        <div className="text-[#E4E6EB] font-bold text-xl">
-                                            {userPosts.length + userReels.length} <span className="text-[13px] text-[#B0B3B8] font-normal">posts/reels</span>
-                                        </div>
+                                    <div className="bg-[#18191A] p-4 rounded-2xl border border-[#3E4042] shadow-inner">
+                                        <div className="text-[#B0B3B8] text-xs font-bold uppercase mb-2">Engagement</div>
+                                        <div className="text-2xl font-black text-white">{totalEngagement.toLocaleString()}</div>
                                     </div>
                                 </div>
                             </div>
                         )}
-
-                        {isCurrentUser && currentUser && (
-                            <>
-                                <CreatePost 
-                                    currentUser={currentUser} 
-                                    onProfileClick={onProfileClick} 
-                                    onClick={() => setShowCreatePostModal(true)} 
-                                    onCreateEventClick={onCreateEventClick}
-                                />
-                                {showCreatePostModal && (
-                                    <CreatePostModal 
-                                        currentUser={currentUser} 
-                                        users={users}
-                                        onClose={() => setShowCreatePostModal(false)} 
-                                        onCreatePost={onCreatePost} 
-                                        onCreateEventClick={() => {
-                                            setShowCreatePostModal(false);
-                                            if (onCreateEventClick) onCreateEventClick();
-                                        }}
-                                    />
-                                )}
-                            </>
-                        )}
-                        <div className="bg-[#242526] p-3 mb-4 rounded-xl border border-[#3E4042] flex items-center justify-between mx-4 md:mx-0">
-                            <h3 className="text-[18px] font-bold text-[#E4E6EB]">Posts</h3>
-                            <div className="flex gap-2">
-                                <button className="bg-[#3A3B3C] px-3 py-1.5 rounded-md text-[#E4E6EB] font-semibold text-[15px] hover:bg-[#4E4F50]"><i className="fas fa-sliders-h mr-1"></i> Filters</button>
-                            </div>
-                        </div>
+                        {isCurrentUser && <CreatePost currentUser={currentUser} onProfileClick={onProfileClick} onClick={() => setShowCreatePostModal(true)} onCreateEventClick={onCreateEventClick} />}
                         {userPosts.map(post => (
-                            <Post 
-                                key={post.id} 
-                                post={post} 
-                                author={user} 
-                                currentUser={currentUser} 
-                                users={users}
-                                onProfileClick={onProfileClick} 
-                                onReact={onReact} 
-                                onShare={onShare} 
-                                onDelete={onDeletePost} 
-                                onEdit={onEditPost} 
-                                onHashtagClick={() => {}} 
-                                onViewImage={onViewImage} 
-                                onOpenComments={onOpenComments}
-                                onVideoClick={onVideoClick}
-                                onViewProduct={() => {}} 
-                                onPlayAudio={onPlayAudio} 
-                            />
+                            <Post key={post.id} post={post} author={user} currentUser={currentUser} users={users} onProfileClick={onProfileClick} onReact={onReact} onShare={onShare} onDelete={onDeletePost} onEdit={onEditPost} onViewImage={onViewImage} onOpenComments={onOpenComments} onVideoClick={onVideoClick} onPlayAudio={onPlayAudio} />
                         ))}
-                        {userPosts.length === 0 && <div className="text-center py-8 text-[#B0B3B8] font-medium bg-[#242526] rounded-xl mx-4 md:mx-0 border border-[#3E4042] text-[16px]">No posts available</div>}
                     </div>
                 </div>
             );
@@ -539,82 +235,63 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
         <div className="w-full bg-[#18191A] min-h-screen">
             <input type="file" ref={profileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'profile')} />
             <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'cover')} />
-            
-            <div className="bg-[#242526] shadow-sm">
-                <div className="max-w-[1095px] mx-auto w-full relative">
-                    {/* Cover Photo */}
-                    <div className="h-[200px] md:h-[350px] w-full bg-gray-700 relative group overflow-hidden md:rounded-b-xl">
-                        {user.coverImage ? (
-                            <img src={user.coverImage} alt="Cover" className="w-full h-full object-cover" onClick={() => user.coverImage && onViewImage(user.coverImage)} />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-500">No Cover</div>
-                        )}
+            <div className="bg-[#242526] shadow-md">
+                <div className="max-w-[1100px] mx-auto w-full relative">
+                    <div className="h-[220px] md:h-[380px] w-full bg-gray-800 relative group overflow-hidden md:rounded-b-2xl shadow-xl">
+                        {user.coverImage ? <img src={user.coverImage} alt="" className="w-full h-full object-cover" onClick={() => user.coverImage && onViewImage(user.coverImage)} /> : <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900"></div>}
                         {isCurrentUser && (
-                            <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-md cursor-pointer hover:bg-white/20 font-semibold text-white text-[15px] flex items-center gap-2" onClick={(e) => { e.stopPropagation(); coverInputRef.current?.click(); }}>
-                                <i className="fas fa-camera"></i> <span className="hidden sm:block">Edit cover photo</span>
+                            <div className="absolute bottom-6 right-6 bg-white text-black px-5 py-2.5 rounded-xl cursor-pointer hover:bg-gray-100 font-bold text-sm flex items-center gap-3 shadow-2xl transition-all" onClick={() => coverInputRef.current?.click()}>
+                                <i className="fas fa-camera text-lg"></i> <span className="hidden sm:block">Edit Cover Photo</span>
                             </div>
                         )}
                     </div>
-
-                    {/* Profile Header Info */}
-                    <div className="px-4 pb-0">
-                        <div className="flex flex-col md:flex-row items-center md:items-end -mt-[84px] md:-mt-[30px] relative z-10 mb-4">
-                            <div className="relative">
-                                <div className="w-[168px] h-[168px] rounded-full border-[6px] border-[#242526] bg-[#242526] overflow-hidden cursor-pointer relative group">
-                                    <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" onClick={() => onViewImage(user.profileImage)} />
+                    <div className="px-6 pb-0">
+                        <div className="flex flex-col md:flex-row items-center md:items-end -mt-[90px] md:-mt-[40px] relative z-10 mb-6 gap-6">
+                            <div className="relative group">
+                                <div className="w-[168px] h-[168px] rounded-full border-[6px] border-[#242526] bg-[#242526] overflow-hidden cursor-pointer shadow-2xl">
+                                    <img src={user.profileImage} alt="" className="w-full h-full object-cover" onClick={() => onViewImage(user.profileImage)} />
                                     {isCurrentUser && (
-                                        <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center" onClick={(e) => { e.stopPropagation(); profileInputRef.current?.click(); }}>
-                                            <i className="fas fa-camera text-white text-3xl"></i>
+                                        <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center rounded-full" onClick={() => profileInputRef.current?.click()}>
+                                            <i className="fas fa-camera text-white text-4xl"></i>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            
-                            <div className="flex-1 flex flex-col items-center md:items-start mt-4 md:mt-0 md:ml-6 text-center md:text-left md:mb-4">
-                                <h1 className="text-[32px] font-bold text-[#E4E6EB] leading-tight flex items-center gap-2">
+                            <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
+                                <h1 className="text-[34px] font-black text-white leading-tight flex items-center gap-3">
                                     {user.name} 
-                                    {user.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-[20px]"></i>}
+                                    {user.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-[24px]"></i>}
                                 </h1>
-                                <span className="text-[#B0B3B8] font-semibold text-[17px] mt-1">{followerCount} Followers</span>
+                                <span className="text-[#B0B3B8] font-bold text-lg mt-1">{followerCount} Followers</span>
                             </div>
-
-                            <div className="flex flex-col sm:flex-row items-center gap-2 mt-4 md:mt-0 md:mb-6">
+                            <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 md:mt-0 mb-4">
                                 {isCurrentUser ? (
                                     <>
-                                        <button className="bg-[#1877F2] text-white px-4 py-2 rounded-md font-semibold flex items-center gap-2 hover:bg-[#166FE5] transition-colors text-[16px]">
-                                            <i className="fas fa-plus"></i><span>Add to story</span>
+                                        <button onClick={onCreateStoryClick} className="bg-[#1877F2] text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-[#166FE5] transition-all text-sm shadow-lg">
+                                            <i className="fas fa-plus-circle text-lg"></i><span>Add to Story</span>
                                         </button>
-                                        <button className="bg-[#3A3B3C] text-[#E4E6EB] px-4 py-2 rounded-md font-semibold flex items-center gap-2 hover:bg-[#4E4F50] transition-colors text-[16px]" onClick={() => setShowEditProfile(true)}>
-                                            <i className="fas fa-pen"></i><span>Edit profile</span>
+                                        <button className="bg-[#3A3B3C] text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-[#4E4F50] transition-all text-sm shadow-md" onClick={() => setShowEditProfile(true)}>
+                                            <i className="fas fa-pen"></i><span>Edit Profile</span>
                                         </button>
                                     </>
                                 ) : (
-                                    // Guest View or Other User View
-                                    <>
-                                        {currentUser && (
-                                            <>
-                                            <button onClick={() => onFollow(user.id)} className={`${isFollowing ? 'bg-[#3A3B3C] text-[#E4E6EB]' : 'bg-[#1877F2] text-white'} px-6 py-2 rounded-md font-semibold flex items-center gap-2 transition-colors text-[16px]`}>
+                                    currentUser && (
+                                        <div className="flex gap-2">
+                                            <button onClick={() => onFollow(user.id)} className={`${isFollowing ? 'bg-[#3A3B3C] text-white' : 'bg-[#1877F2] text-white'} px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-md`}>
                                                 <i className={`fas ${isFollowing ? 'fa-user-check' : 'fa-user-plus'}`}></i><span>{isFollowing ? 'Following' : 'Follow'}</span>
                                             </button>
-                                            <button onClick={() => onMessage(user.id)} className="bg-[#3A3B3C] text-[#E4E6EB] px-6 py-2 rounded-md font-semibold flex items-center gap-2 hover:bg-[#4E4F50] transition-colors text-[16px]">
+                                            <button onClick={() => onMessage(user.id)} className="bg-[#3A3B3C] text-white px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-[#4E4F50] transition-all shadow-md">
                                                 <i className="fab fa-facebook-messenger"></i><span>Message</span>
                                             </button>
-                                            </>
-                                        )}
-                                        <button className="bg-[#3A3B3C] text-[#E4E6EB] px-3 py-2 rounded-md font-semibold hover:bg-[#4E4F50] transition-colors">
-                                            <i className="fas fa-ellipsis-h"></i>
-                                        </button>
-                                    </>
+                                        </div>
+                                    )
                                 )}
                             </div>
                         </div>
-
-                        <div className="h-[1px] bg-[#3E4042] w-full mt-4"></div>
-                        
-                        {/* Tabs */}
-                        <div className="flex items-center gap-1 pt-1 overflow-x-auto">
-                            {['Posts', 'About', 'Followers', 'Photos', 'Reels', 'Music', 'Podcast'].map((tab) => (
-                                <div key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-3 cursor-pointer whitespace-nowrap text-[16px] font-semibold border-b-[3px] transition-colors ${activeTab === tab ? 'text-[#1877F2] border-[#1877F2]' : 'text-[#B0B3B8] border-transparent hover:bg-[#3A3B3C] rounded-t-md'}`}>
+                        <div className="h-[1px] bg-[#3E4042] w-full mt-4 opacity-50"></div>
+                        <div className="flex items-center gap-2 pt-2 overflow-x-auto scrollbar-hide">
+                            {['Posts', 'About', 'Followers', 'Photos'].map((tab) => (
+                                <div key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-4 cursor-pointer whitespace-nowrap text-[15px] font-bold border-b-[3px] transition-all ${activeTab === tab ? 'text-[#1877F2] border-[#1877F2]' : 'text-[#B0B3B8] border-transparent hover:bg-[#3A3B3C] rounded-t-xl'}`}>
                                     {tab}
                                 </div>
                             ))}
@@ -622,17 +299,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
                     </div>
                 </div>
             </div>
-
             {renderContent()}
-
-            {/* Edit Profile Modal */}
-            {showEditProfile && isCurrentUser && (
-                <EditProfileModal 
-                    user={user}
-                    onClose={() => setShowEditProfile(false)}
-                    onSave={onUpdateUserDetails}
-                />
-            )}
+            {showEditProfile && isCurrentUser && <EditProfileModal user={user} onClose={() => setShowEditProfile(false)} onSave={onUpdateUserDetails} />}
+            {showCreatePostModal && currentUser && <CreatePostModal currentUser={currentUser} users={users} onClose={() => setShowCreatePostModal(false)} onCreatePost={onCreatePost} onCreateEventClick={onCreateEventClick} />}
         </div>
     );
 };

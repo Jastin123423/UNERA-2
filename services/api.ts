@@ -82,7 +82,14 @@ export const api = {
         request('/notifications/read', 'POST', data),
 
     // 5. Messages
-    sendMessage: (data: { sender_id: number; receiver_id: number; content: string; media_url?: string }) => 
+    sendMessage: (data: { 
+        sender_id: number; 
+        receiver_id: number; 
+        content?: string; 
+        media_url?: string; 
+        message_type: 'text' | 'image' | 'sticker' | 'file';
+        metadata?: any;
+    }) => 
         request('/messages', 'POST', data),
     
     getMessages: (user1: number, user2: number) => 
@@ -108,6 +115,15 @@ export const api = {
         
     getMusic: () => 
         request<any[]>('/music'),
+
+    reactToMusic: (data: { music_id: number; user_id: number; emoji: string }) =>
+        request('/music/react', 'POST', data),
+
+    getMusicComments: (musicId: number) =>
+        request<any[]>(`/music/comments?music_id=${musicId}`),
+
+    addMusicComment: (data: { music_id: number; user_id: number; content: string }) =>
+        request('/music/comments', 'POST', data),
 
     // 9. Brands & Pages
     createBrand: (data: { owner_id: number; name: string; description: string; logo_url?: string; category: string }) => 
@@ -136,7 +152,7 @@ export const api = {
     getPodcasts: () => 
         request<any[]>('/podcasts'),
 
-    // 12. Reels (New & Extended)
+    // 12. Reels
     getReels: () => 
         request<any[]>('/reels'),
         
