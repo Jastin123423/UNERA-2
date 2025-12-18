@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Story, User, Song } from '../types';
 /* Added INITIAL_USERS to imports to fix the reference in StoryReel component */
@@ -291,67 +292,3 @@ export const StoryReel: React.FC<{ stories: Story[], onProfileClick: (id: number
         </div>
     );
 };
-
-// ============================================
-// EXAMPLE PARENT COMPONENT USAGE
-// ============================================
-/*
-// In your parent component (e.g., FeedPage, StoriesPage, etc.):
-import { CreateStoryModal, StoryReel } from './components/StoryComponents';
-import { INITIAL_USERS } from '../constants';
-import { Story, User } from '../types';
-import { useState } from 'react';
-
-export const ParentComponent: React.FC = () => {
-    const [stories, setStories] = useState<Story[]>([]);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const currentUser = INITIAL_USERS[0]; // Get current user from your auth
-
-    const handleCreateStory = (storyData: Partial<Story>) => {
-        // Create complete story object
-        const newStory: Story = {
-            id: Date.now(),
-            userId: storyData.userId!,
-            type: storyData.type!,
-            text: storyData.text,
-            image: storyData.image,
-            background: storyData.background,
-            music: storyData.music,
-            createdAt: new Date().toISOString(),
-            user: currentUser,
-            likes: 0,
-            replies: [],
-        };
-
-        // Add to stories array
-        setStories(prev => [newStory, ...prev]);
-        setShowCreateModal(false);
-        
-        // Optional: Show success message
-        alert('Story created successfully!');
-    };
-
-    return (
-        <div>
-            {/* Story Reel */
-            <StoryReel 
-                stories={stories}
-                currentUser={currentUser}
-                onCreateStory={() => setShowCreateModal(true)}
-                onViewStory={(story) => console.log('View story:', story)}
-                onProfileClick={(id) => console.log('Profile clicked:', id)}
-                onRequestLogin={() => console.log('Login requested')}
-            />
-
-            {/* Create Story Modal */
-            {showCreateModal && (
-                <CreateStoryModal
-                    currentUser={currentUser}
-                    onClose={() => setShowCreateModal(false)}
-                    onCreate={handleCreateStory}
-                />
-            )}
-        </div>
-    );
-};
-*/
