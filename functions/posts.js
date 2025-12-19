@@ -1,69 +1,98 @@
-
 export async function onRequest({ request, env }) {
 
-  // ===== GET POSTS =====
+  /* ================= GET POSTS ================= */
   if (request.method === "GET") {
     try {
-      const { results } = await env.DB.prepare(
-        "SELECT * FROM posts ORDER BY created_at DESC LIMIT 50"
-      ).all();
+      const { results } = await env.DB.prepare(`
+        SELECT
+          id,
+          user_id,
+          content,
+          media_url,
+          media_type,
+          visibility,
+          is_repost,
+          original_post_id,
+          shares,
+          created_at
+        FROM posts
+        ORDER BY datetime(created_at) DESC
+        LIMIT 50
+      `).all();
 
       return new Response(JSON.stringify(results), {
-        headers: { "Content-Type": "application/json" }
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        }
       });
-    } catch (e) {
-      return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), { status: 500 });
     }
   }
 
-  // ===== CREATE POST =====
+  /* ================= CREATE POST ================= */
   if (request.method === "POST") {
     try {
-      const data = await request.json();
+      const { user_id, content, media_url, media_type, visibility } = await request.json();
 
-      const result = await env.DB.prepare(
-        "INSERT INTO posts (user_id, content, media_url) VALUES (?, ?, ?)"
-      ).bind(
-        data.user_id,
-        data.content,
-        data.media_url || null
-      ).run();
-
-      if (result.meta.changes === 0) {
-        throw new Error("Post insert failed");
+      if (!user_id) {
+        return new Response(
+          JSON.stringify({ error: "user_id is required" }),
+          { status: 400 }
+        );
       }
 
-      const newPost = {
-        id: result.meta.last_row_id,
-        user_id: data.user_id,
-        content: data.content,
-        media_url: data.media_url || null,
-        created_at: new Date().toISOString(),
-        reactions: [],
-        comments: [],
-        shares: 0
-      };
+      // IMPORTANT:
+      // - Do NOT send blob: URLs
+      // - media_url must be NULL or a real URL (R2 / CDN / https)
+      if (media_url && media_url.startsWith("blob:")) {
+        return new Response(
+          JSON.stringify({ error: "Invalid media_url. Upload media first." }),
+          { status: 400 }
+        );
+      }
 
-      // ===== BROADCAST REAL-TIME UPDATE =====
-      // const doId = env.LIVE_FEED_DO.idFromName("global");
-      // const stub = env.LIVE_FEED_DO.get(doId);
+      const insert = await env.DB.prepare(`
+        INSERT INTO posts
+          (user_id, content, media_url, media_type, visibility)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(
+        user_id,
+        content || null,
+        media_url || null,
+        media_type || null,
+        visibility || "public"
+      ).run();
 
-      // await stub.fetch("https://dummy.url/broadcast", {
-      //   method: "POST",
-      //   body: JSON.stringify({ type: "new_post", data: newPost })
-      // });
+      // Fetch the ACTUAL row saved in DB
+      const { results } = await env.DB.prepare(`
+        SELECT
+          id,
+          user_id,
+          content,
+          media_url,
+          media_type,
+          visibility,
+          is_repost,
+          original_post_id,
+          shares,
+          created_at
+        FROM posts
+        WHERE id = ?
+      `).bind(insert.meta.last_row_id).all();
 
       return new Response(JSON.stringify({
         success: true,
-        post: newPost
+        post: results[0]
       }), {
         headers: { "Content-Type": "application/json" }
       });
 
-    } catch (e) {
-      return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), { status: 500 });
     }
   }
 
-  return new Response("Method not allowed", { status: 405 });
+  return new Response("Method Not Allowed", { status: 405 });
 }
