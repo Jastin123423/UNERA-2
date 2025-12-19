@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Post as PostType, ReactionType, Comment, Product, LinkPreview, AudioTrack, Group } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -404,7 +403,18 @@ export const CreatePost: React.FC<any> = ({ currentUser, onProfileClick, onClick
     );
 };
 
-export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, onCreatePost, onCreateEventClick }) => {
+// MODIFIED CreatePostModal with API Integration
+export const CreatePostModal: React.FC<{
+    currentUser: User;
+    users: User[];
+    onClose: () => void;
+    onCreatePost: (postData: any) => void;
+    onCreateEventClick?: () => void;
+    apiConfig?: {
+        baseUrl: string;
+        getAuthToken?: () => string | null;
+    };
+}> = ({ currentUser, users, onClose, onCreatePost, onCreateEventClick, apiConfig }) => {
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [visibility, setVisibility] = useState('Public');
@@ -414,6 +424,11 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     const [taggedPeople, setTaggedPeople] = useState<string>('');
     const [wantsMessages, setWantsMessages] = useState(false);
     
+    // New state for API handling
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+    
     // Mention Suggestion State
     const [mentionQuery, setMentionQuery] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -421,24 +436,85 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const handleSubmit = () => {
+    const API_BASE_URL = apiConfig?.baseUrl || 'https://unera-2.pages.dev';
+    
+    const handleSubmit = async () => {
         if (!text.trim() && !file && !background) return;
         
-        let type = 'text';
-        if (file) {
-            type = file.type.startsWith('video') ? 'video' : 'image';
-        } else if (background) {
-            type = 'text'; 
+        setIsSubmitting(true);
+        setSubmitError(null);
+        setSubmitSuccess(false);
+        
+        try {
+            // Prepare post data according to your API specification
+            const postData: any = {
+                user_id: currentUser.id, // Make sure this matches your API user_id field
+                content: text,
+                media_url: null, // You would need to upload the file first and get URL
+                visibility: visibility.toLowerCase(), // Convert to match your API
+            };
+            
+            // Add optional fields if they exist
+            if (location) postData.location = location;
+            if (feeling) postData.feeling = feeling;
+            if (background) postData.background = background;
+            
+            // If you have tagged people, you might want to parse and include them
+            if (taggedPeople) {
+                // Add tagging logic here - you might need to extract user IDs
+                postData.tagged_users = taggedPeople;
+            }
+            
+            // Check for link preview
+            const linkPreview = getLinkPreview(text);
+            if (linkPreview) {
+                postData.link_preview = linkPreview.url;
+            }
+            
+            // Get authentication token if configured
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            
+            const authToken = apiConfig?.getAuthToken?.();
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            
+            // Call the API
+            console.log('Creating post with data:', postData);
+            const response = await fetch(`${API_BASE_URL}/posts`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(postData),
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+            
+            const newPost = await response.json();
+            console.log('Post created successfully:', newPost);
+            
+            // Notify parent component about the new post
+            if (onCreatePost) {
+                onCreatePost(newPost);
+            }
+            
+            setSubmitSuccess(true);
+            
+            // Close modal after successful submission
+            setTimeout(() => {
+                onClose();
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Error creating post:', error);
+            setSubmitError(error instanceof Error ? error.message : 'Failed to create post. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
-
-        const linkPreview = getLinkPreview(text);
-
-        // Include metadata in content for simulation
-        let finalContent = text;
-        if (taggedPeople) finalContent = `${finalContent} — with ${taggedPeople}`;
-
-        onCreatePost(finalContent, file, type, visibility, location, feeling, [], background, linkPreview || undefined);
-        onClose();
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -534,7 +610,7 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                         ref={textareaRef}
                         autoFocus
                         className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none ${background ? 'text-center font-bold text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
-                        placeholder="What’s new You need To Post?"
+                        placeholder="What's new You need To Post?"
                         value={text}
                         onChange={handleTextChange}
                         style={{ height: 'auto', minHeight: '150px' }}
@@ -605,7 +681,7 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                         active={wantsMessages}
                         subtext="Prompt friends to message you from this post"
                     />
-                    <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} subtext="Organize a get-together" />
+                    <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick && onCreateEventClick(); }} subtext="Organize a get-together" />
                     <OptionRow 
                         icon="fas fa-video" color="#F02849" label="Go live" 
                         onClick={() => alert("Live streaming is coming soon to UNERA! Stay tuned for updates.")} 
@@ -614,14 +690,37 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                 </div>
             </div>
 
-            {/* Footer with Large POST Button */}
+            {/* Footer with Large POST Button - MODIFIED */}
             <div className="p-4 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+                {/* Error Message */}
+                {submitError && (
+                    <div className="mb-3 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-200 text-sm animate-fade-in">
+                        <i className="fas fa-exclamation-circle mr-2"></i>
+                        {submitError}
+                    </div>
+                )}
+                
+                {/* Success Message */}
+                {submitSuccess && (
+                    <div className="mb-3 p-3 bg-green-900/30 border border-green-700 rounded-lg text-green-200 text-sm animate-fade-in">
+                        <i className="fas fa-check-circle mr-2"></i>
+                        Post created successfully! Closing in a moment...
+                    </div>
+                )}
+                
                 <button 
                     onClick={handleSubmit} 
-                    disabled={!text.trim() && !file && !background} 
-                    className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg"
+                    disabled={(!text.trim() && !file && !background) || isSubmitting}
+                    className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2"
                 >
-                    POST
+                    {isSubmitting ? (
+                        <>
+                            <i className="fas fa-spinner fa-spin"></i>
+                            Posting...
+                        </>
+                    ) : (
+                        'POST'
+                    )}
                 </button>
             </div>
 
@@ -967,6 +1066,177 @@ export const Post: React.FC<PostProps> = ({
                     <i className="fas fa-share text-[18px]"></i> Share
                 </button>
             </div>
+        </div>
+    );
+};
+
+// ADDED: Feed container component with API fetching
+export const FeedContainer: React.FC<{
+    currentUser: User | null;
+    apiConfig?: {
+        baseUrl: string;
+        getAuthToken?: () => string | null;
+    };
+    onPostCreated?: (post: any) => void;
+}> = ({ currentUser, apiConfig, onPostCreated }) => {
+    const [posts, setPosts] = useState<PostType[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    
+    const API_BASE_URL = apiConfig?.baseUrl || 'https://unera-2.pages.dev';
+    
+    // Fetch posts from API
+    const fetchPosts = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            const headers: Record<string, string> = {};
+            const authToken = apiConfig?.getAuthToken?.();
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            
+            const response = await fetch(`${API_BASE_URL}/posts`, { headers });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to fetch posts: ${response.status}`);
+            }
+            
+            const postsData = await response.json();
+            // Transform API data to match your PostType structure if needed
+            const transformedPosts = postsData.map((post: any) => ({
+                id: post.id,
+                content: post.content,
+                authorId: post.user_id,
+                timestamp: new Date(post.created_at).toLocaleString(),
+                type: post.media_type || 'text',
+                image: post.media_url,
+                reactions: [], // You might need to fetch reactions separately
+                comments: [], // You might need to fetch comments separately
+                shares: post.shares || 0,
+                visibility: post.visibility,
+                // Add other fields as needed
+            }));
+            
+            setPosts(transformedPosts);
+        } catch (err) {
+            console.error('Error fetching posts:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load posts');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        fetchPosts();
+    }, []);
+    
+    const handlePostCreated = (newPost: any) => {
+        // Add the new post to the beginning of the list
+        setPosts(prev => [newPost, ...prev]);
+        if (onPostCreated) {
+            onPostCreated(newPost);
+        }
+        // Refresh the feed
+        fetchPosts();
+    };
+    
+    const handleProfileClick = (userId: number) => {
+        // Navigate to profile
+        console.log('Navigate to profile:', userId);
+    };
+    
+    const handleReact = (postId: number, type: ReactionType) => {
+        // Implement reaction API call here
+        console.log('React to post:', postId, type);
+    };
+    
+    const handleShare = (postId: number) => {
+        // Implement share logic
+        console.log('Share post:', postId);
+    };
+    
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <i className="fas fa-spinner fa-spin text-3xl text-[#1877F2]"></i>
+                <span className="ml-3 text-[#E4E6EB]">Loading posts...</span>
+            </div>
+        );
+    }
+    
+    if (error) {
+        return (
+            <div className="text-center p-8">
+                <i className="fas fa-exclamation-triangle text-3xl text-yellow-500 mb-3"></i>
+                <p className="text-[#E4E6EB] mb-4">{error}</p>
+                <button 
+                    onClick={fetchPosts}
+                    className="bg-[#1877F2] text-white px-4 py-2 rounded-lg hover:bg-[#166FE5]"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="max-w-2xl mx-auto px-4">
+            {/* Create Post Button */}
+            {currentUser && (
+                <CreatePost 
+                    currentUser={currentUser}
+                    onProfileClick={handleProfileClick}
+                    onClick={() => setShowCreateModal(true)}
+                />
+            )}
+            
+            {/* Posts List */}
+            {posts.length === 0 ? (
+                <div className="text-center p-8 bg-[#242526] rounded-xl border border-[#3E4042]">
+                    <i className="far fa-newspaper text-4xl text-[#B0B3B8] mb-3"></i>
+                    <p className="text-[#E4E6EB]">No posts yet. Be the first to post!</p>
+                </div>
+            ) : (
+                posts.map((post) => {
+                    // Find author from your users data (you might need to fetch this separately)
+                    const author = { 
+                        id: post.authorId, 
+                        name: `User ${post.authorId}`, 
+                        profileImage: 'https://ui-avatars.com/api/?name=User&background=random',
+                        isVerified: false 
+                    };
+                    
+                    return (
+                        <Post
+                            key={post.id}
+                            post={post}
+                            author={author}
+                            currentUser={currentUser}
+                            users={[]} // Pass your users array here
+                            onProfileClick={handleProfileClick}
+                            onReact={handleReact}
+                            onShare={handleShare}
+                            onViewImage={(url) => console.log('View image:', url)}
+                            onOpenComments={(postId) => console.log('Open comments:', postId)}
+                            onVideoClick={(post) => console.log('Play video:', post.id)}
+                        />
+                    );
+                })
+            )}
+            
+            {/* Create Post Modal */}
+            {showCreateModal && currentUser && (
+                <CreatePostModal
+                    currentUser={currentUser}
+                    users={[]} // Pass your users array here
+                    onClose={() => setShowCreateModal(false)}
+                    onCreatePost={handlePostCreated}
+                    apiConfig={apiConfig}
+                />
+            )}
         </div>
     );
 };
