@@ -1,5 +1,19 @@
 export async function onRequest({ request, env }) {
 
+  /* ========== CORS HEADERS (REQUIRED) ========== */
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store"
+  };
+
+  // Handle browser preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   /* ================= GET POSTS ================= */
   if (request.method === "GET") {
     try {
@@ -21,35 +35,34 @@ export async function onRequest({ request, env }) {
       `).all();
 
       return new Response(JSON.stringify(results), {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store"
-        }
+        headers: corsHeaders
       });
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+      return new Response(
+        JSON.stringify({ error: err.message }),
+        { status: 500, headers: corsHeaders }
+      );
     }
   }
 
   /* ================= CREATE POST ================= */
   if (request.method === "POST") {
     try {
-      const { user_id, content, media_url, media_type, visibility } = await request.json();
+      const { user_id, content, media_url, media_type, visibility } =
+        await request.json();
 
       if (!user_id) {
         return new Response(
           JSON.stringify({ error: "user_id is required" }),
-          { status: 400 }
+          { status: 400, headers: corsHeaders }
         );
       }
 
-      // IMPORTANT:
-      // - Do NOT send blob: URLs
-      // - media_url must be NULL or a real URL (R2 / CDN / https)
+      // Block blob URLs (they disappear on refresh)
       if (media_url && media_url.startsWith("blob:")) {
         return new Response(
           JSON.stringify({ error: "Invalid media_url. Upload media first." }),
-          { status: 400 }
+          { status: 400, headers: corsHeaders }
         );
       }
 
@@ -65,7 +78,7 @@ export async function onRequest({ request, env }) {
         visibility || "public"
       ).run();
 
-      // Fetch the ACTUAL row saved in DB
+      // Fetch real saved row from DB
       const { results } = await env.DB.prepare(`
         SELECT
           id,
@@ -82,17 +95,21 @@ export async function onRequest({ request, env }) {
         WHERE id = ?
       `).bind(insert.meta.last_row_id).all();
 
-      return new Response(JSON.stringify({
-        success: true,
-        post: results[0]
-      }), {
-        headers: { "Content-Type": "application/json" }
-      });
+      return new Response(
+        JSON.stringify({ success: true, post: results[0] }),
+        { headers: corsHeaders }
+      );
 
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+      return new Response(
+        JSON.stringify({ error: err.message }),
+        { status: 500, headers: corsHeaders }
+      );
     }
   }
 
-  return new Response("Method Not Allowed", { status: 405 });
+  return new Response(
+    JSON.stringify({ error: "Method Not Allowed" }),
+    { status: 405, headers: corsHeaders }
+  );
 }
