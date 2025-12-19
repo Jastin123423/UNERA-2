@@ -1,5 +1,7 @@
 export async function onRequest({ request, env }) {
 
+  const SYSTEM_USER_ID = 1; // 👈 default author
+
   /* ================= GET POSTS ================= */
   if (request.method === "GET") {
     const { results } = await env.DB.prepare(`
@@ -34,13 +36,14 @@ export async function onRequest({ request, env }) {
       visibility
     } = await request.json();
 
-    // ❌ user_id NOT required anymore
+    const finalUserId = Number(user_id) || SYSTEM_USER_ID;
+
     await env.DB.prepare(`
       INSERT INTO posts
         (user_id, content, media_url, media_type, visibility)
       VALUES (?, ?, ?, ?, ?)
     `).bind(
-      user_id || null,              // ✅ allow null
+      finalUserId,          // ✅ NEVER NULL
       content || null,
       media_url || null,
       media_type || null,
