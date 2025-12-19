@@ -16,13 +16,12 @@ export async function onRequest({ request, env }) {
       );
     }
 
-    // Check if user already liked this music
+    // Toggle like
     const { results } = await env.DB.prepare(`
       SELECT * FROM music_reactions WHERE music_id = ? AND user_id = ?
     `).bind(music_id, user_id).all();
 
     if (results.length > 0) {
-      // Already liked → remove like (toggle off)
       await env.DB.prepare(`
         DELETE FROM music_reactions WHERE music_id = ? AND user_id = ?
       `).bind(music_id, user_id).run();
@@ -32,7 +31,6 @@ export async function onRequest({ request, env }) {
         { headers: { "Content-Type": "application/json" } }
       );
     } else {
-      // Not liked → add like (toggle on)
       await env.DB.prepare(`
         INSERT INTO music_reactions (music_id, user_id, emoji)
         VALUES (?, ?, '❤️')
