@@ -25,7 +25,6 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onClose }) => {
             if (res.user) {
                 setFoundUser(res.user);
                 setStep(2);
-                // Simulate sending code
                 console.log("Code sent: 123456");
             } else {
                 setError("No account found with that email.");
@@ -39,7 +38,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onClose }) => {
 
     const handleVerifyCode = (e: React.FormEvent) => {
         e.preventDefault();
-        if (code === '123456') { // Mock verification
+        if (code === '123456') {
             setStep(3);
             setError('');
         } else {
@@ -159,8 +158,7 @@ interface LoginProps {
     onClose: () => void;
     error: string;
     message?: string;
-    onLoginSuccess?: (userData: any) => void;
-    onRedirectToHome?: () => void;
+    onLoginSuccess?: (userId: number) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ 
@@ -169,8 +167,7 @@ export const Login: React.FC<LoginProps> = ({
     onClose, 
     error, 
     message, 
-    onLoginSuccess,
-    onRedirectToHome 
+    onLoginSuccess 
 }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -178,22 +175,18 @@ export const Login: React.FC<LoginProps> = ({
     const [showForgot, setShowForgot] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { t, setLanguage, language } = useLanguage();
-    
-    // CORRECTED: Proper authentication-based login function
+
+    const redirectToHome = () => {
+        window.location.href = '/home';
+        // Alternative for React Router:
+        // navigate('/home');
+    };
+
     const handleApiLogin = async (e: React.FormEvent) => { 
         e.preventDefault();
-        
-        // Basic validation
-        if (!email || !password) {
-            alert("Please enter both email and password");
-            return;
-        }
-        
         setIsLoading(true);
         
         try {
-            console.log("Attempting login with:", { email, password });
-            
             const response = await fetch('https://unera-2.pages.dev/users/login', {
                 method: 'POST',
                 headers: {
@@ -205,86 +198,35 @@ export const Login: React.FC<LoginProps> = ({
                 })
             });
 
-            console.log("Login response status:", response.status);
-            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Login failed');
+            }
+
             const data = await response.json();
-            console.log("Login response data:", data);
             
-            // CORRECT: Check for authentication success (NOT user_id)
-            if (data.success === true || response.ok) {
-                console.log("✅ Login successful!");
+            // 🔐 Authentication Rule: Check for success flag
+            if (data.success === true) {
+                // Login accepted - store user data
+                localStorage.setItem("user", JSON.stringify(data.user));
                 
-                // Store authentication data
-                const authData = {
-                    user: data.user || { email, name: email.split('@')[0] },
-                    token: data.token || 'auth_token_' + Date.now(),
-                    timestamp: new Date().toISOString()
-                };
-                
-                localStorage.setItem("unera_auth", JSON.stringify(authData));
-                localStorage.setItem("unera_user_email", email);
-                
-                // Call the original onLogin for compatibility
+                // Call existing onLogin for compatibility
                 onLogin(email, password);
                 
-                // Call success callback if provided
-                if (onLoginSuccess) {
-                    onLoginSuccess(authData.user);
+                // Optional: Call success callback
+                if (onLoginSuccess && data.user_id) {
+                    onLoginSuccess(data.user_id);
                 }
                 
-                // Show success message
-                alert(`✅ Login successful! Welcome to UNERA.`);
-                
-                // Redirect to home if callback provided
-                if (onRedirectToHome) {
-                    onRedirectToHome();
-                }
-                
+                // Redirect to home
+                redirectToHome();
             } else {
-                // Handle authentication failure
-                const errorMsg = data.message || 'Authentication failed. Please check your credentials.';
-                console.error("❌ Login failed:", errorMsg);
-                alert(`❌ ${errorMsg}`);
-                
-                // Still call onLogin for compatibility (with error state)
-                onLogin(email, password);
+                throw new Error('Login failed: Invalid credentials');
             }
-            
         } catch (err: any) {
-            console.error("❌ Login error:", err);
-            
-            // Handle network errors
-            if (err.name === 'TypeError' && err.message.includes('fetch')) {
-                console.log("⚠️ Network error, trying fallback login...");
-                
-                // Fallback: Use original onLogin for offline/demo mode
-                alert("⚠️ Cannot connect to server. Using demo mode...");
-                onLogin(email, password);
-                
-                // Store demo authentication
-                const demoAuth = {
-                    user: { 
-                        email, 
-                        name: email.split('@')[0],
-                        isDemo: true 
-                    },
-                    token: 'demo_token_' + Date.now(),
-                    timestamp: new Date().toISOString()
-                };
-                
-                localStorage.setItem("unera_auth", JSON.stringify(demoAuth));
-                
-                if (onLoginSuccess) {
-                    onLoginSuccess(demoAuth.user);
-                }
-                
-                if (onRedirectToHome) {
-                    onRedirectToHome();
-                }
-            } else {
-                alert(`❌ Login Error: ${err.message || 'Unknown error occurred'}`);
-                onLogin(email, password);
-            }
+            // Fallback to original onLogin for compatibility
+            onLogin(email, password);
+            alert(`Login Error: ${err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -352,7 +294,7 @@ export const Login: React.FC<LoginProps> = ({
                             {isLoading ? (
                                 <>
                                     <i className="fas fa-spinner fa-spin"></i>
-                                    Authenticating...
+                                    Logging in...
                                 </>
                             ) : (
                                 t('login_btn')
@@ -402,15 +344,19 @@ export const Login: React.FC<LoginProps> = ({
 interface RegisterProps {
     onRegister: (newUser: Partial<User>) => void;
     onBackToLogin: () => void;
-    onRegistrationSuccess?: (userData: any) => void;
+    onRegistrationSuccess?: (userId: number, pin: string) => void;
 }
 
 interface CountryData {
     name: { common: string };
-    flag: string; // emoji
+    flag: string;
 }
 
-export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, onRegistrationSuccess }) => {
+export const Register: React.FC<RegisterProps> = ({ 
+    onRegister, 
+    onBackToLogin, 
+    onRegistrationSuccess 
+}) => {
     const [firstName, setFirstName] = useState('');
     const [surname, setSurname] = useState('');
     const [email, setEmail] = useState('');
@@ -420,7 +366,6 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, o
     const [region, setRegion] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
-    // Date of birth
     const [day, setDay] = useState(new Date().getDate());
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear() - 18);
@@ -432,7 +377,6 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, o
     const { t } = useLanguage();
 
     useEffect(() => {
-        // Fetch countries with flags
         fetch('https://restcountries.com/v3.1/all?fields=name,flag')
             .then(res => res.json())
             .then(data => {
@@ -449,7 +393,6 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, o
     const handleApiRegister = async (e: React.FormEvent) => { 
         e.preventDefault(); 
         
-        // Validation for 6 digits
         if (password.length < 6 || isNaN(Number(password))) {
             alert("Password must be at least 6 numbers.");
             return;
@@ -458,14 +401,10 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, o
         setIsLoading(true);
         
         try {
-            // Prepare username from first name and surname
             const username = surname.trim() 
                 ? `${firstName.toLowerCase()}${surname.toLowerCase()}` 
                 : `${firstName.toLowerCase()}${Math.floor(1000 + Math.random() * 9000)}`;
             
-            console.log("Attempting registration with:", { username, email, password });
-            
-            // Call registration API
             const response = await fetch('https://unera-2.pages.dev/users/signup', {
                 method: 'POST',
                 headers: {
@@ -478,101 +417,51 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, o
                 })
             });
 
-            console.log("Registration response status:", response.status);
-            
-            const data = await response.json();
-            console.log("Registration response data:", data);
-            
-            // CORRECT: Check for registration success (NOT user_id)
-            if (data.success === true || response.ok) {
-                console.log("✅ Registration successful!");
-                
-                // Prepare user data for local state
-                const fullName = surname.trim() ? `${firstName} ${surname}` : firstName; 
-                const userData = { 
-                    name: fullName, 
-                    firstName, 
-                    lastName: surname, 
-                    email, 
-                    username,
-                    nationality,
-                    location: region,
-                    birthDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`, 
-                    gender, 
-                    profileImage: `https://ui-avatars.com/api/?name=${firstName}+${surname || ''}&background=random`, 
-                    coverImage: 'https://images.unsplash.com/photo-1554034483-04fda0d3507b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80', 
-                    bio: `Hello! I'm ${fullName} from ${region}, ${nationality}.`, 
-                    followers: [], 
-                    following: [], 
-                    isOnline: true 
-                };
-                
-                // Store registration data
-                localStorage.setItem("unera_temp_user", JSON.stringify(userData));
-                
-                // Call the existing onRegister for compatibility
-                onRegister(userData);
-                
-                // Call success callback if provided
-                if (onRegistrationSuccess) {
-                    onRegistrationSuccess(userData);
-                }
-                
-                // Show success message
-                alert(`✅ Registration successful! Welcome to UNERA, ${fullName}!`);
-                
-                // Navigate back to login
-                onBackToLogin();
-                
-            } else {
-                // Handle registration failure
-                const errorMsg = data.message || 'Registration failed. Please try again.';
-                console.error("❌ Registration failed:", errorMsg);
-                alert(`❌ ${errorMsg}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Registration failed');
             }
+
+            const data = await response.json();
+            const generatedPin = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            const fullName = surname.trim() ? `${firstName} ${surname}` : firstName; 
+            const userData = { 
+                name: fullName, 
+                firstName, 
+                lastName: surname, 
+                email, 
+                password, 
+                nationality,
+                location: region,
+                birthDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`, 
+                gender, 
+                profileImage: `https://ui-avatars.com/api/?name=${firstName}+${surname || ''}&background=random`, 
+                coverImage: 'https://images.unsplash.com/photo-1554034483-04fda0d3507b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80', 
+                bio: `Hello! I'm ${fullName} from ${region}, ${nationality}.`, 
+                followers: [], 
+                following: [], 
+                isOnline: true 
+            };
+            
+            onRegister(userData);
+            
+            if (onRegistrationSuccess && data.user_id) {
+                onRegistrationSuccess(data.user_id, generatedPin);
+            }
+            
+            localStorage.setItem('unera_temp_user', JSON.stringify({
+                ...userData,
+                user_id: data.user_id,
+                pin: generatedPin
+            }));
+            
+            alert(`Registration successful! Your User ID is ${data.user_id}\nYour PIN is: ${generatedPin}\nPlease save this PIN for verification.`);
+            
+            onBackToLogin();
             
         } catch (err: any) {
-            console.error("❌ Registration error:", err);
-            
-            // Handle network errors
-            if (err.name === 'TypeError' && err.message.includes('fetch')) {
-                console.log("⚠️ Network error, using demo registration...");
-                
-                // Fallback: Use original onRegister for offline/demo mode
-                const fullName = surname.trim() ? `${firstName} ${surname}` : firstName;
-                const userData = { 
-                    name: fullName, 
-                    firstName, 
-                    lastName: surname, 
-                    email, 
-                    username: `${firstName.toLowerCase()}${surname.toLowerCase() || 'user'}`,
-                    nationality,
-                    location: region,
-                    birthDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`, 
-                    gender, 
-                    profileImage: `https://ui-avatars.com/api/?name=${firstName}+${surname || ''}&background=random`, 
-                    coverImage: 'https://images.unsplash.com/photo-1554034483-04fda0d3507b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80', 
-                    bio: `Hello! I'm ${fullName} from ${region}, ${nationality}.`, 
-                    followers: [], 
-                    following: [], 
-                    isOnline: true,
-                    isDemo: true 
-                };
-                
-                alert("⚠️ Cannot connect to server. Using demo registration...");
-                
-                localStorage.setItem("unera_temp_user", JSON.stringify(userData));
-                onRegister(userData);
-                
-                if (onRegistrationSuccess) {
-                    onRegistrationSuccess(userData);
-                }
-                
-                alert(`✅ Demo registration successful! Welcome ${fullName}!`);
-                onBackToLogin();
-            } else {
-                alert(`❌ Registration Error: ${err.message || 'Unknown error occurred'}`);
-            }
+            alert(`Registration Error: ${err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -777,7 +666,6 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, o
                 </form>
             </div>
             
-            {/* API Status Indicator */}
             <div className="mt-4 text-center">
                 <div className="inline-flex items-center gap-2 bg-[#242526] px-3 py-1 rounded-full border border-[#3E4042]">
                     <div className={`w-2 h-2 rounded-full ${!isLoading ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
@@ -790,55 +678,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, o
     );
 };
 
-// Updated authentication helpers
-export const isAuthenticated = (): boolean => {
-    try {
-        const authStr = localStorage.getItem("unera_auth");
-        if (!authStr) return false;
-        
-        const authData = JSON.parse(authStr);
-        
-        // Check if auth data exists and has a token
-        return !!(authData && authData.token);
-    } catch {
-        return false;
-    }
-};
-
-export const getCurrentUser = (): any | null => {
-    try {
-        const authStr = localStorage.getItem("unera_auth");
-        if (!authStr) return null;
-        
-        const authData = JSON.parse(authStr);
-        return authData.user || null;
-    } catch {
-        return null;
-    }
-};
-
-export const getAuthToken = (): string | null => {
-    try {
-        const authStr = localStorage.getItem("unera_auth");
-        if (!authStr) return null;
-        
-        const authData = JSON.parse(authStr);
-        return authData.token || null;
-    } catch {
-        return null;
-    }
-};
-
-export const logout = (): void => {
-    localStorage.removeItem("unera_auth");
-    localStorage.removeItem("unera_user_email");
-    // Redirect to login page if in a browser environment
-    if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-    }
-};
-
-export const checkApiStatus = async (): Promise<boolean> => {
+export const checkApiStatus = async () => {
     try {
         const response = await fetch('https://unera-2.pages.dev/posts');
         return response.ok;
