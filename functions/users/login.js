@@ -1,24 +1,54 @@
+import { compare } from "bcryptjs";
 
 export async function onRequest({ request, env }) {
-  if (request.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
-  }
+  try {
+    const { email, password } = await request.json();
 
-  const data = await request.json();
-  const email = data.email.trim().toLowerCase();
-  const password = data.password.trim();
+    // 1. Validate input
+    if (!email || !password) {
+      return new Response(JSON.stringify({
+        error: "Email and password are required"
+      }), { status: 400 });
+    }
 
-  const { results } = await env.DB.prepare(
-    "SELECT id, username, email FROM users WHERE email = ? AND password = ?"
-  ).bind(email, password).all();
+    // 2. Find user
+    const user = await env.DB.prepare(`
+      SELECT id, username, email, password
+      FROM users
+      WHERE email = ?
+    `).bind(email).first();
 
-  if (!results.length) {
-    return new Response(JSON.stringify({ error: "Invalid credentials" }), {
-      status: 401
+    if (!user) {
+      return new Response(JSON.stringify({
+        error: "Invalid email or password"
+      }), { status: 401 });
+    }
+
+    // 3. Compare password
+    const isValid = await compare(password, user.password);
+
+    if (!isValid) {
+      return new Response(JSON.stringify({
+        error: "Invalid email or password"
+      }), { status: 401 });
+    }
+
+    // 4. Success
+    return new Response(JSON.stringify({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email
+      }
+    }), {
+      headers: { "Content-Type": "application/json" }
     });
-  }
 
-  return new Response(JSON.stringify({ user: results[0] }), {
-    headers: { "Content-Type": "application/json" }
-  });
+  } catch (err) {
+    return new Response(JSON.stringify({
+      error: "Login failed",
+      message: err.message
+    }), { status: 500 });
+  }
 }
