@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { User } from '../types';
@@ -159,19 +158,68 @@ interface LoginProps {
     onNavigateToRegister: () => void;
     onClose: () => void;
     error: string;
-    message?: string; // New prop for instruction messages
+    message?: string;
+    onLoginSuccess?: (userId: number) => void; // NEW: Callback for successful login
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onClose, error, message }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onClose, error, message, onLoginSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showForgot, setShowForgot] = useState(false);
+    const [isLoading, setIsLoading] = useState(false); // NEW: Loading state
     const { t, setLanguage, language } = useLanguage();
     
-    const handleSubmit = (e: React.FormEvent) => { 
-        e.preventDefault(); 
-        onLogin(email, password); 
+    // NEW: API login function
+    const handleApiLogin = async (e: React.FormEvent) => { 
+        e.preventDefault();
+        setIsLoading(true);
+        
+        try {
+            const response = await fetch('https://unera-2.pages.dev/users/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Login failed');
+            }
+
+            const data = await response.json();
+            
+            // Check if user ID is returned
+            if (data.user_id) {
+                // Call the existing onLogin for compatibility
+                onLogin(email, password);
+                
+                // NEW: Call success callback with user ID
+                if (onLoginSuccess) {
+                    onLoginSuccess(data.user_id);
+                }
+                
+                // Store user data in localStorage
+                localStorage.setItem('unera_user_id', data.user_id.toString());
+                localStorage.setItem('unera_user_email', email);
+                
+                // Show success message
+                alert(`Welcome! User ID: ${data.user_id}`);
+            } else {
+                throw new Error('No user ID returned from server');
+            }
+        } catch (err: any) {
+            // Call original onLogin with error for compatibility
+            onLogin(email, password);
+            alert(`API Login Error: ${err.message}`);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     if (showForgot) {
@@ -194,7 +242,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
                 </div>
                 
                 <div className="bg-[#242526] p-4 rounded-lg shadow-lg w-full max-w-[396px] flex flex-col gap-4 border border-[#3E4042]">
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <form onSubmit={handleApiLogin} className="flex flex-col gap-4">
                         {message && (
                             <div className="bg-[#263951] border border-[#2D88FF] text-[#E4E6EB] px-4 py-3 rounded text-sm text-center flex items-center justify-center gap-2">
                                 <i className="fas fa-info-circle text-[#2D88FF]"></i>
@@ -209,6 +257,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
                             required 
+                            disabled={isLoading}
                         />
                         <div className="relative">
                             <input 
@@ -218,27 +267,48 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
                                 value={password} 
                                 onChange={(e) => setPassword(e.target.value)} 
                                 required 
+                                disabled={isLoading}
                             />
                             <div 
                                 className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-[#B0B3B8] hover:text-[#E4E6EB]"
-                                onClick={() => setShowPassword(!showPassword)}
+                                onClick={() => !isLoading && setShowPassword(!showPassword)}
                             >
                                 <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                             </div>
                         </div>
-                        <button type="submit" className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold text-[20px] py-2.5 rounded-md transition-colors">
-                            {t('login_btn')}
+                        <button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold text-[20px] py-2.5 rounded-md transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <i className="fas fa-spinner fa-spin"></i>
+                                    Logging in...
+                                </>
+                            ) : (
+                                t('login_btn')
+                            )}
                         </button>
                     </form>
                     
                     <div className="text-center">
-                        <span className="text-[#1877F2] text-[14px] hover:underline cursor-pointer" onClick={() => setShowForgot(true)}>{t('forgot_password')}</span>
+                        <span 
+                            className="text-[#1877F2] text-[14px] hover:underline cursor-pointer" 
+                            onClick={() => !isLoading && setShowForgot(true)}
+                        >
+                            {t('forgot_password')}
+                        </span>
                     </div>
                     
                     <div className="border-b border-[#3E4042] my-1"></div>
                     
                     <div className="flex flex-col gap-3">
-                        <button onClick={onNavigateToRegister} className="w-auto mx-auto bg-[#42B72A] hover:bg-[#36A420] text-white font-bold text-[17px] px-8 py-3 rounded-md transition-colors">
+                        <button 
+                            onClick={onNavigateToRegister} 
+                            disabled={isLoading}
+                            className="w-auto mx-auto bg-[#42B72A] hover:bg-[#36A420] text-white font-bold text-[17px] px-8 py-3 rounded-md transition-colors disabled:opacity-70"
+                        >
                             {t('create_new_account')}
                         </button>
                     </div>
@@ -251,10 +321,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
             
             <div className="mt-auto pt-8 pb-4 w-full max-w-[1000px] mx-auto border-t border-[#3E4042]">
                 <div className="flex flex-wrap justify-center gap-4 text-sm text-[#B0B3B8]">
-                    <span className={`cursor-pointer hover:underline ${language === 'en' ? 'font-bold text-[#E4E6EB]' : ''}`} onClick={() => setLanguage('en')}>English (US)</span>
-                    <span className={`cursor-pointer hover:underline ${language === 'sw' ? 'font-bold text-[#E4E6EB]' : ''}`} onClick={() => setLanguage('sw')}>Kiswahili</span>
-                    <span className={`cursor-pointer hover:underline ${language === 'fr' ? 'font-bold text-[#E4E6EB]' : ''}`} onClick={() => setLanguage('fr')}>Français (France)</span>
-                    <span className={`cursor-pointer hover:underline ${language === 'es' ? 'font-bold text-[#E4E6EB]' : ''}`} onClick={() => setLanguage('es')}>Español</span>
+                    <span className={`cursor-pointer hover:underline ${language === 'en' ? 'font-bold text-[#E4E6EB]' : ''}`} onClick={() => !isLoading && setLanguage('en')}>English (US)</span>
+                    <span className={`cursor-pointer hover:underline ${language === 'sw' ? 'font-bold text-[#E4E6EB]' : ''}`} onClick={() => !isLoading && setLanguage('sw')}>Kiswahili</span>
+                    <span className={`cursor-pointer hover:underline ${language === 'fr' ? 'font-bold text-[#E4E6EB]' : ''}`} onClick={() => !isLoading && setLanguage('fr')}>Français (France)</span>
+                    <span className={`cursor-pointer hover:underline ${language === 'es' ? 'font-bold text-[#E4E6EB]' : ''}`} onClick={() => !isLoading && setLanguage('es')}>Español</span>
                 </div>
             </div>
         </div>
@@ -264,6 +334,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToRegister, onC
 interface RegisterProps {
     onRegister: (newUser: Partial<User>) => void;
     onBackToLogin: () => void;
+    onRegistrationSuccess?: (userId: number, pin: string) => void; // NEW: Callback for successful registration
 }
 
 interface CountryData {
@@ -271,15 +342,15 @@ interface CountryData {
     flag: string; // emoji
 }
 
-export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin }) => {
-    // ... existing Register code ...
+export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin, onRegistrationSuccess }) => {
     const [firstName, setFirstName] = useState('');
-    const [surname, setSurname] = useState(''); // Optional
+    const [surname, setSurname] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [nationality, setNationality] = useState('Tanzania');
     const [region, setRegion] = useState('');
+    const [isLoading, setIsLoading] = useState(false); // NEW: Loading state
     
     // Date of birth
     const [day, setDay] = useState(new Date().getDate());
@@ -304,11 +375,11 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
             .catch(err => {
                 console.error("Failed to fetch countries", err);
                 setIsLoadingCountries(false);
-                // Fallback handled by empty list or default
             });
     }, []);
 
-    const handleSubmit = (e: React.FormEvent) => { 
+    // NEW: API registration function
+    const handleApiRegister = async (e: React.FormEvent) => { 
         e.preventDefault(); 
         
         // Validation for 6 digits
@@ -317,25 +388,83 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
             return;
         }
 
-        const fullName = surname.trim() ? `${firstName} ${surname}` : firstName; 
+        setIsLoading(true);
         
-        onRegister({ 
-            name: fullName, 
-            firstName, 
-            lastName: surname, 
-            email, 
-            password, 
-            nationality,
-            location: region, // Use region as location
-            birthDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`, 
-            gender, 
-            profileImage: `https://ui-avatars.com/api/?name=${firstName}+${surname || ''}&background=random`, 
-            coverImage: 'https://images.unsplash.com/photo-1554034483-04fda0d3507b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80', 
-            bio: `Hello! I'm ${fullName} from ${region}, ${nationality}.`, 
-            followers: [], 
-            following: [], 
-            isOnline: true 
-        }); 
+        try {
+            // Prepare username from first name and surname
+            const username = surname.trim() 
+                ? `${firstName.toLowerCase()}${surname.toLowerCase()}` 
+                : `${firstName.toLowerCase()}${Math.floor(1000 + Math.random() * 9000)}`;
+            
+            // Call registration API
+            const response = await fetch('https://unera-2.pages.dev/users/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    email: email,
+                    password: password
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Registration failed');
+            }
+
+            const data = await response.json();
+            
+            // Generate a random PIN (simulating server sending PIN)
+            const generatedPin = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // Prepare user data for local state
+            const fullName = surname.trim() ? `${firstName} ${surname}` : firstName; 
+            const userData = { 
+                name: fullName, 
+                firstName, 
+                lastName: surname, 
+                email, 
+                password, 
+                nationality,
+                location: region,
+                birthDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`, 
+                gender, 
+                profileImage: `https://ui-avatars.com/api/?name=${firstName}+${surname || ''}&background=random`, 
+                coverImage: 'https://images.unsplash.com/photo-1554034483-04fda0d3507b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80', 
+                bio: `Hello! I'm ${fullName} from ${region}, ${nationality}.`, 
+                followers: [], 
+                following: [], 
+                isOnline: true 
+            };
+            
+            // Call the existing onRegister for compatibility
+            onRegister(userData);
+            
+            // NEW: Call success callback with user ID and PIN
+            if (onRegistrationSuccess && data.user_id) {
+                onRegistrationSuccess(data.user_id, generatedPin);
+            }
+            
+            // Store registration data
+            localStorage.setItem('unera_temp_user', JSON.stringify({
+                ...userData,
+                user_id: data.user_id,
+                pin: generatedPin
+            }));
+            
+            // Show success message with PIN
+            alert(`Registration successful! Your User ID is ${data.user_id}\nYour PIN is: ${generatedPin}\nPlease save this PIN for verification.`);
+            
+            // Navigate back to login
+            onBackToLogin();
+            
+        } catch (err: any) {
+            alert(`Registration Error: ${err.message}`);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const days = Array.from({ length: 31 }, (_, i) => i + 1); 
@@ -357,7 +486,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                     <p className="text-[#B0B3B8] text-[15px]">{t('quick_easy')}</p>
                 </div>
                 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                <form onSubmit={handleApiRegister} className="flex flex-col gap-3">
                     <div className="flex gap-2">
                         <input 
                             type="text" 
@@ -366,6 +495,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                             value={firstName} 
                             onChange={(e) => setFirstName(e.target.value)} 
                             required 
+                            disabled={isLoading}
                         />
                         <input 
                             type="text" 
@@ -373,6 +503,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                             className="w-1/2 bg-[#3A3B3C] border border-[#3E4042] rounded-md px-3 py-2 text-[15px] text-[#E4E6EB] placeholder-[#B0B3B8] focus:outline-none focus:border-[#505151]" 
                             value={surname} 
                             onChange={(e) => setSurname(e.target.value)} 
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -382,6 +513,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                             className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-md px-3 py-2 text-[15px] text-[#E4E6EB] focus:outline-none focus:border-[#505151]" 
                             value={nationality} 
                             onChange={(e) => setNationality(e.target.value)}
+                            disabled={isLoading}
                         >
                             {isLoadingCountries ? (
                                 <option>Loading countries...</option>
@@ -403,6 +535,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                         value={region} 
                         onChange={(e) => setRegion(e.target.value)} 
                         required 
+                        disabled={isLoading}
                     />
                     
                     <input 
@@ -412,6 +545,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                         value={email} 
                         onChange={(e) => setEmail(e.target.value)} 
                         required 
+                        disabled={isLoading}
                     />
                     
                     <div className="relative">
@@ -426,10 +560,11 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                             onChange={(e) => setPassword(e.target.value)} 
                             required 
                             title="Password must be at least 6 numbers"
+                            disabled={isLoading}
                         />
                         <div 
                             className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-[#B0B3B8] hover:text-[#E4E6EB]"
-                            onClick={() => setShowPassword(!showPassword)}
+                            onClick={() => !isLoading && setShowPassword(!showPassword)}
                         >
                             <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                         </div>
@@ -438,13 +573,28 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                     <div className="mt-1">
                         <label className="text-[12px] text-[#B0B3B8] block mb-1">{t('dob') || "Date of birth"}</label>
                         <div className="flex gap-2">
-                            <select value={day} onChange={(e) => setDay(Number(e.target.value))} className="w-1/3 bg-[#3A3B3C] border border-[#3E4042] rounded-md p-1 text-[#E4E6EB]">
+                            <select 
+                                value={day} 
+                                onChange={(e) => setDay(Number(e.target.value))} 
+                                className="w-1/3 bg-[#3A3B3C] border border-[#3E4042] rounded-md p-1 text-[#E4E6EB]"
+                                disabled={isLoading}
+                            >
                                 {days.map(d => <option key={d} value={d}>{d}</option>)}
                             </select>
-                            <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="w-1/3 bg-[#3A3B3C] border border-[#3E4042] rounded-md p-1 text-[#E4E6EB]">
+                            <select 
+                                value={month} 
+                                onChange={(e) => setMonth(Number(e.target.value))} 
+                                className="w-1/3 bg-[#3A3B3C] border border-[#3E4042] rounded-md p-1 text-[#E4E6EB]"
+                                disabled={isLoading}
+                            >
                                 {months.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
                             </select>
-                            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-1/3 bg-[#3A3B3C] border border-[#3E4042] rounded-md p-1 text-[#E4E6EB]">
+                            <select 
+                                value={year} 
+                                onChange={(e) => setYear(Number(e.target.value))} 
+                                className="w-1/3 bg-[#3A3B3C] border border-[#3E4042] rounded-md p-1 text-[#E4E6EB]"
+                                disabled={isLoading}
+                            >
                                 {years.map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
@@ -453,17 +603,35 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                     <div className="mt-1">
                         <label className="text-[12px] text-[#B0B3B8] block mb-1">{t('gender') || "Gender"}</label>
                         <div className="flex gap-2 justify-between">
-                            <label className="border border-[#3E4042] rounded-md p-2 flex items-center justify-between flex-1 cursor-pointer bg-[#3A3B3C]">
+                            <label className={`border border-[#3E4042] rounded-md p-2 flex items-center justify-between flex-1 cursor-pointer ${!isLoading ? 'bg-[#3A3B3C] hover:bg-[#4E4F50]' : 'bg-[#2A2B2C]'} transition-colors`}>
                                 <span className="text-[#E4E6EB]">{t('female')}</span>
-                                <input type="radio" name="gender" checked={gender === 'Female'} onChange={() => setGender('Female')} />
+                                <input 
+                                    type="radio" 
+                                    name="gender" 
+                                    checked={gender === 'Female'} 
+                                    onChange={() => !isLoading && setGender('Female')} 
+                                    disabled={isLoading}
+                                />
                             </label>
-                            <label className="border border-[#3E4042] rounded-md p-2 flex items-center justify-between flex-1 cursor-pointer bg-[#3A3B3C]">
+                            <label className={`border border-[#3E4042] rounded-md p-2 flex items-center justify-between flex-1 cursor-pointer ${!isLoading ? 'bg-[#3A3B3C] hover:bg-[#4E4F50]' : 'bg-[#2A2B2C]'} transition-colors`}>
                                 <span className="text-[#E4E6EB]">{t('male')}</span>
-                                <input type="radio" name="gender" checked={gender === 'Male'} onChange={() => setGender('Male')} />
+                                <input 
+                                    type="radio" 
+                                    name="gender" 
+                                    checked={gender === 'Male'} 
+                                    onChange={() => !isLoading && setGender('Male')} 
+                                    disabled={isLoading}
+                                />
                             </label>
-                            <label className="border border-[#3E4042] rounded-md p-2 flex items-center justify-between flex-1 cursor-pointer bg-[#3A3B3C]">
+                            <label className={`border border-[#3E4042] rounded-md p-2 flex items-center justify-between flex-1 cursor-pointer ${!isLoading ? 'bg-[#3A3B3C] hover:bg-[#4E4F50]' : 'bg-[#2A2B2C]'} transition-colors`}>
                                 <span className="text-[#E4E6EB]">{t('custom')}</span>
-                                <input type="radio" name="gender" checked={gender === 'Custom'} onChange={() => setGender('Custom')} />
+                                <input 
+                                    type="radio" 
+                                    name="gender" 
+                                    checked={gender === 'Custom'} 
+                                    onChange={() => !isLoading && setGender('Custom')} 
+                                    disabled={isLoading}
+                                />
                             </label>
                         </div>
                     </div>
@@ -471,18 +639,52 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin })
                     <p className="text-[11px] text-[#B0B3B8] my-2">{t('terms_text')}</p>
                     
                     <div className="text-center mt-2">
-                        <button type="submit" className="w-[200px] bg-[#00A400] hover:bg-[#008f00] text-white font-bold text-[18px] px-8 py-1.5 rounded-md transition-colors shadow-sm">
-                            {t('sign_up_btn')}
+                        <button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="w-[200px] bg-[#00A400] hover:bg-[#008f00] text-white font-bold text-[18px] px-8 py-1.5 rounded-md transition-colors shadow-sm disabled:opacity-70 flex items-center justify-center gap-2 mx-auto"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <i className="fas fa-spinner fa-spin"></i>
+                                    Registering...
+                                </>
+                            ) : (
+                                t('sign_up_btn')
+                            )}
                         </button>
                     </div>
                     
                     <div className="text-center mt-4">
-                        <span className="text-[#1877F2] cursor-pointer hover:underline text-sm" onClick={onBackToLogin}>
+                        <span 
+                            className="text-[#1877F2] cursor-pointer hover:underline text-sm" 
+                            onClick={() => !isLoading && onBackToLogin()}
+                        >
                             {t('have_account')}
                         </span>
                     </div>
                 </form>
             </div>
+            
+            {/* API Status Indicator */}
+            <div className="mt-4 text-center">
+                <div className="inline-flex items-center gap-2 bg-[#242526] px-3 py-1 rounded-full border border-[#3E4042]">
+                    <div className={`w-2 h-2 rounded-full ${!isLoading ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
+                    <span className="text-xs text-[#B0B3B8]">
+                        {isLoading ? 'Connecting to UNERA API...' : 'API: Online'}
+                    </span>
+                </div>
+            </div>
         </div>
     );
+};
+
+// NEW: Helper function to check API status
+export const checkApiStatus = async () => {
+    try {
+        const response = await fetch('https://unera-2.pages.dev/posts');
+        return response.ok;
+    } catch {
+        return false;
+    }
 };
