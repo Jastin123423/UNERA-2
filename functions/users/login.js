@@ -1,5 +1,4 @@
-import { compare } from "bcryptjs";
-
+// Simple login function without password hashing (for development/testing)
 export async function onRequest({ request, env }) {
   try {
     const { email, password } = await request.json();
@@ -24,8 +23,9 @@ export async function onRequest({ request, env }) {
       }), { status: 401 });
     }
 
-    // 3. Compare password
-    const isValid = await compare(password, user.password);
+    // 3. Simple password comparison (plain text)
+    // IMPORTANT: This stores passwords in plain text - NOT SECURE for production!
+    const isValid = password === user.password;
 
     if (!isValid) {
       return new Response(JSON.stringify({
