@@ -1,4 +1,3 @@
-
 export interface User {
     id: number;
     name: string;
@@ -168,6 +167,8 @@ export interface Reel {
     reactions: Reaction[]; 
     comments: Comment[];
     shares: number;
+    /* Fix: Added views property to resolve errors in src/constants.ts */
+    views?: number;
     isCompressed?: boolean; 
 }
 

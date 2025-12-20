@@ -69,7 +69,7 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
                     {menuItems.map((item) => (
                         <div 
                             key={item.id} 
-                            className="bg-[#242526] rounded-xl p-4 shadow-sm flex flex-col gap-3 cursor-pointer hover:bg-[#3A3B3C] transition-colors"
+                            className="bg-[#242526] rounded-xl p-4 shadow-sm flex flex-col gap-3 cursor-pointer hover:bg-[#3A3B3C] transition-colors border border-transparent"
                             onClick={() => {
                                 onNavigate(item.id);
                                 onClose();

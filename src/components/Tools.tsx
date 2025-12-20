@@ -31,8 +31,7 @@ const ALL_TOOLS: Tool[] = [
     { id: 'image-resize', name: 'Image Resize', icon: 'fas fa-compress-arrows-alt', category: 'Image & Other', color: '#1877F2', description: 'Resize images to specific dimensions.', accept: 'image/*' },
     { id: 'scanner', name: 'Scanner', icon: 'fas fa-camera', category: 'Image & Other', color: '#242526', description: 'Scan documents using your camera.', accept: 'image/*' },
     
-    // AI Tools (Mock)
-    { id: 'ai-chat', name: 'AI Chat', icon: 'fas fa-robot', category: 'AI Tools', color: '#A033FF', description: 'Chat with UNERA AI Assistant.', accept: '' },
+    // AI Tools (Remaining)
     { id: 'ai-summary', name: 'AI Summary', icon: 'fas fa-file-alt', category: 'AI Tools', color: '#45BD62', description: 'Summarize long documents with AI.', accept: '.pdf,.txt,.doc' },
 ];
 
@@ -144,24 +143,16 @@ const ToolModal: React.FC<ToolModalProps> = ({ tool, onClose }) => {
     );
 };
 
-export const ToolsPage: React.FC<{ onOpenAIChat?: () => void }> = ({ onOpenAIChat }) => {
+export const ToolsPage: React.FC = () => {
     const [activeTool, setActiveTool] = useState<Tool | null>(null);
 
     const categories = ['You May Like', 'AI Tools', 'PDF Tools', 'Image & Other'];
 
     const getToolsByCategory = (cat: string) => {
         if (cat === 'You May Like') {
-            return ALL_TOOLS.filter(t => ['pdf-to-word', 'ai-chat', 'scanner', 'image-resize'].includes(t.id));
+            return ALL_TOOLS.filter(t => ['pdf-to-word', 'scanner', 'image-resize'].includes(t.id));
         }
         return ALL_TOOLS.filter(t => t.category === cat);
-    };
-
-    const handleToolClick = (tool: Tool) => {
-        if (tool.id === 'ai-chat' && onOpenAIChat) {
-            onOpenAIChat();
-        } else {
-            setActiveTool(tool);
-        }
     };
 
     return (
@@ -185,7 +176,7 @@ export const ToolsPage: React.FC<{ onOpenAIChat?: () => void }> = ({ onOpenAICha
                                         <div 
                                             key={tool.id} 
                                             className="flex flex-col items-center cursor-pointer group"
-                                            onClick={() => handleToolClick(tool)}
+                                            onClick={() => setActiveTool(tool)}
                                         >
                                             <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-[#3A3B3C] group-hover:bg-[#4E4F50] transition-all duration-200 mb-2 relative">
                                                 <i className={`${tool.icon} text-[24px]`} style={{ color: tool.color }}></i>

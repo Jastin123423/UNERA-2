@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { User, Event } from '../types';
 import { LOCATIONS_DATA } from '../constants';
@@ -137,9 +136,13 @@ export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventCli
                             <p className="text-[#B0B3B8] text-sm mb-4"><i className="fas fa-map-marker-alt mr-1"></i> {event.location}</p>
                             <div className="flex justify-between items-center">
                                 <span className="text-[#B0B3B8] text-xs">{event.attendees.length} people going</span>
+                                {/* BUTTON UPDATED: Background blue #1877F2 */}
                                 <button 
-                                    onClick={() => onJoinEvent(event.id)} 
-                                    className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-4 py-1.5 rounded-lg font-bold text-sm transition-colors"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onJoinEvent(event.id);
+                                    }} 
+                                    className={`px-4 py-1.5 rounded-lg font-bold text-sm transition-colors ${currentUser && event.interestedIds.includes(currentUser.id) ? 'bg-[#3A3B3C] text-white' : 'bg-[#1877F2] text-white hover:bg-[#166FE5]'}`}
                                 >
                                     Interested
                                 </button>

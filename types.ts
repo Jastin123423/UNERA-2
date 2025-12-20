@@ -137,6 +137,8 @@ export interface Post {
     isGroupAdmin?: boolean;
     // Embed data for shared posts
     embeddedSharedPost?: Post & SharedPostInfo;
+    // Added wantsMessages to fix line 52 error in App.tsx
+    wantsMessages?: boolean;
 }
 
 export interface Story {
@@ -155,6 +157,8 @@ export interface Story {
     };
     user?: User;
     createdAt: number;
+    reactions?: Reaction[]; // Working Story Likes
+    replies?: Comment[]; // Working Story Comments
 }
 
 export interface Reel {
@@ -167,6 +171,7 @@ export interface Reel {
     reactions: Reaction[]; 
     comments: Comment[];
     shares: number;
+    views?: number; // Added views property
     isCompressed?: boolean; 
 }
 

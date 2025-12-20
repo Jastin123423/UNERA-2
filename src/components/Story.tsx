@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Story, User, Song } from '../types';
-import { MOCK_SONGS, INITIAL_USERS } from '../constants';
+import { Story, User } from '../types';
+import { INITIAL_USERS, MOCK_SONGS } from '../constants';
 
 interface StoryViewerProps {
     story: Story;
@@ -28,8 +28,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 
     const userStories = allStories.filter(s => s.userId === story.userId);
     const currentIndex = userStories.findIndex(s => s.id === story.id);
-    
-    // Always find latest state to ensure functional liking/replies reflection
     const currentStoryState = allStories.find(s => s.id === story.id) || story;
     const hasLiked = currentUser && currentStoryState.reactions?.some(r => r.userId === currentUser.id);
 
@@ -43,6 +41,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                     if (prev >= 100) {
                         clearInterval(timer);
                         if (onNext) onNext();
+                        else if (currentIndex === userStories.length - 1) onClose();
                         return 100;
                     }
                     const increment = 100 / (duration / 50); 
@@ -73,12 +72,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
             onReply(replyText);
             setReplyText('');
             setIsPaused(false);
-            // Visual confirmation
-            const toast = document.createElement('div');
-            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#1877F2] text-white px-6 py-2 rounded-full font-bold shadow-lg animate-fade-in z-[300]';
-            toast.innerText = 'Reply sent!';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
         }
     };
 
@@ -92,21 +85,31 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
         }
     };
 
-    const handleXClick = (e: React.MouseEvent) => {
+    const nextInternal = (e: React.MouseEvent) => {
         e.stopPropagation();
-        onClose();
+        if (currentIndex < userStories.length - 1) {
+            if (onNext) onNext();
+        } else {
+            onClose();
+        }
+    };
+
+    const prevInternal = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (currentIndex > 0) {
+            if (onPrev) onPrev();
+        }
     };
 
     return (
         <div className="fixed inset-0 z-[250] bg-black flex items-center justify-center animate-fade-in">
             <div className="absolute inset-0 opacity-30 bg-cover bg-center blur-3xl" style={{ backgroundImage: story.image ? `url(${story.image})` : undefined, background: !story.image ? story.background : undefined }}></div>
             
-            <div className="absolute top-4 right-4 z-[300] cursor-pointer w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors" onClick={handleXClick}>
+            <div className="absolute top-4 right-4 z-[300] cursor-pointer w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors" onClick={onClose}>
                 <i className="fas fa-times text-[#E4E6EB] text-2xl"></i>
             </div>
 
             <div className="relative w-full max-w-[420px] h-full sm:h-[92vh] bg-black sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl">
-                {/* Progress Indicators */}
                 <div className="absolute top-0 left-0 right-0 p-3 z-30 flex gap-1.5">
                     {userStories.map((_, i) => (
                         <div key={i} className="h-1 bg-white/20 flex-1 rounded-full overflow-hidden">
@@ -133,15 +136,8 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                     </div>
                 </div>
 
-                {story.music && (
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 animate-bounce">
-                        <i className="fas fa-music text-xs text-white"></i>
-                        <span className="text-white text-xs font-bold whitespace-nowrap">{story.music.title} - {story.music.artist}</span>
-                    </div>
-                )}
-
-                <div className="absolute inset-y-0 left-0 w-1/4 z-10" onClick={onPrev}></div>
-                <div className="absolute inset-y-0 right-0 w-1/4 z-10" onClick={onNext}></div>
+                <div className="absolute inset-y-0 left-0 w-1/4 z-10" onClick={prevInternal}></div>
+                <div className="absolute inset-y-0 right-0 w-1/4 z-10" onClick={nextInternal}></div>
                 
                 <div className="flex-1 flex items-center justify-center bg-[#111] relative" onDoubleClick={handleLike}>
                     {story.type === 'text' ? (
@@ -273,14 +269,12 @@ export const CreateStoryModal: React.FC<{ currentUser: User, onClose: () => void
 
     return (
         <div className="fixed inset-0 z-[200] bg-black flex flex-col font-sans animate-fade-in text-white overflow-hidden">
-            {/* Professional Header */}
             <div className="flex justify-between items-center p-4 bg-black/60 backdrop-blur-lg absolute top-0 w-full z-40 border-b border-white/5">
                 <button onClick={onClose} className="text-white font-bold text-sm bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-all">Discard</button>
                 <h3 className="font-black text-[18px]">Create Story</h3>
                 <button onClick={handleCreate} disabled={(mode === 'text' && !text.trim()) || (mode === 'image' && !imagePreview)} className="bg-[#1877F2] text-white px-6 py-2 rounded-full font-black text-sm disabled:opacity-50 disabled:bg-gray-600 transition-all">Share</button>
             </div>
 
-            {/* Main Preview Area */}
             <div className="flex-1 flex items-center justify-center relative overflow-hidden mt-16 mb-24" style={{ background: mode === 'text' ? background : '#000' }}>
                 {mode === 'text' ? (
                     <textarea 
@@ -310,7 +304,6 @@ export const CreateStoryModal: React.FC<{ currentUser: User, onClose: () => void
                     </div>
                 )}
 
-                {/* Music Overlay in Preview */}
                 {selectedMusic && (
                     <div className="absolute top-20 z-30 bg-white/10 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-white/20 flex items-center gap-3 shadow-2xl animate-pulse">
                         <div className="w-10 h-10 bg-[#1877F2] rounded-lg flex items-center justify-center">
@@ -325,10 +318,7 @@ export const CreateStoryModal: React.FC<{ currentUser: User, onClose: () => void
                 )}
             </div>
 
-            {/* Bottom Tools - Professional Belt */}
             <div className="absolute bottom-0 w-full bg-black/80 backdrop-blur-2xl border-t border-white/10 z-40 p-4 pb-8 flex flex-col gap-4">
-                
-                {/* Scrollable Color Picker for Text Mode */}
                 {mode === 'text' && (
                     <div className="flex gap-3 overflow-x-auto scrollbar-hide px-2 py-1">
                         {STORY_COLORS.map((col, idx) => (
@@ -361,7 +351,6 @@ export const CreateStoryModal: React.FC<{ currentUser: User, onClose: () => void
                 </div>
             </div>
 
-            {/* Music Picker Sub-Modal */}
             {showMusicPicker && (
                 <div className="fixed inset-0 z-[250] bg-[#18191A] animate-slide-up flex flex-col font-sans">
                     <div className="p-4 border-b border-[#3E4042] flex justify-between items-center bg-[#242526]">

@@ -1,4 +1,3 @@
-
 import { User, Post, Story, Reel, LocationData, Event, Group, Song, Album, Podcast, Episode, Brand, Product } from './types';
 
 export const LOCATIONS_DATA: LocationData[] = [
@@ -275,33 +274,10 @@ export const INITIAL_PRODUCTS: Product[] = [
         views: 85,
         ratings: [4, 5],
         comments: []
-    },
-    {
-        id: 3,
-        title: "MacBook Pro M1 2020",
-        category: "electronics",
-        description: "Space Grey, 8GB RAM, 256GB SSD. Battery health 95%. Box included.",
-        country: "TZ",
-        address: "Dar es Salaam, Masaki",
-        mainPrice: 2200000,
-        discountPrice: 2000000,
-        quantity: 1,
-        phoneNumber: "+255655998877",
-        images: ["https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"],
-        sellerId: 1,
-        sellerName: "Sarah Chen",
-        sellerAvatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-        date: Date.now() - 200000,
-        status: 'active',
-        shareId: 'p3',
-        views: 340,
-        ratings: [5],
-        comments: []
     }
 ];
 
 export const INITIAL_USERS: User[] = [
-    // ... users
     {
         id: 0,
         name: 'UNERA',
@@ -342,7 +318,7 @@ export const INITIAL_USERS: User[] = [
         nationality: 'Tanzania',
         isVerified: true,
         role: 'user',
-        isMusician: true, // Marked as Musician for testing
+        isMusician: true, 
         joinedDate: '2024-05-15',
         interests: ['tech', 'travel', 'coding']
     },
@@ -360,7 +336,7 @@ export const INITIAL_USERS: User[] = [
         nationality: 'United States',
         isVerified: true,
         role: 'user',
-        joinedDate: '2025-01-10', // New User
+        joinedDate: '2025-01-10', 
         interests: ['photography', 'art', 'design']
     },
     { 
@@ -380,55 +356,48 @@ export const INITIAL_USERS: User[] = [
         joinedDate: '2023-11-20',
         interests: ['art', 'design', 'fashion']
     },
-    { 
-        id: 4, 
-        name: 'James Wilson', 
-        profileImage: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', 
-        coverImage: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
-        bio: 'Nature Lover 🌲 | Hiking | Adventure',
-        location: 'Denver, Colorado',
-        isOnline: true,
-        followers: [3, 5, 0],
-        following: [0],
-        nationality: 'United States',
-        role: 'user',
-        joinedDate: '2024-08-01',
-        interests: ['nature', 'hiking', 'travel']
-    },
-    { 
-        id: 5, 
-        name: 'Emma Wilson', 
-        profileImage: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', 
-        coverImage: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
-        bio: 'Foodie 🍕 | Lifestyle Blogger',
-        work: 'Content Creator',
-        isOnline: true,
-        followers: [2, 4, 0],
-        following: [0],
-        nationality: 'Canada',
-        isVerified: true,
-        role: 'user',
-        joinedDate: '2025-02-01', // New User
-        interests: ['food', 'lifestyle', 'cooking']
-    },
-    { 
-        id: 6, 
-        name: 'Michael Brown', 
-        profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', 
-        coverImage: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
-        bio: 'Tech Enthusiast 📱',
-        location: 'Austin, Texas',
-        isOnline: false,
-        followers: [2, 0],
-        following: [0],
-        nationality: 'United States',
-        role: 'user',
-        joinedDate: '2024-01-15',
-        interests: ['tech', 'gaming']
-    },
 ];
 
 export const INITIAL_POSTS: Post[] = [
+    {
+        id: 101,
+        authorId: 2,
+        content: "I've just listed a professional camera lens on the marketplace. Perfect for anyone looking to upgrade their gear!",
+        type: 'product',
+        product: INITIAL_PRODUCTS[0],
+        productId: 1,
+        timestamp: "5m",
+        createdAt: Date.now() - 300000,
+        reactions: [],
+        comments: [],
+        shares: 0,
+        visibility: 'Public'
+    },
+    {
+        id: 102,
+        authorId: 0, // UNERA Admin
+        content: "Don't miss out on our upcoming Global Tech Conference! Early bird registration is now open.",
+        type: 'event',
+        event: {
+            id: 1,
+            organizerId: 0,
+            title: "Global Tech Summit 2025",
+            description: "Join industry leaders for a week of innovation.",
+            date: new Date(Date.now() + 86400000 * 30).toISOString(),
+            time: "10:00 AM",
+            location: "Convention Center, Virtual",
+            image: "https://images.unsplash.com/photo-1540575467063-178a50935278?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+            attendees: [1, 2],
+            interestedIds: [3]
+        },
+        eventId: 1,
+        timestamp: "1h",
+        createdAt: Date.now() - 3600000,
+        reactions: [],
+        comments: [],
+        shares: 0,
+        visibility: 'Public'
+    },
     {
         id: 1,
         authorId: 1,
@@ -436,98 +405,17 @@ export const INITIAL_POSTS: Post[] = [
         image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
         timestamp: "2h",
         createdAt: Date.now() - 7200000, 
-        reactions: [{ userId: 2, type: 'love' }, { userId: 4, type: 'like' }],
+        reactions: [{ userId: 2, type: 'love' }],
         comments: [
-            { id: 1, userId: 2, text: "Wow, looks amazing!", timestamp: "1h", likes: 2 },
-            { id: 2, userId: 3, text: "I need to go there!", timestamp: "30m", likes: 0 }
+            { id: 1, userId: 2, text: "Wow, looks amazing!", timestamp: "1h", likes: 2 }
         ],
         shares: 12,
         type: 'image',
         visibility: 'Public',
         views: 1250,
         category: 'travel',
-        tags: ['Nature', 'Hiking', 'WeekendVibes']
+        tags: ['Nature', 'Hiking']
     },
-    {
-        id: 2,
-        authorId: 4,
-        content: "Excited to announce that I've just started a new position as Senior Frontend Engineer! 🚀💻 It's been a long journey but hard work pays off. #Career #TechLife",
-        timestamp: "5h",
-        createdAt: Date.now() - 18000000,
-        reactions: [{ userId: 1, type: 'like' }, { userId: 3, type: 'wow' }],
-        comments: [],
-        shares: 4,
-        type: 'text',
-        visibility: 'Public',
-        views: 890,
-        category: 'tech',
-        tags: ['Career', 'TechLife']
-    },
-    {
-        id: 3,
-        authorId: 5,
-        content: "Sunday brunch with the best crew! 🥞☕ #Foodie #Sunday",
-        image: "https://images.unsplash.com/photo-1551218808-94e220e084d2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-        timestamp: "8h",
-        createdAt: Date.now() - 28800000,
-        reactions: [{ userId: 1, type: 'love' }],
-        comments: [],
-        shares: 1,
-        type: 'image',
-        visibility: 'Friends',
-        views: 450,
-        category: 'food',
-        tags: ['Foodie', 'Sunday']
-    },
-    {
-        id: 4,
-        authorId: 2,
-        content: "Check out this amazing sunset from yesterday! #Sunset #Nature",
-        video: "https://assets.mixkit.co/videos/preview/mixkit-sun-setting-over-the-ocean-1250-large.mp4",
-        timestamp: "1d",
-        createdAt: Date.now() - 86400000,
-        reactions: [{ userId: 1, type: 'like' }],
-        comments: [],
-        shares: 23,
-        type: 'video',
-        visibility: 'Public',
-        views: 5200,
-        category: 'nature',
-        tags: ['Sunset', 'Nature']
-    },
-    {
-        id: 5,
-        authorId: 2, 
-        content: "Just joined UNERA! Excited to share my photography journey here. 📸",
-        image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-        timestamp: "10m",
-        createdAt: Date.now() - 600000,
-        reactions: [],
-        comments: [],
-        shares: 0,
-        type: 'image',
-        visibility: 'Public',
-        views: 50,
-        category: 'photography',
-        tags: ['NewHere', 'Photography']
-    },
-    // Mock post from a Brand
-    {
-        id: 6,
-        authorId: 10001, // TechWorld
-        content: "The new iPhone 16 is rumored to feature a revolutionary new camera system. What are your thoughts? 📱🤔",
-        image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-        timestamp: "1h",
-        createdAt: Date.now() - 3600000,
-        reactions: [{ userId: 1, type: 'like' }, { userId: 6, type: 'like' }],
-        comments: [],
-        shares: 5,
-        type: 'image',
-        visibility: 'Public',
-        views: 3000,
-        category: 'tech',
-        tags: ['TechNews', 'iPhone']
-    }
 ];
 
 export const TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -565,118 +453,11 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         events: "Events",
         see_more: "See more",
         create_reel: "Create reel"
-    },
-    sw: {
-        tagline: "Ungana na marafiki na ulimwengu unaokuzunguka kwenye UNERA.",
-        login: "Ingia",
-        logout: "Ondoka",
-        home: "Nyumbani",
-        reels: "Reels",
-        watch: "Tazama",
-        marketplace: "Soko",
-        groups: "Vikundi",
-        email_placeholder: "Barua pepe au namba ya simu",
-        password_placeholder: "Nenosiri",
-        login_btn: "Ingia",
-        forgot_password: "Umesahau nenosiri?",
-        create_new_account: "Unda Akaunti Mpya",
-        sign_up_header: "Jisajili",
-        quick_easy: "Ni haraka na rahisi.",
-        first_name: "Jina la kwanza",
-        surname_optional: "Jina la ukoo (hiari)",
-        email_mobile_placeholder: "Namba ya simu au barua pepe",
-        dob: "Tarehe ya kuzaliwa",
-        gender: "Jinsia",
-        female: "Mwanamke",
-        male: "Mwanaume",
-        custom: "Maalum",
-        terms_text: "Kwa kubofya Jisajili, unakubaliana na Masharti yetu, Sera ya Faragha na Sera ya Vidakuzi. Unaweza kupokea arifa za SMS kutoka kwetu na unaweza kujiondoa wakati wowote.",
-        sign_up_btn: "Jisajili",
-        have_account: "Tayari una akaunti?",
-        friends: "Marafiki",
-        memories: "Kumbukumbu",
-        saved: "Viliohifadhiwa",
-        feeds: "Habari",
-        events: "Matukio",
-        see_more: "Ona zaidi",
-        create_reel: "Unda reel"
-    },
-    fr: {
-        tagline: "Connectez-vous avec vos amis et le monde qui vous entoure sur UNERA.",
-        login: "Se connecter",
-        logout: "Se déconnecter",
-        home: "Accueil",
-        reels: "Reels",
-        watch: "Watch",
-        marketplace: "Marketplace",
-        groups: "Groupes",
-        email_placeholder: "Adresse e-mail ou numéro de mobile",
-        password_placeholder: "Mot de passe",
-        login_btn: "Se connecter",
-        forgot_password: "Mot de passe oublié ?",
-        create_new_account: "Créer nouveau compte",
-        sign_up_header: "S'inscrire",
-        quick_easy: "C'est rapide et facile.",
-        first_name: "Prénom",
-        surname_optional: "Nom de famille (facultatif)",
-        email_mobile_placeholder: "Numéro mobile ou e-mail",
-        dob: "Date de naissance",
-        gender: "Genre",
-        female: "Femme",
-        male: "Homme",
-        custom: "Personnalisé",
-        terms_text: "En cliquant sur S'inscrire, vous acceptez nos Conditions, notre Politique de confidentialité et notre Politique d'utilisation des cookies.",
-        sign_up_btn: "S'inscrire",
-        have_account: "Déjà un compte ?",
-        friends: "Amis",
-        memories: "Souvenirs",
-        saved: "Enregistrements",
-        feeds: "Fils",
-        events: "Événements",
-        see_more: "Voir plus",
-        create_reel: "Créer un reel"
-    },
-    es: {
-        tagline: "Conéctate con amigos y el mundo que te rodea en UNERA.",
-        login: "Iniciar sesión",
-        logout: "Cerrar sesión",
-        home: "Inicio",
-        reels: "Reels",
-        watch: "Watch",
-        marketplace: "Marketplace",
-        groups: "Grupos",
-        email_placeholder: "Correo electrónico o número de teléfono",
-        password_placeholder: "Contraseña",
-        login_btn: "Iniciar sesión",
-        forgot_password: "¿Olvidaste tu contraseña?",
-        create_new_account: "Crear cuenta nueva",
-        sign_up_header: "Registrarte",
-        quick_easy: "Es rápido y fácil.",
-        first_name: "Nombre",
-        surname_optional: "Apellido (opcional)",
-        email_mobile_placeholder: "Número de móvil o correo electrónico",
-        dob: "Fecha de nacimiento",
-        gender: "Sexo",
-        female: "Mujer",
-        male: "Hombre",
-        custom: "Personalizado",
-        terms_text: "Al hacer clic en Registrarte, aceptas nuestras Condiciones, la Política de privacidad y la Política de cookies.",
-        sign_up_btn: "Registrarte",
-        have_account: "¿Ya tienes una cuenta?",
-        friends: "Amigos",
-        memories: "Recuerdos",
-        saved: "Guardado",
-        feeds: "Feeds",
-        events: "Eventos",
-        see_more: "Ver más",
-        create_reel: "Crear reel"
     }
 };
 
 export const INITIAL_STORIES: Story[] = [
     { id: 1, userId: 1, type: 'image', image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
-    { id: 2, userId: 2, type: 'image', image: "https://images.unsplash.com/photo-1542596594-649edbc13630?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
-    { id: 3, userId: 3, type: 'image', image: "https://images.unsplash.com/photo-1492633423870-43d1cd2775eb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", createdAt: Date.now() },
 ];
 
 export const INITIAL_REELS: Reel[] = [
@@ -689,53 +470,21 @@ export const INITIAL_REELS: Reel[] = [
         reactions: [{ userId: 1, type: 'like' }],
         comments: [],
         shares: 5
-    },
-    {
-        id: 2,
-        userId: 1,
-        videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
-        caption: "Spring is here! 🌸 #Nature #Flowers",
-        songName: "Here Comes The Sun - Beatles",
-        reactions: [{ userId: 3, type: 'love' }],
-        comments: [],
-        shares: 2
-    },
-    {
-        id: 3,
-        userId: 4,
-        videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4",
-        caption: "Ocean calm 🌊 #Relax #Water",
-        songName: "Ocean Eyes - Billie Eilish",
-        reactions: [],
-        comments: [],
-        shares: 0
     }
 ];
 
 export const INITIAL_EVENTS: Event[] = [
     {
         id: 1,
-        organizerId: 10001, // TechWorld
+        organizerId: 10001,
         title: "Tech Conference 2025",
         description: "Join us for the biggest tech event of the year.",
-        date: new Date(Date.now() + 86400000 * 5).toISOString(), // 5 days from now
+        date: new Date(Date.now() + 86400000 * 5).toISOString(),
         time: "09:00",
         location: "Arusha International Conference Centre",
         image: "https://images.unsplash.com/photo-1540575467063-178a50935278?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80",
         attendees: [1, 2, 3],
         interestedIds: [4, 5]
-    },
-    {
-        id: 2,
-        organizerId: 2,
-        title: "Photography Workshop",
-        description: "Learn the basics of photography with David.",
-        date: new Date(Date.now() + 86400000 * 10).toISOString(), // 10 days from now
-        time: "14:00",
-        location: "Central Park, NY",
-        image: "https://images.unsplash.com/photo-1552168324-d612d77725e3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80",
-        attendees: [1, 5],
-        interestedIds: [3]
     }
 ];
 
@@ -749,44 +498,8 @@ export const INITIAL_GROUPS: Group[] = [
         coverImage: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80",
         adminId: 1,
         members: [1, 2, 4, 6],
-        posts: [
-            {
-                id: 101,
-                authorId: 1,
-                content: "What's everyone's favorite programming language right now?",
-                timestamp: Date.now() - 3600000,
-                likes: [2, 4],
-                comments: [],
-                shares: 0
-            }
-        ],
+        posts: [],
         createdDate: Date.now() - 86400000 * 30,
-        memberPostingAllowed: true
-    },
-    {
-        id: "g2",
-        name: "Global Travelers",
-        description: "Share your travel stories and tips from around the world.",
-        type: "public",
-        image: "https://ui-avatars.com/api/?name=Global+Travelers&background=F3425F&color=fff",
-        coverImage: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80",
-        adminId: 4,
-        members: [1, 3, 4, 5],
-        posts: [],
-        createdDate: Date.now() - 86400000 * 60,
-        memberPostingAllowed: true
-    },
-    {
-        id: "g3",
-        name: "Digital Art Community",
-        description: "Showcase your art and get feedback.",
-        type: "private",
-        image: "https://ui-avatars.com/api/?name=Digital+Art&background=A033FF&color=fff",
-        coverImage: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80",
-        adminId: 3,
-        members: [2, 3],
-        posts: [],
-        createdDate: Date.now() - 86400000 * 15,
         memberPostingAllowed: true
     }
 ];

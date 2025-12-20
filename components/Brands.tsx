@@ -172,9 +172,9 @@ interface BrandsPageProps {
     onReact: (postId: number, type: any) => void;
     onShare: (postId: number) => void;
     onOpenComments: (postId: number) => void;
-    onUpdateBrand?: (brandId: number, data: Partial<Brand>) => void; // New prop
-    onMessage?: (brandId: number) => void; // New prop
-    onCreateEvent?: (brandId: number, event: Partial<Event>) => void; // New prop
+    onUpdateBrand?: (brandId: number, data: Partial<Brand>) => void;
+    onMessage?: (brandId: number) => void;
+    onCreateEvent?: (brandId: number, event: Partial<Event>) => void;
     initialBrandId?: number | null;
 }
 
@@ -196,6 +196,7 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
     const profileInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
 
+    // Effect to handle navigation from props (like clicking brand name in feed)
     useEffect(() => {
         if (initialBrandId) {
             const brand = brands.find(b => b.id === initialBrandId);
@@ -204,6 +205,9 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
                 setView('detail');
                 setActiveTab('Posts');
             }
+        } else {
+            setView('list');
+            setActiveBrandId(null);
         }
     }, [initialBrandId, brands]);
 
@@ -237,7 +241,7 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
         }
     };
 
-    if (view === 'list') {
+    if (view === 'list' || !activeBrand) {
         const myBrands = currentUser ? brands.filter(b => b.adminId === currentUser.id) : [];
         let otherBrands = currentUser ? brands.filter(b => b.adminId !== currentUser.id) : brands;
 
@@ -331,8 +335,6 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
             </div>
         );
     }
-
-    if (!activeBrand) return null;
 
     return (
         <div className="w-full bg-[#18191A] min-h-screen pb-10 font-sans">
@@ -474,7 +476,7 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
                                         author={activeBrand as any} 
                                         currentUser={currentUser}
                                         users={users} 
-                                        onProfileClick={() => {}}
+                                        onProfileClick={onProfileClick}
                                         onReact={onReact}
                                         onShare={onShare}
                                         onOpenComments={onOpenComments}

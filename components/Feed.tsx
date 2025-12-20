@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Post as PostType, ReactionType, Comment, Product, LinkPreview, AudioTrack, Group } from '../types';
+import { User, Post as PostType, ReactionType, Comment, Product, LinkPreview, AudioTrack, Group, Brand } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { INITIAL_USERS, LOCATIONS_DATA, REACTION_ICONS, REACTION_COLORS, GIF_CATEGORIES, MARKETPLACE_COUNTRIES } from '../constants';
+import { INITIAL_USERS, LOCATIONS_DATA, REACTION_ICONS, REACTION_COLORS, MARKETPLACE_COUNTRIES } from '../constants';
 import { StickerPicker, EmojiPicker } from './Pickers';
 
 // --- RICH TEXT RENDERER FOR MENTIONS & HASHTAGS ---
@@ -71,8 +71,6 @@ const BACKGROUNDS = [
     { id: 'fire', value: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)' },
 ];
 
-const FEELINGS = ['Happy', 'Blessed', 'Loved', 'Sad', 'Excited', 'Thankful', 'Crazy', 'Tired', 'Cool', 'Relaxed'];
-
 // --- MENTION SUGGESTIONS COMPONENT ---
 const MentionSuggestions = ({ users, query, onSelect }: { users: User[], query: string, onSelect: (user: User) => void }) => {
     const filteredUsers = users.filter(u => u.name.toLowerCase().includes(query.toLowerCase())).slice(0, 5);
@@ -111,7 +109,7 @@ interface RecommendationWidgetProps {
 const FeedWidgetContainer: React.FC<RecommendationWidgetProps> = ({ title, onSeeAll, children }) => (
     <div className="bg-[#242526] rounded-xl p-4 mb-4 border border-[#3E4042] shadow-sm animate-fade-in">
         <div className="flex justify-between items-center mb-3">
-            <h3 className="font-bold text-[#E4E6EB] text-[16px]">{title}</h3>
+            <h3 className="font-bold text-[#E4E6EB] text-[17px]">{title}</h3>
             {onSeeAll && <span className="text-[#1877F2] text-sm cursor-pointer hover:underline" onClick={onSeeAll}>See all</span>}
         </div>
         <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
@@ -120,7 +118,7 @@ const FeedWidgetContainer: React.FC<RecommendationWidgetProps> = ({ title, onSee
     </div>
 );
 
-export const SuggestedProductsWidget: React.FC<{ products: Product[]; currentUser: User; onViewProduct: (p: Product) => void; onSeeAll: () => void }> = ({ products, currentUser, onViewProduct, onSeeAll }) => {
+export const SuggestedProductsWidget: React.FC<{ products: Product[]; onViewProduct: (p: Product) => void; onSeeAll?: () => void }> = ({ products, onViewProduct, onSeeAll }) => {
     return (
         <FeedWidgetContainer title="Suggested for you" onSeeAll={onSeeAll}>
             {products.slice(0, 6).map(product => (
@@ -141,7 +139,7 @@ export const SuggestedProductsWidget: React.FC<{ products: Product[]; currentUse
     );
 };
 
-export const SuggestedGroupsWidget: React.FC<{ groups: Group[]; onJoin: (id: string) => void; onSeeAll: () => void }> = ({ groups, onJoin, onSeeAll }) => {
+export const SuggestedGroupsWidget: React.FC<{ groups: Group[]; onJoin: (id: string) => void; onSeeAll?: () => void; currentUser?: User | null }> = ({ groups, onJoin, onSeeAll, currentUser }) => {
     return (
         <FeedWidgetContainer title="Groups you might like" onSeeAll={onSeeAll}>
             {groups.slice(0, 6).map(group => (
@@ -161,16 +159,16 @@ export const SuggestedGroupsWidget: React.FC<{ groups: Group[]; onJoin: (id: str
     );
 };
 
-export const SuggestedPeopleWidget: React.FC<{ users: User[]; onFollow: (id: number) => void; onSeeAll: () => void }> = ({ users, onFollow, onSeeAll }) => {
+export const SuggestedPeopleWidget: React.FC<{ users: User[]; onFollow: (id: number) => void; onSeeAll?: () => void; currentUser?: User | null; onProfileClick?: (id: number) => void }> = ({ users, onFollow, onSeeAll, onProfileClick }) => {
     return (
         <FeedWidgetContainer title="People you may know" onSeeAll={onSeeAll}>
-            {users.slice(0, 6).map(user => (
+            {users.slice(0, 10).filter(u => u.id !== 0).map(user => (
                 <div key={user.id} className="min-w-[120px] bg-[#18191A] rounded-xl border border-[#3E4042] overflow-hidden flex flex-col">
-                    <div className="aspect-square relative">
+                    <div className="aspect-square relative cursor-pointer" onClick={() => onProfileClick?.(user.id)}>
                         <img src={user.profileImage} className="w-full h-full object-cover" alt="" />
                     </div>
                     <div className="p-2 flex flex-col flex-1">
-                        <h4 className="text-[#E4E6EB] font-bold text-sm truncate mb-1">{user.name}</h4>
+                        <h4 className="text-[#E4E6EB] font-bold text-sm truncate mb-1 cursor-pointer hover:underline" onClick={() => onProfileClick?.(user.id)}>{user.name}</h4>
                         <button onClick={() => onFollow(user.id)} className="mt-auto w-full bg-[#1877F2] text-white py-1.5 rounded-lg font-bold text-xs hover:bg-[#166FE5] transition-colors flex items-center justify-center gap-1">
                             <i className="fas fa-user-plus text-[10px]"></i> Follow
                         </button>
@@ -181,8 +179,33 @@ export const SuggestedPeopleWidget: React.FC<{ users: User[]; onFollow: (id: num
     );
 };
 
-// --- POST COMPONENTS ---
+export const SuggestedBrandsWidget: React.FC<{ brands: Brand[]; currentUser: User | null; onFollowBrand: (id: number) => void; onProfileClick: (id: number) => void }> = ({ brands, currentUser, onFollowBrand, onProfileClick }) => {
+    const suggestions = brands.filter(b => !currentUser || !b.followers.includes(currentUser.id)).slice(0, 8);
+    if (suggestions.length === 0) return null;
+    return (
+        <FeedWidgetContainer title="Suggested Pages">
+            {suggestions.map(brand => (
+                <div key={brand.id} className="min-w-[180px] bg-[#18191A] rounded-xl border border-[#3E4042] overflow-hidden flex flex-col shadow-md transition-all hover:scale-[1.02]">
+                    <div className="h-20 relative cursor-pointer overflow-hidden" onClick={() => onProfileClick(brand.id)}>
+                        <img src={brand.coverImage} className="w-full h-full object-cover opacity-90" alt="" />
+                    </div>
+                    <div className="px-3 pb-3 pt-6 relative flex-1 flex flex-col items-center text-center">
+                        <div className="absolute -top-6 w-12 h-12 rounded-full border-4 border-[#18191A] overflow-hidden bg-[#242526] shadow-lg">
+                            <img src={brand.profileImage} className="w-full h-full object-cover" alt="" />
+                        </div>
+                        <h4 className="text-[#E4E6EB] font-bold text-[14px] truncate w-full mb-0.5">{brand.name}</h4>
+                        <p className="text-[#B0B3B8] text-[11px] mb-3">{brand.category}</p>
+                        <button onClick={() => onFollowBrand(brand.id)} className="mt-auto w-full bg-[#3A3B3C] text-[#E4E6EB] py-1.5 rounded-lg font-black text-xs hover:bg-[#4E4F50] transition-colors flex items-center justify-center gap-1">
+                            <i className="fas fa-flag text-[10px]"></i> Follow
+                        </button>
+                    </div>
+                </div>
+            ))}
+        </FeedWidgetContainer>
+    );
+};
 
+// --- REACTION BUTTON ---
 interface ReactionButtonProps {
     currentUserReactions: ReactionType | undefined;
     reactionCount: number;
@@ -206,17 +229,6 @@ export const ReactionButton: React.FC<ReactionButtonProps> = ({ currentUserReact
         closeTimerRef.current = setTimeout(() => setShowDock(false), 300);
     };
 
-    const handleClick = () => {
-        setShowDock(false);
-        if (currentUserReactions) onReact('like'); else onReact('like');
-    };
-
-    const handleReactionSelect = (e: React.MouseEvent, type: ReactionType) => {
-        e.stopPropagation();
-        onReact(type);
-        setShowDock(false);
-    };
-
     const reactionConfig = [
         { type: 'like', icon: '👍', color: '#1877F2' },
         { type: 'love', icon: '❤️', color: '#F3425F' },
@@ -231,14 +243,14 @@ export const ReactionButton: React.FC<ReactionButtonProps> = ({ currentUserReact
     return (
         <div className="flex-1 relative group" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             {showDock && (
-                <div className="absolute -top-12 left-0 bg-[#242526] rounded-full shadow-xl p-1.5 flex gap-2 animate-fade-in border border-[#3E4042] z-50" onMouseEnter={() => { if(closeTimerRef.current) clearTimeout(closeTimerRef.current); }}>
+                <div className="absolute -top-12 left-0 bg-[#242526] rounded-full shadow-xl p-1.5 flex gap-2 animate-fade-in border border-[#3E4042] z-50">
                     {reactionConfig.map(reaction => (
-                        <div key={reaction.type} className="text-2xl hover:scale-125 transition-transform cursor-pointer hover:-translate-y-2 duration-200" onClick={(e) => handleReactionSelect(e, reaction.type)}>{reaction.icon}</div>
+                        <div key={reaction.type} className="text-2xl hover:scale-125 transition-transform cursor-pointer hover:-translate-y-2 duration-200" onClick={() => { onReact(reaction.type); setShowDock(false); }}>{reaction.icon}</div>
                     ))}
                 </div>
             )}
-            <button onClick={handleClick} className="w-full flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors active:scale-95">
-                {activeReaction ? (<><span className="text-[20px]">{activeReaction.icon}</span><span className="text-[15px] font-semibold" style={{ color: activeReaction.color }}>{activeReaction.type.charAt(0).toUpperCase() + activeReaction.type.slice(1)}</span></>) : (<><i className="far fa-thumbs-up text-[20px] text-[#B0B3B8]"></i><span className="text-[15px] font-semibold text-[#B0B3B8]">Like</span></>)}
+            <button onClick={() => onReact('like')} className="w-full flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors active:scale-95">
+                {activeReaction ? (<><span className="text-[20px]">{activeReaction.icon}</span><span className="text-[15px] font-bold" style={{ color: activeReaction.color }}>{activeReaction.type.charAt(0).toUpperCase() + activeReaction.type.slice(1)}</span></>) : (<><i className="far fa-thumbs-up text-[20px] text-[#B0B3B8]"></i><span className="text-[15px] font-bold text-[#B0B3B8]">Like</span></>)}
             </button>
         </div>
     );
@@ -362,7 +374,7 @@ export const CommentsSheet: React.FC<any> = ({ post, currentUser, users, onClose
                                     value={text} 
                                     onChange={(e) => setText(e.target.value)}
                                 />
-                                <i className={`far fa-smile text-xl cursor-pointer ${showEmojis ? 'text-[#1877F2]' : 'text-[#B0B3B8]'}`} onClick={() => setShowEmojis(!showEmojis)}></i>
+                                <i className={`far fa-smile text-xl cursor-pointer ${showEmojis ? 'text-[#00a884]' : 'text-[#B0B3B8]'}`} onClick={() => setShowEmojis(!showEmojis)}></i>
                             </div>
                             <button type="submit" disabled={!text.trim()} className="text-[#1877F2] font-semibold disabled:opacity-50"><i className="fas fa-paper-plane text-xl"></i></button>
                         </form>
@@ -403,18 +415,7 @@ export const CreatePost: React.FC<any> = ({ currentUser, onProfileClick, onClick
     );
 };
 
-// MODIFIED CreatePostModal with API Integration
-export const CreatePostModal: React.FC<{
-    currentUser: User;
-    users: User[];
-    onClose: () => void;
-    onCreatePost: (postData: any) => void;
-    onCreateEventClick?: () => void;
-    apiConfig?: {
-        baseUrl: string;
-        getAuthToken?: () => string | null;
-    };
-}> = ({ currentUser, users, onClose, onCreatePost, onCreateEventClick, apiConfig }) => {
+export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, onCreatePost, onCreateEventClick }) => {
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [visibility, setVisibility] = useState('Public');
@@ -424,97 +425,25 @@ export const CreatePostModal: React.FC<{
     const [taggedPeople, setTaggedPeople] = useState<string>('');
     const [wantsMessages, setWantsMessages] = useState(false);
     
-    // New state for API handling
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitError, setSubmitError] = useState<string | null>(null);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
-    
-    // Mention Suggestion State
     const [mentionQuery, setMentionQuery] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const API_BASE_URL = apiConfig?.baseUrl || 'https://unera-2.pages.dev';
-    
-    const handleSubmit = async () => {
+    const handleSubmit = () => {
         if (!text.trim() && !file && !background) return;
         
-        setIsSubmitting(true);
-        setSubmitError(null);
-        setSubmitSuccess(false);
-        
-        try {
-            // Prepare post data according to your API specification
-            const postData: any = {
-                user_id: currentUser.id, // Make sure this matches your API user_id field
-                content: text,
-                media_url: null, // You would need to upload the file first and get URL
-                visibility: visibility.toLowerCase(), // Convert to match your API
-            };
-            
-            // Add optional fields if they exist
-            if (location) postData.location = location;
-            if (feeling) postData.feeling = feeling;
-            if (background) postData.background = background;
-            
-            // If you have tagged people, you might want to parse and include them
-            if (taggedPeople) {
-                // Add tagging logic here - you might need to extract user IDs
-                postData.tagged_users = taggedPeople;
-            }
-            
-            // Check for link preview
-            const linkPreview = getLinkPreview(text);
-            if (linkPreview) {
-                postData.link_preview = linkPreview.url;
-            }
-            
-            // Get authentication token if configured
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json',
-            };
-            
-            const authToken = apiConfig?.getAuthToken?.();
-            if (authToken) {
-                headers['Authorization'] = `Bearer ${authToken}`;
-            }
-            
-            // Call the API
-            console.log('Creating post with data:', postData);
-            const response = await fetch(`${API_BASE_URL}/posts`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(postData),
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
-            }
-            
-            const newPost = await response.json();
-            console.log('Post created successfully:', newPost);
-            
-            // Notify parent component about the new post
-            if (onCreatePost) {
-                onCreatePost(newPost);
-            }
-            
-            setSubmitSuccess(true);
-            
-            // Close modal after successful submission
-            setTimeout(() => {
-                onClose();
-            }, 1500);
-            
-        } catch (error) {
-            console.error('Error creating post:', error);
-            setSubmitError(error instanceof Error ? error.message : 'Failed to create post. Please try again.');
-        } finally {
-            setIsSubmitting(false);
+        let type = 'text';
+        if (file) {
+            type = file.type.startsWith('video') ? 'video' : 'image';
+        } else if (background) {
+            type = 'text'; 
         }
+
+        const linkPreview = getLinkPreview(text);
+        onCreatePost(text, file, type, visibility, location, feeling, [], background, linkPreview || undefined, wantsMessages);
+        onClose();
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -533,7 +462,7 @@ export const CreatePostModal: React.FC<{
 
         if (lastAtPos !== -1) {
             const query = textBeforeCursor.substring(lastAtPos + 1);
-            if (!query.includes(' ') || query.length < 15) {
+            if (!query.includes(' ') && query.length < 15) {
                 setMentionQuery(query);
                 setShowSuggestions(true);
                 return;
@@ -543,9 +472,10 @@ export const CreatePostModal: React.FC<{
     };
 
     const handleSelectMention = (user: User) => {
-        const textBeforeCursor = text.substring(0, textareaRef.current?.selectionStart || 0);
+        const cursorPosition = textareaRef.current?.selectionStart || 0;
+        const textBeforeCursor = text.substring(0, cursorPosition);
         const lastAtPos = textBeforeCursor.lastIndexOf('@');
-        const textAfterCursor = text.substring(textareaRef.current?.selectionStart || 0);
+        const textAfterCursor = text.substring(cursorPosition);
         
         const newText = text.substring(0, lastAtPos) + `@${user.name} ` + textAfterCursor;
         setText(newText);
@@ -568,7 +498,6 @@ export const CreatePostModal: React.FC<{
 
     return (
         <div className="fixed inset-0 z-[150] bg-[#18191A] flex flex-col font-sans animate-slide-up">
-            {/* Facebook Style Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#3E4042] bg-[#242526] sticky top-0 z-20">
                 <div className="flex items-center gap-4">
                     <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2 -ml-2 rounded-full hover:bg-[#3A3B3C]" onClick={onClose}></i>
@@ -576,15 +505,12 @@ export const CreatePostModal: React.FC<{
                         <img src={currentUser.profileImage} className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" alt="" />
                         <div>
                             <div className="font-black text-[#E4E6EB] text-[16px] leading-tight">{currentUser.name}</div>
-                            <div className="flex flex-wrap items-center gap-1">
-                                <div className="flex items-center gap-1 mt-0.5 cursor-pointer" onClick={() => setVisibility(visibility === 'Public' ? 'Friends' : 'Public')}>
-                                    <div className="bg-[#3A3B3C] px-2 py-0.5 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042]">
-                                        <i className={`fas ${visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-[10px]`}></i>
-                                        <span>{visibility}</span>
-                                        <i className="fas fa-caret-down text-[10px]"></i>
-                                    </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                                <div className="bg-[#3A3B3C] px-2 py-0.5 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042] cursor-pointer" onClick={() => setVisibility(visibility === 'Public' ? 'Friends' : 'Public')}>
+                                    <i className={`fas ${visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-[10px]`}></i>
+                                    <span>{visibility}</span>
+                                    <i className="fas fa-caret-down text-[10px]"></i>
                                 </div>
-                                {feeling && <span className="text-[#B0B3B8] text-[11px] mt-0.5">• is feeling {feeling}</span>}
                             </div>
                         </div>
                     </div>
@@ -592,16 +518,13 @@ export const CreatePostModal: React.FC<{
                 <h3 className="text-[#E4E6EB] text-[18px] font-bold">Create post</h3>
             </div>
 
-            {/* Content Area */}
             <div className="flex-1 overflow-y-auto flex flex-col relative pb-32">
-                {/* Mention Suggestion Dropdown */}
                 {showSuggestions && (
                     <div className="px-4">
                          <MentionSuggestions users={users} query={mentionQuery} onSelect={handleSelectMention} />
                     </div>
                 )}
 
-                {/* Large Text Input Area */}
                 <div 
                     className={`flex-1 min-h-[200px] relative transition-all ${background ? 'flex items-center justify-center text-center p-8' : 'p-4'}`}
                     style={{ background: background.includes('url') ? background : background, backgroundSize: 'cover' }}
@@ -610,14 +533,13 @@ export const CreatePostModal: React.FC<{
                         ref={textareaRef}
                         autoFocus
                         className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none ${background ? 'text-center font-bold text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
-                        placeholder="What's new You need To Post?"
+                        placeholder="What’s new You need To Post?"
                         value={text}
                         onChange={handleTextChange}
                         style={{ height: 'auto', minHeight: '150px' }}
                     />
                 </div>
 
-                {/* Metadata Preview Row */}
                 {(location || taggedPeople) && (
                    <div className="px-4 py-2 border-t border-[#3E4042]/20 flex flex-wrap gap-2">
                        {location && <div className="bg-[#3A3B3C] px-3 py-1 rounded-full text-xs font-bold text-[#E4E6EB] flex items-center gap-2"><i className="fas fa-map-marker-alt text-[#F02849]"></i> {location} <i className="fas fa-times cursor-pointer opacity-50" onClick={() => setLocation('')}></i></div>}
@@ -625,19 +547,13 @@ export const CreatePostModal: React.FC<{
                    </div>
                 )}
 
-                {/* Media Preview */}
                 {file && (
                     <div className="mx-4 mb-4 relative rounded-lg overflow-hidden border border-[#3E4042] max-h-[300px] bg-black shadow-lg">
-                        {file.type.startsWith('video') ? (
-                            <video src={URL.createObjectURL(file)} className="w-full h-full object-contain" controls />
-                        ) : (
-                            <img src={URL.createObjectURL(file)} className="w-full h-full object-contain" />
-                        )}
-                        <div onClick={() => { setFile(null); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10 hover:bg-black/80 transition-colors"><i className="fas fa-times text-white"></i></div>
+                        {file.type.startsWith('video') ? <video src={URL.createObjectURL(file)} className="w-full h-full object-contain" controls /> : <img src={URL.createObjectURL(file)} className="w-full h-full object-contain" />}
+                        <div onClick={() => setFile(null)} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10"><i className="fas fa-times text-white"></i></div>
                     </div>
                 )}
 
-                {/* Background Picker Row (Scrollable) */}
                 {!file && (
                     <div className="px-4 py-4 flex items-center gap-3 overflow-x-auto scrollbar-hide border-t border-[#3E4042]/30 bg-[#242526]/50">
                          <div 
@@ -649,7 +565,7 @@ export const CreatePostModal: React.FC<{
                          {BACKGROUNDS.filter(b => b.id !== 'none').map(bg => (
                              <div 
                                 key={bg.id} 
-                                className={`w-10 h-10 rounded-lg cursor-pointer border-2 flex-shrink-0 transition-all ${background === bg.value ? 'border-[#1877F2] scale-110' : 'border-transparent hover:border-white/50'}`}
+                                className={`w-10 h-10 rounded-lg cursor-pointer border-2 flex-shrink-0 transition-all ${background === bg.value ? 'border-[#1877F2] scale-110' : 'border-transparent'}`}
                                 style={{ background: bg.value, backgroundSize: 'cover' }}
                                 onClick={() => setBackground(bg.value)}
                              ></div>
@@ -657,84 +573,31 @@ export const CreatePostModal: React.FC<{
                     </div>
                 )}
 
-                {/* Options List */}
                 <div className="bg-[#242526] border-t border-[#3E4042]">
                     <OptionRow icon="fas fa-images" color="#45BD62" label="Photos/videos" onClick={() => fileInputRef.current?.click()} />
-                    <OptionRow 
-                        icon="fas fa-user-tag" color="#1877F2" label="Tag people" 
-                        onClick={() => { const p = prompt("Who are you with?"); if(p) setTaggedPeople(p); }} 
-                        subtext={taggedPeople ? `Tagged: ${taggedPeople}` : "Friends help you tell your story better"} 
-                    />
-                    <OptionRow 
-                        icon="fas fa-map-marker-alt" color="#F02849" label="Add location" 
-                        onClick={() => { const loc = prompt("Where are you?"); if(loc) setLocation(loc); }} 
-                        subtext={location ? `At: ${location}` : "Add a physical spot to your post"} 
-                    />
-                    <OptionRow 
-                        icon="far fa-smile" color="#F7B928" label="Feeling/activity" 
-                        onClick={() => { const feel = prompt("How are you feeling?"); if(feel) setFeeling(feel); }} 
-                        subtext={feeling ? `Feeling: ${feeling}` : "Share your mood or current action"} 
-                    />
-                    <OptionRow 
-                        icon="fab fa-facebook-messenger" color="#00C6FF" label="Get messages" 
-                        onClick={() => setWantsMessages(!wantsMessages)} 
-                        active={wantsMessages}
-                        subtext="Prompt friends to message you from this post"
-                    />
-                    <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick && onCreateEventClick(); }} subtext="Organize a get-together" />
-                    <OptionRow 
-                        icon="fas fa-video" color="#F02849" label="Go live" 
-                        onClick={() => alert("Live streaming is coming soon to UNERA! Stay tuned for updates.")} 
-                        subtext="Broadcast live video to your friends"
-                    />
+                    <OptionRow icon="fas fa-user-tag" color="#1877F2" label="Tag people" onClick={() => { const p = prompt("Who are you with?"); if(p) setTaggedPeople(p); }} />
+                    <OptionRow icon="fas fa-map-marker-alt" color="#F02849" label="Add location" onClick={() => { const loc = prompt("Where are you?"); if(loc) setLocation(loc); }} />
+                    <OptionRow icon="far fa-smile" color="#F7B928" label="Feeling/activity" onClick={() => { const feel = prompt("How are you feeling?"); if(feel) setFeeling(feel); }} />
+                    <OptionRow icon="fab fa-facebook-messenger" color="#1877F2" label="Get messages" onClick={() => setWantsMessages(!wantsMessages)} active={wantsMessages} subtext="Adds a 'Send Message' button to your post" />
+                    <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} />
                 </div>
             </div>
 
-            {/* Footer with Large POST Button - MODIFIED */}
             <div className="p-4 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
-                {/* Error Message */}
-                {submitError && (
-                    <div className="mb-3 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-200 text-sm animate-fade-in">
-                        <i className="fas fa-exclamation-circle mr-2"></i>
-                        {submitError}
-                    </div>
-                )}
-                
-                {/* Success Message */}
-                {submitSuccess && (
-                    <div className="mb-3 p-3 bg-green-900/30 border border-green-700 rounded-lg text-green-200 text-sm animate-fade-in">
-                        <i className="fas fa-check-circle mr-2"></i>
-                        Post created successfully! Closing in a moment...
-                    </div>
-                )}
-                
-                <button 
-                    onClick={handleSubmit} 
-                    disabled={(!text.trim() && !file && !background) || isSubmitting}
-                    className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:text-[#B0B3B8] disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2"
-                >
-                    {isSubmitting ? (
-                        <>
-                            <i className="fas fa-spinner fa-spin"></i>
-                            Posting...
-                        </>
-                    ) : (
-                        'POST'
-                    )}
-                </button>
+                <button onClick={handleSubmit} disabled={!text.trim() && !file && !background} className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] transition-all disabled:bg-[#3A3B3C]">POST</button>
             </div>
-
-            {/* Hidden File Input */}
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
         </div>
     );
 };
 
+// Fix: Add missing PostProps interface definition
 interface PostProps {
     post: PostType;
     author: User;
     currentUser: User | null;
     users: User[];
+    brands?: Brand[];
     onProfileClick: (id: number) => void;
     onReact: (postId: number, type: ReactionType) => void;
     onShare: (postId: number) => void;
@@ -764,479 +627,116 @@ export const Post: React.FC<PostProps> = ({
     const [editContent, setEditContent] = useState(post.content || '');
     const [showMenu, setShowMenu] = useState(false);
     
-    // Determine user reaction
     const myReaction = currentUser ? post.reactions.find(r => r.userId === currentUser.id)?.type : undefined;
     const reactionCount = post.reactions.length;
     const commentCount = post.comments.length;
     const shareCount = post.shares;
 
-    const handleSaveEdit = () => {
-        if (onEdit) onEdit(post.id, editContent);
-        setIsEditing(false);
-    };
+    const isProduct = post.type === 'product' && post.product;
+    const isEvent = post.type === 'event' && post.event;
 
-    const isVideo = post.type === 'video';
-
-    // Special Layout for Video Posts in Feed (Reel Style)
-    if (isVideo && post.video) {
-        return (
-            <div className="bg-[#242526] rounded-xl border border-[#3E4042] mb-4 shadow-sm animate-fade-in font-sans overflow-hidden">
-                <div className="p-3 flex items-start justify-between">
-                    <div className="flex gap-2">
-                        <img src={author.profileImage} alt={author.name} className="w-10 h-10 rounded-full object-cover border border-[#3E4042] cursor-pointer" onClick={() => onProfileClick(author.id)} />
-                        <div>
-                            <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer leading-tight block" onClick={() => onProfileClick(author.id)}>{author.name}</span>
-                            <div className="text-[#B0B3B8] text-[13px]">{post.timestamp}</div>
-                        </div>
-                    </div>
-                    {/* Menu & Follow Button */}
-                    <div className="flex items-center gap-2">
-                        {!isFollowing && currentUser && currentUser.id !== author.id && onFollow && (
-                            <button 
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    onFollow(author.id); 
-                                }}
-                                className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-black text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
-                            >
-                                <i className="fas fa-plus text-xs"></i> Follow
-                            </button>
-                        )}
-                        <div className="relative">
-                            <i className="fas fa-ellipsis-h text-[#B0B3B8] p-2 rounded-full hover:bg-[#3A3B3C] cursor-pointer" onClick={() => setShowMenu(!showMenu)}></i>
-                            {showMenu && (
-                                <div className="absolute right-0 top-10 bg-[#242526] border border-[#3E4042] rounded-lg shadow-xl w-48 z-10 overflow-hidden py-1">
-                                    {(canDelete || (currentUser && currentUser.id === author.id)) && onDelete && (
-                                        <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onDelete(post.id); setShowMenu(false); }}>
-                                            <i className="fas fa-trash"></i> Delete Post
-                                        </div>
-                                    )}
-                                    {currentUser && currentUser.id === author.id && onEdit && (
-                                        <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { setIsEditing(true); setShowMenu(false); }}>
-                                            <i className="fas fa-pen"></i> Edit Post
-                                        </div>
-                                    )}
-                                    {!isFollowing && currentUser && currentUser.id !== author.id && onFollow && (
-                                        <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onFollow(author.id); setShowMenu(false); }}>
-                                            <i className="fas fa-user-plus"></i> Follow {author.name}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                
-                {post.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[20px] leading-relaxed"><RichText text={post.content} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} /></div>}
-
-                <div className="relative bg-black cursor-pointer group" onClick={() => onVideoClick(post)}>
-                    <video src={post.video} className="w-full h-auto max-h-[600px] object-cover mx-auto" />
-                    
-                    {/* Play Button Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
-                        <div className="w-16 h-16 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
-                            <i className="fas fa-play text-white text-3xl ml-1"></i>
-                        </div>
-                    </div>
-
-                    {/* Views Overlay */}
-                    <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs font-black pointer-events-none">
-                        <i className="fas fa-eye"></i>
-                        <span>{post.views ? post.views.toLocaleString() : 0}</span>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // Standard & Product Posts
     return (
         <div className="bg-[#242526] rounded-xl border border-[#3E4042] mb-4 shadow-sm animate-fade-in font-sans overflow-hidden">
-            {/* Header */}
             <div className="p-3 flex items-start justify-between">
                 <div className="flex gap-2">
                     <div className="relative cursor-pointer" onClick={() => onProfileClick(author.id)}>
                         <img src={author.profileImage} alt={author.name} className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" />
-                        {post.feeling && <div className="absolute -bottom-1 -right-1 text-base">🙂</div>}
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-1">
-                            <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer leading-tight" onClick={() => onProfileClick(author.id)}>{author.name}</span>
+                            <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer leading-tight" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             {author.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
-                            {post.feeling && <span className="text-[#B0B3B8] text-[15px]">is feeling {post.feeling}</span>}
-                            {post.location && <span className="text-[#B0B3B8] text-[15px]">in {post.location}</span>}
-                            {post.groupName && post.groupId && (
-                                <>
-                                    <i className="fas fa-caret-right text-[#B0B3B8] text-xs mx-1"></i>
-                                    <span className="font-black text-[#E4E6EB] text-[18px] hover:underline cursor-pointer" onClick={() => onGroupClick && onGroupClick(post.groupId!)}>{post.groupName}</span>
-                                </>
-                            )}
                         </div>
-                        <div className="flex items-center gap-1 text-[#B0B3B8] text-[13px]">
+                        <div className="flex items-center gap-1 text-[#B0B3B8] text-[12px]">
                             <span>{post.timestamp}</span>
                             <span>•</span>
-                            <i className={`fas ${post.visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'}`}></i>
+                            <i className={`fas ${post.visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-[10px]`}></i>
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    {!isFollowing && currentUser && currentUser.id !== author.id && onFollow && (
-                        <button 
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                onFollow(author.id); 
-                            }}
-                            className="bg-[#1877F2] text-white px-3 py-1.5 rounded-md font-black text-[13px] hover:bg-[#166FE5] active:scale-95 transition-transform flex items-center gap-1 shadow-sm"
-                        >
-                            <i className="fas fa-plus text-xs"></i> Follow
-                        </button>
+                <div className="relative">
+                    <i className="fas fa-ellipsis-h text-[#B0B3B8] p-2 rounded-full hover:bg-[#3A3B3C] cursor-pointer" onClick={() => setShowMenu(!showMenu)}></i>
+                    {showMenu && (
+                        <div className="absolute right-0 top-10 bg-[#242526] border border-[#3E4042] rounded-lg shadow-xl w-48 z-10 py-1">
+                            {(canDelete || (currentUser && currentUser.id === author.id)) && onDelete && <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onDelete(post.id); setShowMenu(false); }}><i className="fas fa-trash"></i> Delete Post</div>}
+                        </div>
                     )}
-                    <div className="relative">
-                        <i className="fas fa-ellipsis-h text-[#B0B3B8] p-2 rounded-full hover:bg-[#3A3B3C] cursor-pointer" onClick={() => setShowMenu(!showMenu)}></i>
-                        {showMenu && (
-                            <div className="absolute right-0 top-10 bg-[#242526] border border-[#3E4042] rounded-lg shadow-xl w-48 z-10 overflow-hidden py-1">
-                                {(canDelete || (currentUser && currentUser.id === author.id)) && onDelete && (
-                                    <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onDelete(post.id); setShowMenu(false); }}>
-                                        <i className="fas fa-trash"></i> Delete Post
-                                    </div>
-                                )}
-                                {currentUser && currentUser.id === author.id && onEdit && (
-                                    <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { setIsEditing(true); setShowMenu(false); }}>
-                                        <i className="fas fa-pen"></i> Edit Post
-                                    </div>
-                                )}
-                                {!isFollowing && currentUser && currentUser.id !== author.id && onFollow && (
-                                    <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onFollow(author.id); setShowMenu(false); }}>
-                                        <i className="fas fa-user-plus"></i> Follow {author.name}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="px-3 pb-2 text-[#E4E6EB] text-[20px] leading-relaxed">
+            <div className="px-3 pb-2 text-[#E4E6EB] text-[18px] leading-relaxed">
                 {isEditing ? (
                     <div className="mb-2">
                         <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded p-2 text-[#E4E6EB]" value={editContent} onChange={e => setEditContent(e.target.value)} />
                         <div className="flex gap-2 mt-2 justify-end">
                             <button className="text-[#B0B3B8] text-sm" onClick={() => setIsEditing(false)}>Cancel</button>
-                            <button className="bg-[#1877F2] text-white px-3 py-1 rounded text-sm font-black" onClick={handleSaveEdit}>Save</button>
+                            <button className="bg-[#1877F2] text-white px-3 py-1 rounded text-sm font-black" onClick={() => { onEdit?.(post.id, editContent); setIsEditing(false); }}>Save</button>
                         </div>
                     </div>
                 ) : (
-                    <div className={`mb-2 ${post.background ? 'text-center font-black text-[24px] py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''}`} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
+                    <div className={post.background ? 'text-center font-black text-[24px] py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
                         <RichText text={post.content || ''} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} />
                     </div>
                 )}
             </div>
 
-            {/* Media Rendering - Full Width */}
-            {post.type === 'image' && post.images && post.images.length > 0 && (
-                <div className={`grid gap-0.5 w-full ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                    {post.images.slice(0, 4).map((img, idx) => (
-                        <div key={idx} className="cursor-pointer bg-black w-full" onClick={() => onViewImage(img)}>
-                            <img src={img} alt="" className="w-full max-h-[600px] object-cover" />
+            {isProduct && (
+                <div className="mx-3 mb-3 bg-[#18191A] rounded-xl border border-[#3E4042] overflow-hidden cursor-pointer" onClick={() => onViewProduct?.(post.product!)}>
+                    <div className="aspect-video relative overflow-hidden bg-black flex items-center justify-center">
+                        <img src={post.product!.images[0]} className="w-full h-full object-contain" alt="" />
+                        <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-md px-3 py-1 rounded-lg text-white font-black text-xl">
+                            {MARKETPLACE_COUNTRIES.find(c => c.code === post.product!.country)?.symbol || '$'}{post.product!.mainPrice.toLocaleString()}
                         </div>
-                    ))}
+                    </div>
+                    <div className="p-4 bg-[#242526]">
+                        <h3 className="text-[#E4E6EB] font-bold text-xl mb-1">{post.product!.title}</h3>
+                        <div className="flex items-center gap-2 text-[#B0B3B8] text-sm mb-4">
+                             <i className="fas fa-map-marker-alt"></i>
+                             <span>{post.product!.address}</span>
+                        </div>
+                        <button className="w-full bg-[#45BD62] text-white font-black py-2.5 rounded-lg">View Product</button>
+                    </div>
                 </div>
             )}
-            
-            {post.type === 'image' && !post.images && post.image && (
+
+            {isEvent && (
+                <div className="mx-3 mb-3 bg-[#18191A] rounded-xl border border-[#3E4042] overflow-hidden group shadow-lg">
+                    <div className="w-full aspect-video relative bg-black flex items-center justify-center cursor-pointer" onClick={() => onJoinEvent?.(post.event!.id)}>
+                        <img src={post.event!.image} className="w-full h-full object-cover" alt="" />
+                        <div className="absolute top-4 left-4 bg-white rounded-xl p-2 text-center shadow-2xl min-w-[60px] border border-gray-200">
+                            <span className="block text-[#F02849] font-black text-xs uppercase">{new Date(post.event!.date).toLocaleString('default', { month: 'short' })}</span>
+                            <span className="block text-black font-black text-2xl">{new Date(post.event!.date).getDate()}</span>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-[#242526]">
+                        <h3 className="text-[#E4E6EB] font-bold text-xl mb-1">{post.event!.title}</h3>
+                        <p className="text-[#F02849] font-black text-sm mb-2">{new Date(post.event!.date).toDateString()} • {post.event!.time}</p>
+                        <div className="flex items-center justify-between mt-4">
+                             <span className="text-[#B0B3B8] text-sm">{post.event!.interestedIds.length} Interested</span>
+                             <button onClick={() => onJoinEvent?.(post.event!.id)} className="bg-[#1877F2] text-white px-6 py-1.5 rounded-lg font-bold">Interested</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {!isProduct && !isEvent && post.image && (
                 <div className="cursor-pointer bg-black w-full" onClick={() => onViewImage(post.image!)}>
                     <img src={post.image} alt="" className="w-full max-h-[600px] object-contain mx-auto" />
                 </div>
             )}
 
-            {/* Link Preview - Full Width */}
-            {post.linkPreview && !post.image && !post.video && (
-                <div className="w-full mb-2 bg-[#3A3B3C] border-y border-[#3E4042] overflow-hidden cursor-pointer hover:bg-[#4E4F50] transition-colors" onClick={() => window.open(post.linkPreview!.url, '_blank')}>
-                    {post.linkPreview.image && <img src={post.linkPreview.image} alt="" className="w-full h-48 object-cover" />}
-                    <div className="p-3">
-                        <div className="text-[#B0B3B8] text-[12px] uppercase mb-1">{post.linkPreview.domain}</div>
-                        <h4 className="text-[#E4E6EB] font-black text-[16px] mb-1 line-clamp-1">{post.linkPreview.title}</h4>
-                        <p className="text-[#B0B3B8] text-[14px] line-clamp-2 leading-snug">{post.linkPreview.description}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Embedded Shared Post - Full Width */}
-            {sharedPost && (
-                <div className="w-full mb-2 border-y border-[#3E4042] bg-[#1C1C1D]">
-                    <div className="p-3 flex items-center gap-2">
-                        <img src={users.find(u => u.id === sharedPost.authorId)?.profileImage} alt="" className="w-8 h-8 rounded-full" />
-                        <div>
-                            <span className="font-black text-[#E4E6EB] text-sm">{sharedPost.originalAuthorName || users.find(u => u.id === sharedPost.authorId)?.name}</span>
-                            <span className="text-[#B0B3B8] text-xs block">{sharedPost.timestamp}</span>
-                        </div>
-                    </div>
-                    {sharedPost.content && <div className="px-3 pb-2 text-[#E4E6EB] text-[20px]">{sharedPost.content}</div>}
-                    {sharedPost.image && <img src={sharedPost.image} className="w-full max-h-[400px] object-cover" alt="" />}
-                </div>
-            )}
-
-            {/* Product Card - Full Width */}
-            {post.type === 'product' && post.product && (
-                <div className="w-full mb-3 bg-[#3A3B3C] border-y border-[#3E4042]">
-                    <div className="cursor-pointer" onClick={() => onViewProduct && onViewProduct(post.product!)}>
-                        <div className="w-full h-[400px] bg-white relative">
-                            <img src={post.product.images[0]} alt="" className="w-full h-full object-contain" />
-                        </div>
-                        <div className="p-4 bg-[#242526]">
-                            <h4 className="font-black text-[#E4E6EB] text-xl mb-1">{post.product.title}</h4>
-                            <div className="text-[#F02849] font-black text-2xl">{MARKETPLACE_COUNTRIES.find(c => c.code === post.product!.country)?.symbol}{post.product.mainPrice.toLocaleString()}</div>
-                            <div className="text-[#B0B3B8] text-sm mt-1">{post.product.address}</div>
-                        </div>
-                    </div>
-                    <div className="flex gap-2 p-3 bg-[#242526] border-t border-[#3E4042]">
-                        <button onClick={() => onMessage && onMessage(post.product!.sellerId)} className="flex-1 bg-[#3A3B3C] hover:bg-[#4E4F50] border border-[#3E4042] text-[#E4E6EB] font-black py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
-                            <i className="fab fa-facebook-messenger"></i> Message
-                        </button>
-                        <button onClick={() => onViewProduct && onViewProduct(post.product!)} className="flex-1 bg-[#1877F2] hover:bg-[#166FE5] text-white font-black py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
-                            <i className="fas fa-eye"></i> View Details
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Event Card - Full Width */}
-            {post.type === 'event' && post.event && (
-                <div className="w-full mb-3 border-y border-[#3E4042] bg-[#242526]">
-                    <div className="relative h-[250px] w-full overflow-hidden">
-                        <img src={post.event.image} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute top-3 left-3 bg-white text-black rounded-lg p-2 text-center min-w-[50px] shadow-lg">
-                            <span className="block text-red-600 font-black text-xs uppercase">{new Date(post.event.date).toLocaleString('default', { month: 'short' })}</span>
-                            <span className="block text-black font-black text-xl leading-none">{new Date(post.event.date).getDate()}</span>
-                        </div>
-                    </div>
-                    <div className="p-4">
-                        <div className="text-red-500 font-black text-sm uppercase mb-1">{new Date(post.event.date).toDateString()} AT {post.event.time}</div>
-                        <h3 className="text-[#E4E6EB] font-black text-xl mb-1">{post.event.title}</h3>
-                        <div className="text-[#B0B3B8] text-sm mb-4">{post.event.location}</div>
-                        <div className="flex justify-between items-center border-t border-[#3E4042] pt-3 mt-2">
-                            <div className="text-[#B0B3B8] text-xs font-black">{post.event.attendees.length} people going</div>
-                            <button onClick={() => onJoinEvent && onJoinEvent(post.event!.id)} className="bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50] px-6 py-1.5 rounded-lg font-black text-sm transition-colors border border-[#3E4042]">
-                                <i className="far fa-star mr-2"></i> Interested
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Audio Track - Full Width */}
-            {post.type === 'audio' && post.audioTrack && (
-                <div className="w-full mb-3 bg-[#1A1A1A] p-4 border-y border-[#3E4042] flex items-center gap-3 cursor-pointer hover:bg-[#333]" onClick={() => onPlayAudio && onPlayAudio(post.audioTrack!)}>
-                    <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                        <img src={post.audioTrack.cover} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                            <i className="fas fa-play text-white"></i>
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                        <div className="text-[#E4E6EB] font-black text-[18px] truncate">{post.audioTrack.title}</div>
-                        <div className="text-[#B0B3B8] text-[15px] truncate">{post.audioTrack.artist}</div>
-                        <div className="text-[#1877F2] text-[11px] uppercase font-black mt-1">{post.audioTrack.type}</div>
-                    </div>
-                </div>
-            )}
-
-            {/* Stats */}
             <div className="px-3 py-2 flex items-center justify-between text-[#B0B3B8] text-[13px]">
-                <div className="flex items-center gap-1">
-                    {reactionCount > 0 && <i className="fas fa-thumbs-up text-[#1877F2]"></i>}
-                    <span className="font-bold">{reactionCount > 0 ? reactionCount : ''}</span>
-                </div>
-                <div className="flex gap-3">
-                    <span className="font-bold">{commentCount} comments</span>
-                    <span className="font-bold">{shareCount} shares</span>
-                </div>
+                <div className="flex items-center gap-1">{reactionCount > 0 && <i className="fas fa-thumbs-up text-[#1877F2]"></i>}<span className="font-bold">{reactionCount > 0 ? reactionCount : ''}</span></div>
+                <div className="flex gap-3"><span className="font-bold">{commentCount} comments</span><span className="font-bold">{shareCount} shares</span></div>
             </div>
 
             <div className="border-t border-[#3E4042] mx-3"></div>
 
-            {/* Action Buttons */}
             <div className="px-1 py-1 flex items-center justify-between">
                 <ReactionButton currentUserReactions={myReaction} reactionCount={reactionCount} onReact={(type) => onReact(post.id, type)} isGuest={!currentUser} />
-                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-black text-[15px]" onClick={() => onOpenComments(post.id)}>
-                    <i className="far fa-comment-alt text-[18px]"></i> Comment
-                </button>
-                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-black text-[15px]" onClick={() => onShare(post.id)}>
-                    <i className="fas fa-share text-[18px]"></i> Share
-                </button>
+                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-black text-[15px]" onClick={() => onOpenComments(post.id)}><i className="far fa-comment-alt text-[18px]"></i> Comment</button>
+                <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#3A3B3C] transition-colors text-[#B0B3B8] font-black text-[15px]" onClick={() => onShare(post.id)}><i className="fas fa-share text-[18px]"></i> Share</button>
             </div>
-        </div>
-    );
-};
-
-// ADDED: Feed container component with API fetching
-export const FeedContainer: React.FC<{
-    currentUser: User | null;
-    apiConfig?: {
-        baseUrl: string;
-        getAuthToken?: () => string | null;
-    };
-    onPostCreated?: (post: any) => void;
-}> = ({ currentUser, apiConfig, onPostCreated }) => {
-    const [posts, setPosts] = useState<PostType[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    
-    const API_BASE_URL = apiConfig?.baseUrl || 'https://unera-2.pages.dev';
-    
-    // Fetch posts from API
-    const fetchPosts = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            
-            const headers: Record<string, string> = {};
-            const authToken = apiConfig?.getAuthToken?.();
-            if (authToken) {
-                headers['Authorization'] = `Bearer ${authToken}`;
-            }
-            
-            const response = await fetch(`${API_BASE_URL}/posts`, { headers });
-            
-            if (!response.ok) {
-                throw new Error(`Failed to fetch posts: ${response.status}`);
-            }
-            
-            const postsData = await response.json();
-            // Transform API data to match your PostType structure if needed
-            const transformedPosts = postsData.map((post: any) => ({
-                id: post.id,
-                content: post.content,
-                authorId: post.user_id,
-                timestamp: new Date(post.created_at).toLocaleString(),
-                type: post.media_type || 'text',
-                image: post.media_url,
-                reactions: [], // You might need to fetch reactions separately
-                comments: [], // You might need to fetch comments separately
-                shares: post.shares || 0,
-                visibility: post.visibility,
-                // Add other fields as needed
-            }));
-            
-            setPosts(transformedPosts);
-        } catch (err) {
-            console.error('Error fetching posts:', err);
-            setError(err instanceof Error ? err.message : 'Failed to load posts');
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    useEffect(() => {
-        fetchPosts();
-    }, []);
-    
-    const handlePostCreated = (newPost: any) => {
-        // Add the new post to the beginning of the list
-        setPosts(prev => [newPost, ...prev]);
-        if (onPostCreated) {
-            onPostCreated(newPost);
-        }
-        // Refresh the feed
-        fetchPosts();
-    };
-    
-    const handleProfileClick = (userId: number) => {
-        // Navigate to profile
-        console.log('Navigate to profile:', userId);
-    };
-    
-    const handleReact = (postId: number, type: ReactionType) => {
-        // Implement reaction API call here
-        console.log('React to post:', postId, type);
-    };
-    
-    const handleShare = (postId: number) => {
-        // Implement share logic
-        console.log('Share post:', postId);
-    };
-    
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <i className="fas fa-spinner fa-spin text-3xl text-[#1877F2]"></i>
-                <span className="ml-3 text-[#E4E6EB]">Loading posts...</span>
-            </div>
-        );
-    }
-    
-    if (error) {
-        return (
-            <div className="text-center p-8">
-                <i className="fas fa-exclamation-triangle text-3xl text-yellow-500 mb-3"></i>
-                <p className="text-[#E4E6EB] mb-4">{error}</p>
-                <button 
-                    onClick={fetchPosts}
-                    className="bg-[#1877F2] text-white px-4 py-2 rounded-lg hover:bg-[#166FE5]"
-                >
-                    Retry
-                </button>
-            </div>
-        );
-    }
-    
-    return (
-        <div className="max-w-2xl mx-auto px-4">
-            {/* Create Post Button */}
-            {currentUser && (
-                <CreatePost 
-                    currentUser={currentUser}
-                    onProfileClick={handleProfileClick}
-                    onClick={() => setShowCreateModal(true)}
-                />
-            )}
-            
-            {/* Posts List */}
-            {posts.length === 0 ? (
-                <div className="text-center p-8 bg-[#242526] rounded-xl border border-[#3E4042]">
-                    <i className="far fa-newspaper text-4xl text-[#B0B3B8] mb-3"></i>
-                    <p className="text-[#E4E6EB]">No posts yet. Be the first to post!</p>
-                </div>
-            ) : (
-                posts.map((post) => {
-                    // Find author from your users data (you might need to fetch this separately)
-                    const author = { 
-                        id: post.authorId, 
-                        name: `User ${post.authorId}`, 
-                        profileImage: 'https://ui-avatars.com/api/?name=User&background=random',
-                        isVerified: false 
-                    };
-                    
-                    return (
-                        <Post
-                            key={post.id}
-                            post={post}
-                            author={author}
-                            currentUser={currentUser}
-                            users={[]} // Pass your users array here
-                            onProfileClick={handleProfileClick}
-                            onReact={handleReact}
-                            onShare={handleShare}
-                            onViewImage={(url) => console.log('View image:', url)}
-                            onOpenComments={(postId) => console.log('Open comments:', postId)}
-                            onVideoClick={(post) => console.log('Play video:', post.id)}
-                        />
-                    );
-                })
-            )}
-            
-            {/* Create Post Modal */}
-            {showCreateModal && currentUser && (
-                <CreatePostModal
-                    currentUser={currentUser}
-                    users={[]} // Pass your users array here
-                    onClose={() => setShowCreateModal(false)}
-                    onCreatePost={handlePostCreated}
-                    apiConfig={apiConfig}
-                />
-            )}
         </div>
     );
 };

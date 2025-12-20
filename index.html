@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -66,6 +67,14 @@
         .animate-slide-down {
             animation: slideDown 0.3s cubic-bezier(0.1, 0.7, 0.1, 1) forwards;
         }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .animate-blink {
+            animation: blink 1.2s infinite;
+        }
         
         /* Dark Mode Input Autofill fix */
         input:-webkit-autofill,
@@ -83,7 +92,8 @@
     "react": "https://aistudiocdn.com/react@^19.2.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://esm.sh/vite@^7.2.7"
+    "vite": "https://esm.sh/vite@^7.2.7",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
   }
 }
 </script>

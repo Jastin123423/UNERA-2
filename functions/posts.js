@@ -1,122 +1,69 @@
+
 export async function onRequest({ request, env }) {
 
-  const SYSTEM_USER_ID = 1; // Default author for unauthenticated posts
-  const url = new URL(request.url);
-
-  /* ================= GET POSTS ================= */
+  // ===== GET POSTS =====
   if (request.method === "GET") {
     try {
-      const userId = url.searchParams.get("user_id");
-
-      let query = `
-        SELECT
-          id,
-          user_id,
-          content,
-          media_url,
-          media_type,
-          visibility,
-          is_repost,
-          original_post_id,
-          shares,
-          created_at
-        FROM posts
-      `;
-
-      const params = [];
-
-      // Profile feed support
-      if (userId) {
-        query += " WHERE user_id = ?";
-        params.push(userId);
-      }
-
-      query += " ORDER BY datetime(created_at) DESC LIMIT 50";
-
-      const { results } = await env.DB
-        .prepare(query)
-        .bind(...params)
-        .all();
+      const { results } = await env.DB.prepare(
+        "SELECT * FROM posts ORDER BY created_at DESC LIMIT 50"
+      ).all();
 
       return new Response(JSON.stringify(results), {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store"
-        }
+        headers: { "Content-Type": "application/json" }
       });
-
-    } catch (err) {
-      return new Response(
-        JSON.stringify({ error: err.message }),
-        { status: 500 }
-      );
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }), { status: 500 });
     }
   }
 
-  /* ================= CREATE POST ================= */
+  // ===== CREATE POST =====
   if (request.method === "POST") {
     try {
-      const {
-        user_id,
-        content,
-        media_url,
-        media_type,
-        visibility
-      } = await request.json();
+      const data = await request.json();
 
-      // Reject blob URLs (frontend must upload to R2 first)
-      if (media_url && media_url.startsWith("blob:")) {
-        return new Response(
-          JSON.stringify({ error: "Invalid media_url. Upload media first." }),
-          { status: 400 }
-        );
-      }
-
-      const finalUserId = Number(user_id) || SYSTEM_USER_ID;
-
-      const insert = await env.DB.prepare(`
-        INSERT INTO posts
-          (user_id, content, media_url, media_type, visibility)
-        VALUES (?, ?, ?, ?, ?)
-      `).bind(
-        finalUserId,
-        content || null,
-        media_url || null,
-        media_type || null,
-        visibility || "public"
+      const result = await env.DB.prepare(
+        "INSERT INTO posts (user_id, content, media_url) VALUES (?, ?, ?)"
+      ).bind(
+        data.user_id,
+        data.content,
+        data.media_url || null
       ).run();
 
-      // Fetch the actual row stored in DB
-      const { results } = await env.DB.prepare(`
-        SELECT
-          id,
-          user_id,
-          content,
-          media_url,
-          media_type,
-          visibility,
-          is_repost,
-          original_post_id,
-          shares,
-          created_at
-        FROM posts
-        WHERE id = ?
-      `).bind(insert.meta.last_row_id).all();
+      if (result.meta.changes === 0) {
+        throw new Error("Post insert failed");
+      }
+
+      const newPost = {
+        id: result.meta.last_row_id,
+        user_id: data.user_id,
+        content: data.content,
+        media_url: data.media_url || null,
+        created_at: new Date().toISOString(),
+        reactions: [],
+        comments: [],
+        shares: 0
+      };
+
+      // ===== BROADCAST REAL-TIME UPDATE =====
+      // const doId = env.LIVE_FEED_DO.idFromName("global");
+      // const stub = env.LIVE_FEED_DO.get(doId);
+
+      // await stub.fetch("https://dummy.url/broadcast", {
+      //   method: "POST",
+      //   body: JSON.stringify({ type: "new_post", data: newPost })
+      // });
 
       return new Response(JSON.stringify({
         success: true,
-        post: results[0]
+        post: newPost
       }), {
         headers: { "Content-Type": "application/json" }
       });
 
-    } catch (err) {
-      return new Response(
-        JSON.stringify({ error: err.message }),
-        { status: 500 }
-      );
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }), { status: 500 });
     }
   }
 
-  return new Response("Method Not Allowed", { status: 405 });
+  return new Response("Method not allowed", { status: 405 });
 }

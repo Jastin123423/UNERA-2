@@ -1,50 +1,32 @@
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method Not Allowed" }),
-      { status: 405, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response("Method Not Allowed", { status: 405 });
   }
 
   try {
-    const { music_id, user_id } = await request.json();
+    const { music_id, user_id, emoji } = await request.json();
 
-    if (!music_id || !user_id) {
-      return new Response(
-        JSON.stringify({ error: "Missing fields: music_id and user_id are required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+    if (!music_id || !user_id || !emoji) {
+      return new Response("Missing fields", { status: 400 });
     }
 
-    // Toggle like
-    const { results } = await env.DB.prepare(`
-      SELECT * FROM music_reactions WHERE music_id = ? AND user_id = ?
-    `).bind(music_id, user_id).all();
+    // Insert or update reaction
+    // Requires a UNIQUE constraint on (music_id, user_id) in the music_reactions table
+    await env.DB.prepare(`
+      INSERT INTO music_reactions (music_id, user_id, emoji)
+      VALUES (?, ?, ?)
+      ON CONFLICT(music_id, user_id)
+      DO UPDATE SET emoji = excluded.emoji
+    `).bind(music_id, user_id, emoji).run();
 
-    if (results.length > 0) {
-      await env.DB.prepare(`
-        DELETE FROM music_reactions WHERE music_id = ? AND user_id = ?
-      `).bind(music_id, user_id).run();
-
-      return new Response(
-        JSON.stringify({ success: true, liked: false }),
-        { headers: { "Content-Type": "application/json" } }
-      );
-    } else {
-      await env.DB.prepare(`
-        INSERT INTO music_reactions (music_id, user_id, emoji)
-        VALUES (?, ?, '❤️')
-      `).bind(music_id, user_id).run();
-
-      return new Response(
-        JSON.stringify({ success: true, liked: true, emoji: "❤️" }),
-        { headers: { "Content-Type": "application/json" } }
-      );
-    }
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Database error", details: err.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ 
+      success: true,
+      reacted: true, 
+      emoji 
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }
 }
