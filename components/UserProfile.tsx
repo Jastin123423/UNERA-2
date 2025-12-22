@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Post as PostType, ReactionType, Reel, AudioTrack, Song, Episode, Group, Brand, LinkPreview } from '../types';
+import { User, Post as PostType, ReactionType, Reel, AudioTrack, Song, Episode, Group, Brand, LinkPreview, Product } from '../types';
 import { CreatePost, Post, CreatePostModal } from './Feed';
 
 // --- EDIT PROFILE MODAL ---
@@ -97,9 +97,19 @@ interface UserProfileProps {
     onDeleteUser?: (id: number) => void;
     onMakeModerator?: (id: number) => void;
     onPlayAudio?: (track: AudioTrack) => void; 
+    /* Fix: Added missing onViewProduct property to interface */
+    onViewProduct?: (product: Product) => void;
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, users, groups = [], brands = [], posts, reels = [], songs = [], episodes = [], onProfileClick, onFollow, onReact, onComment, onShare, onMessage, onCreatePost, onUpdateProfileImage, onUpdateCoverImage, onUpdateUserDetails, onDeletePost, onEditPost, getCommentAuthor, onViewImage, onCreateEventClick, onCreateStoryClick, onOpenComments, onVideoClick, onVerifyUser, onRestrictUser, onDeleteUser, onMakeModerator, onPlayAudio }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ 
+    user, currentUser, users, groups = [], brands = [], posts, reels = [], songs = [], episodes = [], 
+    onProfileClick, onFollow, onReact, onComment, onShare, onMessage, onCreatePost, 
+    onUpdateProfileImage, onUpdateCoverImage, onUpdateUserDetails, onDeletePost, onEditPost, 
+    getCommentAuthor, onViewImage, onCreateEventClick, onCreateStoryClick, onOpenComments, 
+    onVideoClick, onVerifyUser, onRestrictUser, onDeleteUser, onMakeModerator, onPlayAudio, 
+    /* Fix: Destructured onViewProduct */
+    onViewProduct 
+}) => {
     const [activeTab, setActiveTab] = useState('Posts');
     const [showCreatePostModal, setShowCreatePostModal] = useState(false);
     const [showEditProfile, setShowEditProfile] = useState(false);
@@ -121,9 +131,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
     const totalViews = userPosts.reduce((acc, curr) => acc + (curr.views || 0), 0);
     const totalLikes = userPosts.reduce((acc, curr) => acc + curr.reactions.length, 0) + userReels.reduce((acc, curr) => acc + curr.reactions.length, 0);
     const totalEngagement = totalLikes + userPosts.reduce((acc, curr) => acc + curr.comments.length, 0);
-
-    const suggestedGroups = isCurrentUser ? groups.filter(g => !g.members.includes(currentUser!.id)).slice(0, 3) : [];
-    const suggestedBrands = isCurrentUser ? brands.filter(b => !b.followers.includes(currentUser!.id)).slice(0, 3) : [];
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'profile') => {
         if (e.target.files && e.target.files[0]) {
@@ -223,7 +230,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, currentUser, use
                         )}
                         {isCurrentUser && <CreatePost currentUser={currentUser} onProfileClick={onProfileClick} onClick={() => setShowCreatePostModal(true)} onCreateEventClick={onCreateEventClick} />}
                         {userPosts.map(post => (
-                            <Post key={post.id} post={post} author={user} currentUser={currentUser} users={users} onProfileClick={onProfileClick} onReact={onReact} onShare={onShare} onDelete={onDeletePost} onEdit={onEditPost} onViewImage={onViewImage} onOpenComments={onOpenComments} onVideoClick={onVideoClick} onPlayAudio={onPlayAudio} />
+                            /* Fix: Passed onViewProduct to Post component */
+                            <Post key={post.id} post={post} author={user} currentUser={currentUser} users={users} onProfileClick={onProfileClick} onReact={onReact} onShare={onShare} onDelete={onDeletePost} onEdit={onEditPost} onViewImage={onViewImage} onOpenComments={onOpenComments} onVideoClick={onVideoClick} onPlayAudio={onPlayAudio} onViewProduct={onViewProduct} />
                         ))}
                     </div>
                 </div>

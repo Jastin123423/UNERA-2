@@ -1,3 +1,4 @@
+
 export interface User {
     id: number;
     name: string;
@@ -155,6 +156,9 @@ export interface Story {
     };
     user?: User;
     createdAt: number;
+    /* Fix: Added missing reactions and replies properties to Story interface */
+    reactions?: Reaction[];
+    replies?: Comment[];
 }
 
 export interface Reel {

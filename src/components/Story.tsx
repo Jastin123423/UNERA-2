@@ -171,7 +171,11 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 };
 
 export const StoryReel: React.FC<{ stories: Story[], onProfileClick: (id: number) => void, onCreateStory?: () => void, onViewStory: (story: Story) => void, currentUser: User | null, onRequestLogin: () => void }> = ({ stories, onProfileClick, onCreateStory, onViewStory, currentUser, onRequestLogin }) => {
-    const uniqueUserStories: Story[] = Array.from(new Map<number, Story>(stories.map(s => [s.userId, s])).values());
+    // Show only the latest story from each user in the reel. 
+    // Since handleCreateStory prepends to the array, the first one encountered is the newest.
+    const uniqueUserStories = stories.filter((story, index, self) => 
+        index === self.findIndex((t) => t.userId === story.userId)
+    );
 
     return (
         <div className="w-full flex gap-2.5 mb-6 overflow-x-auto pb-2 scrollbar-hide">
@@ -224,7 +228,6 @@ export const CreateStoryModal: React.FC<{ currentUser: User, onClose: () => void
     const [mode, setMode] = useState<'text' | 'image'>('image');
     const [text, setText] = useState('');
     const [background, setBackground] = useState(STORY_COLORS[0]);
-    const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [selectedMusic, setSelectedMusic] = useState<{url: string, title: string, artist: string, cover?: string} | null>(null);
     const [showMusicPicker, setShowMusicPicker] = useState(false);
@@ -250,8 +253,14 @@ export const CreateStoryModal: React.FC<{ currentUser: User, onClose: () => void
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
-            setImageFile(e.target.files[0]);
-            setImagePreview(URL.createObjectURL(e.target.files[0]));
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result) {
+                    setImagePreview(event.target.result as string);
+                }
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -289,7 +298,7 @@ export const CreateStoryModal: React.FC<{ currentUser: User, onClose: () => void
                         {imagePreview ? (
                             <div className="relative w-full h-full">
                                 <img src={imagePreview} className="w-full h-full object-contain" alt="" />
-                                <button onClick={(e) => { e.stopPropagation(); setImagePreview(null); setImageFile(null); }} className="absolute top-4 left-4 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white"><i className="fas fa-trash-alt"></i></button>
+                                <button onClick={(e) => { e.stopPropagation(); setImagePreview(null); }} className="absolute top-4 left-4 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white"><i className="fas fa-trash-alt"></i></button>
                             </div>
                         ) : (
                             <div className="text-center cursor-pointer group">

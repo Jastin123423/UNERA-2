@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Story, User, Song, Reaction } from '../types';
+import { Story, User, Song } from '../types';
 import { MOCK_SONGS, INITIAL_USERS } from '../constants';
 
 interface StoryViewerProps {

@@ -527,7 +527,7 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                     <textarea 
                         ref={textareaRef}
                         autoFocus
-                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none ${background ? 'text-center font-black text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
+                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none ${background ? 'text-center font-bold text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
                         placeholder="What’s new You need To Post?"
                         value={text}
                         onChange={handleTextChange}
@@ -586,6 +586,7 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     );
 };
 
+// Fix: Add missing PostProps interface definition
 interface PostProps {
     post: PostType;
     author: User;
@@ -710,19 +711,6 @@ export const Post: React.FC<PostProps> = ({
                              <button onClick={() => onJoinEvent?.(post.event!.id)} className="bg-[#1877F2] text-white px-6 py-1.5 rounded-lg font-bold">Interested</button>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {post.wantsMessages && (
-                <div className="p-3 border-y border-[#3E4042] bg-[#242526] flex items-center justify-between mx-3 rounded-lg mb-2">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#1877F2] rounded-full flex items-center justify-center shadow-lg"><i className="fab fa-facebook-messenger text-white text-xl"></i></div>
-                        <div>
-                            <div className="text-[#E4E6EB] font-bold text-[15px]">Send Message</div>
-                            <div className="text-[#B0B3B8] text-[12px]">Chat directly with {author.name}</div>
-                        </div>
-                    </div>
-                    <button onClick={() => onMessage && onMessage(post.authorId)} className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-5 py-2 rounded-lg font-black text-sm transition-all shadow-md active:scale-95">Message</button>
                 </div>
             )}
 
