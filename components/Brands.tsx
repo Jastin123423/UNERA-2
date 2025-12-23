@@ -1,15 +1,10 @@
-
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { User, Brand, Post as PostType, Event, LinkPreview } from '../types';
-// @FIX: Renamed CreatePostModal to PostEditorModal to match the actual exported component from './Feed'.
-import { Post, PostEditorModal, CreatePost } from './Feed';
+import { Post, PostEditorModal } from './Feed';
 import { BRAND_CATEGORIES, LOCATIONS_DATA } from '../constants';
 import { CreateEventModal } from './Events';
 
 // --- CREATE BRAND MODAL ---
-/**
- * Fix: Exported CreateBrandModal to resolve the local declaration error in App.tsx.
- */
 interface CreateBrandModalProps {
     currentUser: User;
     onClose: () => void;
@@ -172,7 +167,19 @@ interface BrandsPageProps {
     onCreateBrand: (brand: Partial<Brand>) => void;
     onFollowBrand: (brandId: number) => void;
     onProfileClick: (id: number) => void;
-    onPostAsBrand: (brandId: number, content: any) => void;
+    onPostAsBrand: (
+        brandId: number, 
+        text: string, 
+        file: File | null, 
+        type: string, 
+        visibility: string, 
+        location?: string, 
+        feeling?: string, 
+        taggedUsers?: number[], 
+        background?: string, 
+        linkPreview?: LinkPreview, 
+        wantsMessages?: boolean
+    ) => void;
     onReact: (postId: number, type: any) => void;
     onShare: (postId: number) => void;
     onOpenComments: (postId: number) => void;
@@ -221,7 +228,7 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
 
     const brandPosts = useMemo(() => {
         if (!activeBrand) return [];
-        return posts.filter(p => p.authorId === activeBrand.id).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
+        return posts.filter(p => p.authorId === activeBrand.id || p.brandId === activeBrand.id).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
     }, [posts, activeBrand]);
 
     const handleBrandClick = (brandId: number) => {
@@ -231,9 +238,38 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
         window.scrollTo(0, 0);
     };
 
-    const handleCreatePost = (text: string, file: File | null, type: any, visibility: any, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview) => {
+    // FIXED: HandleCreatePost now passes parameters correctly
+    const handleCreatePost = (
+        text: string, 
+        file: File | null, 
+        type: string, 
+        visibility: string, 
+        location?: string, 
+        feeling?: string, 
+        taggedUsers?: number[], 
+        background?: string, 
+        linkPreview?: LinkPreview, 
+        wantsMessages?: boolean
+    ) => {
         if (!activeBrand) return;
-        onPostAsBrand(activeBrand.id, { text, file, type, visibility, location, feeling, taggedUsers, background, linkPreview });
+        
+        console.log('Creating post for brand:', activeBrand.name, 'with content:', text);
+        
+        // Pass individual parameters to onPostAsBrand
+        onPostAsBrand(
+            activeBrand.id, 
+            text, 
+            file, 
+            type, 
+            visibility, 
+            location, 
+            feeling, 
+            taggedUsers, 
+            background, 
+            linkPreview, 
+            wantsMessages
+        );
+        
         setShowCreatePostModal(false);
     };
 
@@ -463,32 +499,50 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
                                     </div>
 
                                     {showCreatePostModal && (
-                                        // @FIX: Renamed CreatePostModal to PostEditorModal to fix component not found error.
                                         <PostEditorModal 
                                             currentUser={{...currentUser, name: activeBrand.name, profileImage: activeBrand.profileImage} as User} 
                                             users={users} 
                                             onClose={() => setShowCreatePostModal(false)}
                                             onCreatePost={handleCreatePost}
+                                            onUpdatePost={() => {}}
+                                            onCreateEventClick={() => {
+                                                setShowCreatePostModal(false);
+                                                setShowCreateEventModal(true);
+                                            }}
                                         />
                                     )}
                                 </>
                             )}
                             <div className="space-y-4">
-                                {brandPosts.length > 0 ? brandPosts.map(post => (
-                                    <Post 
-                                        key={post.id}
-                                        post={post}
-                                        author={activeBrand as any} 
-                                        currentUser={currentUser}
-                                        users={users} 
-                                        onProfileClick={onProfileClick}
-                                        onReact={onReact}
-                                        onShare={onShare}
-                                        onOpenComments={onOpenComments}
-                                        onVideoClick={() => {}}
-                                        onViewImage={() => {}}
-                                    />
-                                )) : (
+                                {brandPosts.length > 0 ? brandPosts.map(post => {
+                                    // Find author for the post (should be the active brand)
+                                    const author = activeBrand;
+                                    
+                                    return (
+                                        <Post 
+                                            key={post.id}
+                                            post={post}
+                                            author={author as any} 
+                                            currentUser={currentUser}
+                                            users={users} 
+                                            onProfileClick={onProfileClick}
+                                            onReact={onReact}
+                                            onShare={onShare}
+                                            onOpenComments={onOpenComments}
+                                            onVideoClick={() => {}}
+                                            onViewImage={() => {}}
+                                            onDelete={() => {}}
+                                            onEdit={() => {}}
+                                            onFollow={onFollowBrand}
+                                            isFollowing={currentUser ? activeBrand.followers.includes(currentUser.id) : false}
+                                            onPlayAudio={() => {}}
+                                            onViewProduct={() => {}}
+                                            onMessage={() => {}}
+                                            onJoinEvent={() => {}}
+                                            onGroupClick={() => {}}
+                                        />
+                                    );
+                                }) : (
                                     <div className="bg-[#242526] rounded-xl p-8 text-center border border-[#3E4042] mx-4 md:mx-0">
                                         <p className="text-[#B0B3B8]">No posts yet.</p>
                                     </div>
