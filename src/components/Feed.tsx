@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Post as PostType, ReactionType, Comment, Product, LinkPreview, AudioTrack, Group, Brand } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -586,7 +587,6 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     );
 };
 
-// Fix: Add missing PostProps interface definition
 interface PostProps {
     post: PostType;
     author: User;
@@ -629,6 +629,7 @@ export const Post: React.FC<PostProps> = ({
 
     const isProduct = post.type === 'product' && post.product;
     const isEvent = post.type === 'event' && post.event;
+    const isAudio = post.type === 'audio' && post.audioTrack;
 
     return (
         <div className="bg-[#242526] rounded-xl border border-[#3E4042] mb-4 shadow-sm animate-fade-in font-sans overflow-hidden">
@@ -641,6 +642,12 @@ export const Post: React.FC<PostProps> = ({
                         <div className="flex flex-wrap items-center gap-1">
                             <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer leading-tight" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             {author.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
+                            {post.groupName && (
+                                <>
+                                    <i className="fas fa-caret-right text-[#B0B3B8] text-xs mx-0.5"></i>
+                                    <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer leading-tight" onClick={() => onGroupClick?.(post.groupId!)}>{post.groupName}</span>
+                                </>
+                            )}
                         </div>
                         <div className="flex items-center gap-1 text-[#B0B3B8] text-[12px]">
                             <span>{post.timestamp}</span>
@@ -659,7 +666,7 @@ export const Post: React.FC<PostProps> = ({
                 </div>
             </div>
 
-            <div className="px-3 pb-2 text-[#E4E6EB] text-[20px] leading-relaxed">
+            <div className="px-3 pb-2 text-[#E4E6EB] text-[18px] leading-relaxed">
                 {isEditing ? (
                     <div className="mb-2">
                         <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded p-2 text-[#E4E6EB]" value={editContent} onChange={e => setEditContent(e.target.value)} />
@@ -674,6 +681,39 @@ export const Post: React.FC<PostProps> = ({
                     </div>
                 )}
             </div>
+
+            {isAudio && (
+                <div className="mx-3 mb-3 bg-gradient-to-br from-[#2D88FF]/20 to-black rounded-2xl border border-[#3E4042] overflow-hidden group shadow-2xl relative">
+                    <div className="absolute inset-0 opacity-30 blur-2xl -z-1" style={{ backgroundImage: `url(${post.audioTrack!.cover})`, backgroundSize: 'cover' }}></div>
+                    <div className="flex flex-col md:flex-row p-6 items-center gap-6 relative z-10">
+                        <div className="w-48 h-48 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 relative group">
+                            <img src={post.audioTrack!.cover} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt="" />
+                            <button 
+                                onClick={() => onPlayAudio?.(post.audioTrack!)}
+                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <div className="w-16 h-16 bg-[#1877F2] rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                                    <i className="fas fa-play text-white text-2xl ml-1"></i>
+                                </div>
+                            </button>
+                        </div>
+                        <div className="flex-1 text-center md:text-left overflow-hidden">
+                            <span className="bg-[#1877F2] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block">New {post.audioTrack!.type === 'podcast' ? 'Podcast' : 'Release'}</span>
+                            <h2 className="text-white font-black text-2xl md:text-3xl mb-1 truncate leading-tight">{post.audioTrack!.title}</h2>
+                            <p className="text-[#B0B3B8] font-bold text-lg mb-4 flex items-center justify-center md:justify-start gap-2">
+                                {post.audioTrack!.artist}
+                                {post.audioTrack!.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-sm"></i>}
+                            </p>
+                            <button 
+                                onClick={() => onPlayAudio?.(post.audioTrack!)}
+                                className="bg-white text-black px-8 py-3 rounded-full font-black text-sm flex items-center gap-2 mx-auto md:mx-0 hover:bg-[#E4E6EB] transition-all active:scale-95 shadow-xl"
+                            >
+                                <i className="fas fa-play"></i> Listen Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isProduct && (
                 <div className="mx-3 mb-3 bg-[#18191A] rounded-xl border border-[#3E4042] overflow-hidden cursor-pointer" onClick={() => onViewProduct?.(post.product!)}>
@@ -714,7 +754,7 @@ export const Post: React.FC<PostProps> = ({
                 </div>
             )}
 
-            {!isProduct && !isEvent && post.image && (
+            {!isProduct && !isEvent && !isAudio && post.image && (
                 <div className="cursor-pointer bg-black w-full" onClick={() => onViewImage(post.image!)}>
                     <img src={post.image} alt="" className="w-full max-h-[600px] object-contain mx-auto" />
                 </div>

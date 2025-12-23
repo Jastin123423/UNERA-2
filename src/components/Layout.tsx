@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Notification, Group, Brand } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -185,22 +186,18 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onR
 
         const lowerQuery = query.toLowerCase();
         
-        // Search Users
         const userResults: SearchResult[] = users
             .filter(u => (!currentUser || u.id !== currentUser.id) && u.name.toLowerCase().includes(lowerQuery))
             .map(u => ({ id: u.id, name: u.name, image: u.profileImage, type: 'user', subtext: u.work || 'User' }));
 
-        // Search Groups
         const groupResults: SearchResult[] = groups
             .filter(g => g.name.toLowerCase().includes(lowerQuery))
             .map(g => ({ id: g.id, name: g.name, image: g.image, type: 'group', subtext: `${g.members.length} members` }));
 
-        // Search Brands
         const brandResults: SearchResult[] = brands
             .filter(b => b.name.toLowerCase().includes(lowerQuery))
             .map(b => ({ id: b.id, name: b.name, image: b.profileImage, type: 'brand', subtext: b.category }));
 
-        // Combine and limit
         setSearchResults([...userResults, ...brandResults, ...groupResults].slice(0, 8));
         setShowSearchDropdown(true);
     };
@@ -343,10 +340,11 @@ interface SidebarProps {
     onReelsClick: () => void;
     onMarketplaceClick: () => void;
     onGroupsClick: () => void;
+    onEventsClick: () => void;
     currentUser: User;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onProfileClick, onReelsClick, onMarketplaceClick, onGroupsClick, currentUser }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onProfileClick, onReelsClick, onMarketplaceClick, onGroupsClick, onEventsClick, currentUser }) => {
     const { t } = useLanguage();
     const SidebarRow = ({ Icon, src, title, color, onClick }: { Icon?: string, src?: string, title: string, color?: string, onClick?: () => void }) => (
         <div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors -ml-2" onClick={onClick}>
@@ -365,7 +363,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onProfileClick, onReelsClick, 
             <SidebarRow Icon="fas fa-clapperboard" title={t('reels')} color="#F3425F" onClick={onReelsClick} />
             <SidebarRow Icon="fas fa-store" title={t('marketplace')} color="#1877F2" onClick={onMarketplaceClick} />
             <SidebarRow Icon="fas fa-rss" title={t('feeds')} color="#1877F2" />
-            <SidebarRow Icon="fas fa-calendar-alt" title={t('events')} color="#F3425F" />
+            <SidebarRow Icon="fas fa-calendar-alt" title={t('events')} color="#F3425F" onClick={onEventsClick} />
             <div className="border-b border-[#3E4042] my-2"></div>
             <div className="flex items-center gap-2 p-2 cursor-pointer hover:bg-[#3A3B3C] rounded-lg -ml-2"><div className="w-8 h-8 bg-[#3A3B3C] rounded-full flex items-center justify-center"><i className="fas fa-chevron-down text-[#E4E6EB]"></i></div><span className="font-medium text-[15px] text-[#E4E6EB]">{t('see_more')}</span></div>
         </div>

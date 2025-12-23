@@ -19,6 +19,63 @@ const BACKGROUNDS = [
 
 const FEELINGS = ['Happy', 'Blessed', 'Loved', 'Sad', 'Excited', 'Thankful', 'Crazy', 'Tired', 'Cool', 'Relaxed'];
 
+/**
+ * Fix: Extracted and exported CreateGroupModal to resolve "no exported member" error in App.tsx.
+ */
+interface CreateGroupModalProps {
+    onClose: () => void;
+    onCreate: (group: Partial<Group>) => void;
+}
+
+export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onCreate }) => {
+    const [newGroupName, setNewGroupName] = useState('');
+    const [newGroupDesc, setNewGroupDesc] = useState('');
+    const [newGroupType, setNewGroupType] = useState<'public' | 'private'>('public');
+
+    const handleCreateSubmit = () => {
+        if (!newGroupName.trim()) return;
+        onCreate({
+            name: newGroupName,
+            description: newGroupDesc,
+            type: newGroupType,
+            image: `https://ui-avatars.com/api/?name=${newGroupName}&background=random`,
+            coverImage: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
+        });
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-[#242526] w-full max-w-[500px] rounded-xl border border-[#3E4042] shadow-2xl overflow-hidden animate-slide-up">
+                <div className="p-4 border-b border-[#3E4042] flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-[#E4E6EB]">Create Group</h3>
+                    <div onClick={onClose} className="w-8 h-8 rounded-full bg-[#3A3B3C] flex items-center justify-center cursor-pointer hover:bg-[#4E4F50]">
+                        <i className="fas fa-times text-[#B0B3B8]"></i>
+                    </div>
+                </div>
+                <div className="p-4 space-y-4">
+                    <div>
+                        <label className="block text-[#B0B3B8] text-sm font-bold mb-1">Name</label>
+                        <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2 text-[#E4E6EB] outline-none focus:border-[#1877F2]" placeholder="Name your group" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
+                    </div>
+                    <div>
+                        <label className="block text-[#B0B3B8] text-sm font-bold mb-1">Description</label>
+                        <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2 text-[#E4E6EB] outline-none focus:border-[#1877F2] resize-none h-24" placeholder="What is this group about?" value={newGroupDesc} onChange={e => setNewGroupDesc(e.target.value)} />
+                    </div>
+                    <div>
+                        <label className="block text-[#B0B3B8] text-sm font-bold mb-1">Privacy</label>
+                        <select className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={newGroupType} onChange={(e) => setNewGroupType(e.target.value as any)}>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                        </select>
+                    </div>
+                    <button onClick={handleCreateSubmit} disabled={!newGroupName.trim()} className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">Create</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- GROUP SETTINGS MODAL ---
 interface GroupSettingsModalProps {
     group: Group;
@@ -126,11 +183,6 @@ export const GroupsPage: React.FC<GroupsPageProps> = ({
     const postFileInputRef = useRef<HTMLInputElement>(null);
     const docInputRef = useRef<HTMLInputElement>(null);
 
-    // Form states
-    const [newGroupName, setNewGroupName] = useState('');
-    const [newGroupDesc, setNewGroupDesc] = useState('');
-    const [newGroupType, setNewGroupType] = useState<'public' | 'private'>('public');
-    
     // Detailed Post State
     const [postContent, setPostContent] = useState('');
     const [postFile, setPostFile] = useState<File | null>(null);
@@ -169,20 +221,6 @@ export const GroupsPage: React.FC<GroupsPageProps> = ({
         setView('detail');
         setGroupTab('Discussion');
         window.scrollTo(0, 0);
-    };
-
-    const handleCreateSubmit = () => {
-        if (!newGroupName.trim()) return;
-        onCreateGroup({
-            name: newGroupName,
-            description: newGroupDesc,
-            type: newGroupType,
-            image: `https://ui-avatars.com/api/?name=${newGroupName}&background=random`,
-            coverImage: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
-        });
-        setShowCreateModal(false);
-        setNewGroupName('');
-        setNewGroupDesc('');
     };
 
     const handlePostSubmit = () => {
@@ -313,32 +351,10 @@ export const GroupsPage: React.FC<GroupsPageProps> = ({
 
                 {/* Create Modal */}
                 {showCreateModal && (
-                    <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4">
-                        <div className="bg-[#242526] w-full max-w-[500px] rounded-xl border border-[#3E4042] shadow-2xl overflow-hidden">
-                            <div className="p-4 border-b border-[#3E4042] flex justify-between items-center">
-                                <h3 className="text-xl font-bold text-[#E4E6EB]">Create Group</h3>
-                                <div onClick={() => setShowCreateModal(false)} className="w-8 h-8 rounded-full bg-[#3A3B3C] flex items-center justify-center cursor-pointer hover:bg-[#4E4F50]"><i className="fas fa-times text-[#B0B3B8]"></i></div>
-                            </div>
-                            <div className="p-4 space-y-4">
-                                <div>
-                                    <label className="block text-[#B0B3B8] text-sm font-bold mb-1">Name</label>
-                                    <input type="text" className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2 text-[#E4E6EB] outline-none focus:border-[#1877F2]" placeholder="Name your group" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="block text-[#B0B3B8] text-sm font-bold mb-1">Description</label>
-                                    <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2 text-[#E4E6EB] outline-none focus:border-[#1877F2] resize-none h-24" placeholder="What is this group about?" value={newGroupDesc} onChange={e => setNewGroupDesc(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="block text-[#B0B3B8] text-sm font-bold mb-1">Privacy</label>
-                                    <select className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2 text-[#E4E6EB] outline-none focus:border-[#1877F2]" value={newGroupType} onChange={(e) => setNewGroupType(e.target.value as any)}>
-                                        <option value="public">Public</option>
-                                        <option value="private">Private</option>
-                                    </select>
-                                </div>
-                                <button onClick={handleCreateSubmit} disabled={!newGroupName.trim()} className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">Create</button>
-                            </div>
-                        </div>
-                    </div>
+                    <CreateGroupModal 
+                        onClose={() => setShowCreateModal(false)}
+                        onCreate={onCreateGroup}
+                    />
                 )}
             </div>
         );

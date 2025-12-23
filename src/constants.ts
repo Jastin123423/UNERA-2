@@ -1,3 +1,4 @@
+
 import { User, Post, Story, Reel, LocationData, Event, Group, Song, Album, Podcast, Episode, Brand, Product } from './types';
 
 export const LOCATIONS_DATA: LocationData[] = [
@@ -30,41 +31,90 @@ export const INITIAL_BRANDS: Brand[] = [
 
 export const INITIAL_PRODUCTS: Product[] = [
     { id: 1, title: "Vintage Camera Lens 50mm", category: "electronics", description: "Excellent condition.", country: "TZ", address: "Arusha City", mainPrice: 150000, discountPrice: 120000, quantity: 1, phoneNumber: "+255755123456", images: ["https://images.unsplash.com/photo-1617005082133-548c4dd27f35?w=800&q=80"], sellerId: 2, sellerName: "David Kim", sellerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80", date: Date.now() - 10000000, status: 'active', shareId: 'p1', views: 120, ratings: [5], comments: [] },
-    { id: 2, title: "Modern Sofa Set", category: "furniture", description: "Comfortable 3-seater.", country: "KE", address: "Nairobi", mainPrice: 45000, discountPrice: null, quantity: 1, phoneNumber: "+254711223344", images: ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80"], sellerId: 3, sellerName: "Maria Rodriguez", sellerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80", date: Date.now() - 5000000, status: 'active', shareId: 'p2', views: 85, ratings: [5], comments: [] },
-    { id: 3, title: "iPhone 15 Pro Max", category: "electronics", description: "Titanium Blue, 256GB.", country: "US", address: "New York", mainPrice: 1099, discountPrice: 999, quantity: 5, phoneNumber: "+15551234567", images: ["https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&q=80"], sellerId: 1, sellerName: "Sarah Chen", sellerAvatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=800&q=80", date: Date.now() - 2000000, status: 'active', shareId: 'p3', views: 450, ratings: [5, 5], comments: [] },
-    { id: 4, title: "Organic Coffee Beans", category: "food", description: "Fresh from Tanzania highlands.", country: "TZ", address: "Moshi", mainPrice: 25000, discountPrice: null, quantity: 50, phoneNumber: "+255655112233", images: ["https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=800&q=80"], sellerId: 4, sellerName: "Alex Rivera", sellerAvatar: "https://ui-avatars.com/api/?name=Alex+Rivera&background=random", date: Date.now() - 1000000, status: 'active', shareId: 'p4', views: 310, ratings: [5, 4], comments: [] }
+    { id: 2, title: "Modern Sofa Set", category: "furniture", description: "Comfortable 3-seater.", country: "KE", address: "Nairobi", mainPrice: 45000, discountPrice: null, quantity: 1, phoneNumber: "+254711223344", images: ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80"], sellerId: 3, sellerName: "Maria Rodriguez", sellerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80", date: Date.now() - 5000000, status: 'active', shareId: 'p2', views: 85, ratings: [5], comments: [] }
 ];
 
 export const INITIAL_USERS: User[] = [
     { id: 0, name: 'UNERA', firstName: 'UNERA', lastName: 'Admin', profileImage: 'https://ui-avatars.com/api/?name=UNERA&background=1877F2&color=fff', coverImage: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1500&q=80', bio: 'Official Admin Account.', location: 'Global', isOnline: true, followers: [1, 2, 3, 4, 5], following: [], email: 'chapchaputz@gmail.com', password: '52775277', isVerified: true, role: 'admin', joinedDate: '2023-01-01' },
     { id: 1, name: 'Sarah Chen', firstName: 'Sarah', lastName: 'Chen', profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=800&q=80', coverImage: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1500&q=80', bio: 'Software Engineer @ TechCorp.', location: 'San Francisco, USA', isOnline: true, followers: [2, 3, 0], following: [0], email: 'habariforum@gmail.com', password: '527700', isVerified: true, role: 'user', joinedDate: '2024-05-15' },
     { id: 2, name: 'David Kim', profileImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80', coverImage: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1500&q=80', bio: 'Photographer.', location: 'New York, USA', isOnline: true, followers: [1, 0], following: [0], isVerified: true, role: 'user', joinedDate: '2025-01-10' },
-    { id: 3, name: 'Maria Rodriguez', profileImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80', bio: 'Designer.', location: 'Madrid, Spain', isOnline: false, followers: [1, 0], following: [0], role: 'user', joinedDate: '2023-11-20' },
-    { id: 4, name: 'Alex Rivera', profileImage: 'https://ui-avatars.com/api/?name=Alex+Rivera&background=7B1FA2&color=fff', bio: 'Coffee Enthusiast.', location: 'Moshi, TZ', isOnline: true, followers: [0], following: [0], role: 'user', joinedDate: '2025-02-01' },
-    { id: 5, name: 'Elena Gilbert', profileImage: 'https://ui-avatars.com/api/?name=Elena+Gilbert&background=F3425F&color=fff', bio: 'Loves nature.', location: 'London, UK', isOnline: false, followers: [0], following: [0], role: 'user', joinedDate: '2024-12-15' }
+    { id: 3, name: 'Maria Rodriguez', profileImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80', bio: 'Designer.', location: 'Madrid, Spain', isOnline: false, followers: [1, 0], following: [0], role: 'user', joinedDate: '2023-11-20' }
 ];
 
 export const INITIAL_POSTS: Post[] = [
     { id: 101, authorId: 2, content: "Listed a new camera lens!", type: 'product', product: INITIAL_PRODUCTS[0], productId: 1, timestamp: "5m", createdAt: Date.now() - 300000, reactions: [], comments: [], shares: 0, visibility: 'Public' },
-    { id: 102, authorId: 0, content: "Tech Conference coming up!", type: 'event', event: { id: 1, organizerId: 0, title: "Tech Summit 2025", description: "Global Summit.", date: new Date(Date.now() + 864e5 * 30).toISOString(), time: "10:00 AM", location: "Virtual", image: "https://images.unsplash.com/photo-1540575467063-178a50935278?w=1200&q=80", attendees: [1, 2], interestedIds: [3] }, eventId: 1, timestamp: "1h", createdAt: Date.now() - 3600000, reactions: [], comments: [], shares: 0, visibility: 'Public' },
-    { id: 1, authorId: 1, content: "Hiking Rockies! #Nature #Hiking", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80", timestamp: "2h", createdAt: Date.now() - 7200000, reactions: [{ userId: 2, type: 'love' }], comments: [], shares: 12, type: 'image', visibility: 'Public', views: 1250 },
-    { id: 2, authorId: 10001, content: "Smartphone leaks! #Tech", type: 'text', timestamp: "3h", createdAt: Date.now() - 10800000, reactions: [], comments: [], shares: 25, visibility: 'Public' },
-    { id: 3, authorId: 5, content: "London fog is something else today. 🌫️🇬🇧 #London #Weather", image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200&q=80", timestamp: "4h", createdAt: Date.now() - 14400000, reactions: [], comments: [], shares: 5, type: 'image', visibility: 'Public', views: 800 }
+    { id: 1, authorId: 1, content: "Hiking Rockies! #Nature #Hiking", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80", timestamp: "2h", createdAt: Date.now() - 7200000, reactions: [{ userId: 2, type: 'love' }], comments: [], shares: 12, type: 'image', visibility: 'Public', views: 1250 }
 ];
 
 export const INITIAL_STORIES: Story[] = [ { id: 1, userId: 1, type: 'image', image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80", createdAt: Date.now() } ];
 
 export const INITIAL_REELS: Reel[] = [
-    { id: 1, userId: 2, videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4", caption: "Neon vibes 🌃 #Night", songName: "Midnight City - M83", reactions: [{ userId: 1, type: 'like' }], comments: [], shares: 5, views: 12400 },
-    { id: 2, userId: 3, videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-shore-at-sunset-44068-large.mp4", caption: "Summer state of mind 🌊", songName: "Ocean Vibes", reactions: [], comments: [], shares: 12, views: 8900 },
-    { id: 3, userId: 1, videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-slow-motion-of-a-man-skating-on-a-street-at-night-44565-large.mp4", caption: "Late night sessions 🛹", songName: "Street Beats", reactions: [], comments: [], shares: 8, views: 5600 },
-    { id: 4, userId: 4, videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-hand-making-coffee-in-a-pot-42861-large.mp4", caption: "Brewing the best. ☕ #Coffee", songName: "Lo-Fi Coffee", reactions: [{userId: 1, type: 'love'}], comments: [], shares: 20, views: 15200 }
+    { id: 1, userId: 2, videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4", caption: "Neon vibes 🌃 #Night", songName: "Midnight City - M83", reactions: [{ userId: 1, type: 'like' }], comments: [], shares: 5, views: 12400 }
 ];
 
 export const INITIAL_EVENTS: Event[] = [ { id: 1, organizerId: 10001, title: "Tech Conf 2025", description: "Biggest event.", date: new Date(Date.now() + 432e6).toISOString(), time: "09:00", location: "AICC, Arusha", image: "https://images.unsplash.com/photo-1540575467063-178a50935278?w=1500&q=80", attendees: [1, 2, 3], interestedIds: [4, 5] } ];
 
 export const INITIAL_GROUPS: Group[] = [
-    { id: "g1", name: "Tech Enthusiasts", description: "Love tech.", type: "public", image: "https://ui-avatars.com/api/?name=Tech+Enthusiasts&background=0D8ABC&color=fff", coverImage: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1500&q=80", adminId: 1, members: [1, 2, 4, 6], posts: [], createdDate: Date.now() - 2592e6, memberPostingAllowed: true },
-    { id: "g2", name: "Photography Lovers", description: "Share shots.", type: "public", image: "https://ui-avatars.com/api/?name=Photography+Lovers&background=FE2C55&color=fff", coverImage: "https://images.unsplash.com/photo-1452784444945-3f422708fe5e?w=1500&q=80", adminId: 2, members: [1, 3, 5], posts: [], createdDate: Date.now() - 5184e6, memberPostingAllowed: true },
-    { id: "g3", name: "London Expats", description: "Living in UK.", type: "public", image: "https://ui-avatars.com/api/?name=London+Expats&background=3A3B3C&color=fff", coverImage: "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=1500&q=80", adminId: 5, members: [5, 1], posts: [], createdDate: Date.now() - 1e8, memberPostingAllowed: true }
+    {
+        id: "g1",
+        name: "Tech Enthusiasts",
+        description: "A group for anyone who loves technology, coding, and gadgets.",
+        type: "public",
+        image: "https://ui-avatars.com/api/?name=Tech+Enthusiasts&background=0D8ABC&color=fff",
+        coverImage: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1500&q=80",
+        adminId: 1,
+        members: [1, 2],
+        posts: [
+            {
+                id: 501,
+                authorId: 2,
+                content: "Has anyone seen the new AI benchmarks? Insane progress! 🚀",
+                timestamp: Date.now() - 3600000,
+                // Fix: added missing 'likes' property required by GroupPost interface
+                likes: [],
+                reactions: [{ userId: 1, type: 'like' }],
+                comments: [],
+                shares: 5
+            },
+            {
+                id: 502,
+                authorId: 1,
+                content: "Looking for a co-founder for a fintech project in TZ. DM me!",
+                timestamp: Date.now() - 10800000,
+                // Fix: added missing 'likes' property required by GroupPost interface
+                likes: [],
+                reactions: [],
+                comments: [],
+                shares: 1
+            }
+        ],
+        createdDate: Date.now() - 2592e6,
+        memberPostingAllowed: true
+    },
+    {
+        id: "g2",
+        name: "Photography Lovers",
+        description: "Share your best shots and learn from professionals.",
+        type: "public",
+        image: "https://ui-avatars.com/api/?name=Photography+Lovers&background=FE2C55&color=fff",
+        coverImage: "https://images.unsplash.com/photo-1452784444945-3f422708fe5e?w=1500&q=80",
+        adminId: 2,
+        members: [1, 3],
+        posts: [
+            {
+                id: 601,
+                authorId: 3,
+                content: "Captured this beautiful sunset yesterday in Madrid. 🌅",
+                image: "https://images.unsplash.com/photo-1470252649358-96940c9353d9?w=800&q=80",
+                timestamp: Date.now() - 7200000,
+                // Fix: added missing 'likes' property required by GroupPost interface
+                likes: [],
+                reactions: [{ userId: 2, type: 'love' }],
+                comments: [],
+                shares: 10
+            }
+        ],
+        createdDate: Date.now() - 5184e6,
+        memberPostingAllowed: true
+    }
 ];

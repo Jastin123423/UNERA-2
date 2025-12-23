@@ -10,7 +10,8 @@ interface CreateBrandModalProps {
     onCreate: (brand: Partial<Brand>) => void;
 }
 
-const CreateBrandModal: React.FC<CreateBrandModalProps> = ({ currentUser, onClose, onCreate }) => {
+// Exported to fix import error in App.tsx
+export const CreateBrandModal: React.FC<CreateBrandModalProps> = ({ currentUser, onClose, onCreate }) => {
     const [step, setStep] = useState(1);
     const [name, setName] = useState('');
     const [category, setCategory] = useState('');

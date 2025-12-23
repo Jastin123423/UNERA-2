@@ -6,13 +6,16 @@ import { BRAND_CATEGORIES, LOCATIONS_DATA } from '../constants';
 import { CreateEventModal } from './Events';
 
 // --- CREATE BRAND MODAL ---
+/**
+ * Fix: Exported CreateBrandModal to resolve the local declaration error in App.tsx.
+ */
 interface CreateBrandModalProps {
     currentUser: User;
     onClose: () => void;
     onCreate: (brand: Partial<Brand>) => void;
 }
 
-const CreateBrandModal: React.FC<CreateBrandModalProps> = ({ currentUser, onClose, onCreate }) => {
+export const CreateBrandModal: React.FC<CreateBrandModalProps> = ({ currentUser, onClose, onCreate }) => {
     const [step, setStep] = useState(1);
     const [name, setName] = useState('');
     const [category, setCategory] = useState('');
