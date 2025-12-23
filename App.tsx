@@ -89,6 +89,9 @@ export default function App() {
     const [activeProduct, setActiveProduct] = useState<Product | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     
+    // Debug state for troubleshooting
+    const [debugInfo, setDebugInfo] = useState<any>(null);
+    
     useEffect(() => {
         if (currentUser) {
             api.getNotifications(currentUser.id).then((nots) => { if(Array.isArray(nots)) setNotifications(nots); });
@@ -100,8 +103,14 @@ export default function App() {
 
     const rankedPosts = useMemo(() => {
         const brandIds = new Set(brands.map(b => b.id));
-        const brandOwnedPosts = posts.filter(p => brandIds.has(p.authorId) || p.brandId);
-        const standardPosts = rankFeed(posts, currentUser, users);
+        
+        // Get all brand posts - include both authorId=brandId and posts with brandId property
+        const brandOwnedPosts = posts.filter(p => {
+            const isBrandPost = brandIds.has(p.authorId) || p.brandId;
+            return isBrandPost;
+        });
+        
+        const standardPosts = rankFeed(posts.filter(p => !brandIds.has(p.authorId) && !p.brandId), currentUser, users);
         
         const groupPosts = groups.filter(g => g.type === 'public' || (currentUser && g.members.includes(currentUser.id))).flatMap(group => group.posts.map(gp => ({ 
             id: gp.id, 
@@ -123,6 +132,13 @@ export default function App() {
         } as PostType)));
         
         const merged = [...brandOwnedPosts, ...standardPosts, ...groupPosts].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+        
+        // Debug: Log what posts are being included
+        console.log('Brand posts found:', brandOwnedPosts.length);
+        console.log('Standard posts:', standardPosts.length);
+        console.log('Group posts:', groupPosts.length);
+        console.log('Total merged posts:', merged.length);
+        
         return merged.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     }, [posts, groups, currentUser, users, brands]);
 
@@ -164,7 +180,6 @@ export default function App() {
         setPostEditorState(null);
     };
 
-    // ADDED: Handle creating posts as a brand/page
     const handlePostAsBrand = (brandId: number, text: string, file: File | null, type: string, visibility: string, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview, wantsMessages?: boolean) => {
         const brand = brands.find(b => b.id === brandId);
         if (!brand || !currentUser) return;
@@ -198,8 +213,17 @@ export default function App() {
             brandName: brand.name, // Store brand name for display
         };
         
+        console.log('Creating brand post:', newPost);
+        console.log('Brand ID:', brandId);
+        console.log('Brand found:', brand);
+        
         setPosts(prev => [newPost, ...prev]);
-        console.log('Brand post created:', newPost); // Debug log
+        setDebugInfo({
+            action: 'brand_post_created',
+            post: newPost,
+            brand: brand,
+            timestamp: Date.now()
+        });
     };
 
     const handleUpdatePost = (updatedData: Partial<PostType> & { id: number, newFile?: File | null, imageKept: boolean }) => {
@@ -521,8 +545,24 @@ export default function App() {
                             {currentUser && <CreatePost currentUser={currentUser} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onClick={() => setPostEditorState('create')} onCreateEventClick={() => setShowCreateEventModal(true)} />}
                             
                             {rankedPosts.map((post, index) => {
-                                const author = users.find(u => u.id === post.authorId) || brands.find(b => b.id === post.authorId);
-                                if (!author) return null;
+                                // FIX: Properly find author for brand posts
+                                const isBrandPost = brands.some(b => b.id === post.authorId) || post.brandId;
+                                let author;
+                                
+                                if (isBrandPost) {
+                                    // For brand posts, find the brand
+                                    const brandId = post.brandId || post.authorId;
+                                    author = brands.find(b => b.id === brandId);
+                                    console.log('Brand post found:', post.id, 'Brand ID:', brandId, 'Author found:', author);
+                                } else {
+                                    // For regular posts, find the user
+                                    author = users.find(u => u.id === post.authorId);
+                                }
+                                
+                                if (!author) {
+                                    console.warn('No author found for post:', post.id, 'authorId:', post.authorId, 'brandId:', post.brandId);
+                                    return null; // Skip rendering if no author found
+                                }
                                 
                                 return (
                                     <React.Fragment key={post.id}>
@@ -540,7 +580,7 @@ export default function App() {
                                             onOpenComments={setActiveCommentsPostId} 
                                             onVideoClick={() => {}} 
                                             onViewProduct={setActiveProduct} 
-                                            onFollow={handleFollow} 
+                                            onFollow={isBrandPost ? handleFollowBrand : handleFollow} 
                                             isFollowing={currentUser?.following.includes(author.id)} 
                                             onPlayAudio={() => {}} 
                                             sharedPost={(post as any).embeddedSharedPost} 
@@ -556,6 +596,23 @@ export default function App() {
                                     </React.Fragment>
                                 );
                             })}
+                            
+                            {/* Debug info panel (remove in production) */}
+                            {debugInfo && (
+                                <div className="mt-4 p-3 bg-yellow-900 bg-opacity-50 rounded-lg text-xs">
+                                    <div className="font-bold">Debug Info:</div>
+                                    <div>Action: {debugInfo.action}</div>
+                                    <div>Posts count: {posts.length}</div>
+                                    <div>Brands count: {brands.length}</div>
+                                    <div>Brand post authorId: {debugInfo.post?.authorId}</div>
+                                    <button 
+                                        onClick={() => setDebugInfo(null)}
+                                        className="mt-2 px-2 py-1 bg-gray-700 rounded"
+                                    >
+                                        Clear Debug
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                     {view === 'profile' && selectedUserId && (
@@ -570,12 +627,12 @@ export default function App() {
                         <BrandsPage 
                             currentUser={currentUser} 
                             brands={brands} 
-                            posts={posts} 
+                            posts={posts.filter(p => brands.some(b => b.id === p.authorId) || p.brandId)} 
                             users={users} 
                             onCreateBrand={handleCreateBrand} 
                             onFollowBrand={handleFollowBrand} 
                             onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} 
-                            onPostAsBrand={handlePostAsBrand} // FIXED: Now properly implemented
+                            onPostAsBrand={handlePostAsBrand}
                             onReact={handleReact} 
                             onShare={setActiveSharePostId} 
                             onOpenComments={setActiveCommentsPostId} 
