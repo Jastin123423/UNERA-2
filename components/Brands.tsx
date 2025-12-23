@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { User, Brand, Post as PostType, Event, LinkPreview } from '../types';
-import { Post, CreatePostModal, CreatePost } from './Feed';
+// @FIX: Renamed CreatePostModal to PostEditorModal to match the actual exported component from './Feed'.
+import { Post, PostEditorModal, CreatePost } from './Feed';
 import { BRAND_CATEGORIES, LOCATIONS_DATA } from '../constants';
 import { CreateEventModal } from './Events';
 
@@ -462,7 +463,8 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
                                     </div>
 
                                     {showCreatePostModal && (
-                                        <CreatePostModal 
+                                        // @FIX: Renamed CreatePostModal to PostEditorModal to fix component not found error.
+                                        <PostEditorModal 
                                             currentUser={{...currentUser, name: activeBrand.name, profileImage: activeBrand.profileImage} as User} 
                                             users={users} 
                                             onClose={() => setShowCreatePostModal(false)}

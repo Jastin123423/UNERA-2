@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Post as PostType, ReactionType, Reel, AudioTrack, Song, Episode, Group, Brand, LinkPreview, Product } from '../types';
-import { CreatePost, Post, CreatePostModal } from './Feed';
+import { CreatePost, Post, PostEditorModal } from './Feed';
 
 // --- EDIT PROFILE MODAL ---
 interface EditProfileModalProps {
@@ -85,11 +85,11 @@ interface UserProfileProps {
     onUpdateCoverImage: (file: File) => void;
     onUpdateUserDetails: (data: Partial<User>) => void;
     onDeletePost: (postId: number) => void;
-    onEditPost: (postId: number, content: string) => void;
+    onEditPost: (post: PostType) => void;
     getCommentAuthor: (id: number) => User | undefined;
     onViewImage: (url: string) => void;
     onCreateEventClick?: () => void;
-    onCreateStoryClick?: () => void; // New Prop
+    onCreateStoryClick?: () => void; 
     onOpenComments: (postId: number) => void;
     onVideoClick: (post: PostType) => void;
     onVerifyUser?: (id: number) => void;
@@ -97,8 +97,8 @@ interface UserProfileProps {
     onDeleteUser?: (id: number) => void;
     onMakeModerator?: (id: number) => void;
     onPlayAudio?: (track: AudioTrack) => void; 
-    /* Fix: Added missing onViewProduct property to interface */
     onViewProduct?: (product: Product) => void;
+    onJoinEvent?: (eventId: number) => void;
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({ 
@@ -107,11 +107,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     onUpdateProfileImage, onUpdateCoverImage, onUpdateUserDetails, onDeletePost, onEditPost, 
     getCommentAuthor, onViewImage, onCreateEventClick, onCreateStoryClick, onOpenComments, 
     onVideoClick, onVerifyUser, onRestrictUser, onDeleteUser, onMakeModerator, onPlayAudio, 
-    /* Fix: Destructured onViewProduct */
-    onViewProduct 
+    onViewProduct, onJoinEvent
 }) => {
     const [activeTab, setActiveTab] = useState('Posts');
-    const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+    const [showPostEditor, setShowPostEditor] = useState<'create' | null>(null);
     const [showEditProfile, setShowEditProfile] = useState(false);
     
     const userPosts = posts.filter(post => post.authorId === user.id);
@@ -141,8 +140,75 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
     const renderContent = () => {
         switch (activeTab) {
+            case 'Music': return (
+                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm animate-fade-in">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-white">Releases ({userSongs.length})</h2>
+                        {isCurrentUser && <button className="text-[#1877F2] font-bold text-sm hover:underline">Add Music</button>}
+                    </div>
+                    {userSongs.length > 0 ? (
+                        <div className="space-y-2">
+                            {userSongs.map((song, idx) => (
+                                <div key={song.id} className="flex items-center gap-4 p-3 hover:bg-[#3A3B3C] rounded-xl cursor-pointer transition-all group" onClick={() => onPlayAudio?.({ id: song.id, url: song.audioUrl, title: song.title, artist: song.artist, cover: song.cover, type: 'music', uploaderId: song.uploaderId, isVerified: user.isVerified })}>
+                                    <div className="text-[#B0B3B8] font-bold w-4 text-center group-hover:hidden">{idx + 1}</div>
+                                    <div className="hidden group-hover:block w-4 text-center text-[#1877F2]"><i className="fas fa-play"></i></div>
+                                    <img src={song.cover} className="w-12 h-12 rounded-lg object-cover shadow-md" alt="" />
+                                    <div className="flex-1 overflow-hidden">
+                                        <h4 className="text-white font-bold truncate">{song.title}</h4>
+                                        <p className="text-[#B0B3B8] text-xs font-medium">{song.stats.plays.toLocaleString()} streams</p>
+                                    </div>
+                                    <div className="text-[#B0B3B8] text-sm font-mono">{song.duration}</div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-10">
+                            <i className="fas fa-music text-4xl text-[#B0B3B8] mb-4"></i>
+                            <p className="text-[#B0B3B8]">No tracks released yet.</p>
+                        </div>
+                    )}
+                </div>
+            );
+            case 'Podcast': return (
+                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm animate-fade-in">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-white">Podcast Episodes ({userEpisodes.length})</h2>
+                        {isCurrentUser && <button className="text-[#1877F2] font-bold text-sm hover:underline">New Episode</button>}
+                    </div>
+                    {userEpisodes.length > 0 ? (
+                        <div className="space-y-4">
+                            {userEpisodes.map(ep => (
+                                <div key={ep.id} className="flex gap-4 p-4 bg-[#18191A] rounded-2xl border border-[#3E4042] hover:border-[#1877F2]/50 transition-colors cursor-pointer group" onClick={() => onPlayAudio?.({ id: ep.id, url: ep.audioUrl, title: ep.title, artist: ep.host || user.name, cover: ep.thumbnail, type: 'podcast', uploaderId: ep.uploaderId, isVerified: user.isVerified })}>
+                                    <div className="w-24 h-24 flex-shrink-0 relative">
+                                        <img src={ep.thumbnail} className="w-full h-full object-cover rounded-xl shadow-lg" alt="" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                                            <i className="fas fa-play text-white text-xl"></i>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-white font-bold text-lg mb-1 truncate">{ep.title}</h4>
+                                        <p className="text-[#B0B3B8] text-sm line-clamp-2 mb-2">{ep.description}</p>
+                                        <div className="flex items-center gap-3 text-[#B0B3B8] text-[12px] font-bold">
+                                            <span>{ep.date}</span>
+                                            <span>•</span>
+                                            <span>{ep.duration}</span>
+                                            <span>•</span>
+                                            <span className="text-[#1877F2]">{ep.stats.plays.toLocaleString()} plays</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-10">
+                            <i className="fas fa-microphone text-4xl text-[#B0B3B8] mb-4"></i>
+                            <p className="text-[#B0B3B8]">No podcast episodes available.</p>
+                        </div>
+                    )}
+                </div>
+            );
             case 'About': return (
-                <div className="bg-[#242526] p-6 text-[#E4E6EB] rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm">
+                <div className="bg-[#242526] p-6 text-[#E4E6EB] rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm animate-fade-in">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold">About</h2>
                         {isCurrentUser && <button onClick={() => setShowEditProfile(true)} className="text-[#1877F2] font-semibold hover:underline">Edit</button>}
@@ -163,7 +229,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 </div>
             );
             case 'Followers': return (
-                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm">
+                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm animate-fade-in">
                     <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Followers ({followerCount})</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {followersList.length > 0 ? followersList.map(follower => (
@@ -176,7 +242,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 </div>
             );
             case 'Photos': return (
-                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm">
+                <div className="bg-[#242526] p-6 rounded-xl border border-[#3E4042] mx-4 md:mx-0 shadow-sm animate-fade-in">
                     <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Photos</h2>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                         {userPosts.filter(p => p.type === 'image' && p.image).map(p => (
@@ -188,7 +254,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 </div>
             );
             case 'Posts': default: return (
-                <div className="max-w-[1095px] mx-auto w-full flex flex-col md:flex-row gap-4 px-0 md:px-4 mt-4">
+                <div className="max-w-[1095px] mx-auto w-full flex flex-col md:flex-row gap-4 px-0 md:px-4 mt-4 animate-fade-in">
                     <div className="w-full md:w-[380px] flex-shrink-0 flex flex-col gap-4 px-4 md:px-0">
                         {isAdmin && !isCurrentUser && (
                             <div className="bg-[#242526] rounded-xl p-4 shadow-md border border-red-900/40">
@@ -228,10 +294,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                                 </div>
                             </div>
                         )}
-                        {isCurrentUser && <CreatePost currentUser={currentUser} onProfileClick={onProfileClick} onClick={() => setShowCreatePostModal(true)} onCreateEventClick={onCreateEventClick} />}
+                        {isCurrentUser && <CreatePost currentUser={currentUser} onProfileClick={onProfileClick} onClick={() => setShowPostEditor('create')} onCreateEventClick={onCreateEventClick} />}
                         {userPosts.map(post => (
-                            /* Fix: Passed onViewProduct to Post component */
-                            <Post key={post.id} post={post} author={user} currentUser={currentUser} users={users} onProfileClick={onProfileClick} onReact={onReact} onShare={onShare} onDelete={onDeletePost} onEdit={onEditPost} onViewImage={onViewImage} onOpenComments={onOpenComments} onVideoClick={onVideoClick} onPlayAudio={onPlayAudio} onViewProduct={onViewProduct} />
+                            <Post key={post.id} post={post} author={user} currentUser={currentUser} users={users} onProfileClick={onProfileClick} onReact={onReact} onShare={onShare} onDelete={onDeletePost} onEdit={onEditPost} onViewImage={onViewImage} onOpenComments={onOpenComments} onVideoClick={onVideoClick} onPlayAudio={onPlayAudio} onViewProduct={onViewProduct} onJoinEvent={onJoinEvent} />
                         ))}
                     </div>
                 </div>
@@ -298,7 +363,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                         </div>
                         <div className="h-[1px] bg-[#3E4042] w-full mt-4 opacity-50"></div>
                         <div className="flex items-center gap-2 pt-2 overflow-x-auto scrollbar-hide">
-                            {['Posts', 'About', 'Followers', 'Photos'].map((tab) => (
+                            {['Posts', 'About', 'Followers', 'Photos', 'Music', 'Podcast'].map((tab) => (
                                 <div key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-4 cursor-pointer whitespace-nowrap text-[15px] font-bold border-b-[3px] transition-all ${activeTab === tab ? 'text-[#1877F2] border-[#1877F2]' : 'text-[#B0B3B8] border-transparent hover:bg-[#3A3B3C] rounded-t-xl'}`}>
                                     {tab}
                                 </div>
@@ -309,7 +374,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             </div>
             {renderContent()}
             {showEditProfile && isCurrentUser && <EditProfileModal user={user} onClose={() => setShowEditProfile(false)} onSave={onUpdateUserDetails} />}
-            {showCreatePostModal && currentUser && <CreatePostModal currentUser={currentUser} users={users} onClose={() => setShowCreatePostModal(false)} onCreatePost={onCreatePost} onCreateEventClick={onCreateEventClick} />}
+            {showPostEditor === 'create' && currentUser && <PostEditorModal currentUser={currentUser} users={users} onClose={() => setShowPostEditor(null)} onCreatePost={onCreatePost} onCreateEventClick={onCreateEventClick} />}
         </div>
     );
 };

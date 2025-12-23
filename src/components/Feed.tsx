@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Post as PostType, ReactionType, Comment, Product, LinkPreview, AudioTrack, Group, Brand } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -587,9 +588,226 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     );
 };
 
+// Fix: Renamed CreatePostModal to PostEditorModal to resolve the missing export error in App.tsx.
+export const PostEditorModal: React.FC<any> = ({ currentUser, users, onClose, onCreatePost, onUpdatePost, onCreateEventClick, postToEdit }) => {
+    const isEditMode = !!postToEdit;
+    
+    const [text, setText] = useState('');
+    const [file, setFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [visibility, setVisibility] = useState('Public');
+    const [background, setBackground] = useState('');
+    const [location, setLocation] = useState('');
+    const [feeling, setFeeling] = useState('');
+    const [taggedPeople, setTaggedPeople] = useState<string>('');
+    const [wantsMessages, setWantsMessages] = useState(false);
+    
+    const [mentionQuery, setMentionQuery] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        if (isEditMode && postToEdit) {
+            setText(postToEdit.content || '');
+            setBackground(postToEdit.background || '');
+            setVisibility(postToEdit.visibility || 'Public');
+            setLocation(postToEdit.location || '');
+            setFeeling(postToEdit.feeling || '');
+            setWantsMessages(postToEdit.wantsMessages || false);
+            if (postToEdit.image) {
+                setImagePreview(postToEdit.image);
+            }
+        }
+    }, [postToEdit, isEditMode]);
+
+    const handleSubmit = () => {
+        if (!text.trim() && !file && !background && !imagePreview) return;
+        
+        if (isEditMode) {
+            onUpdatePost({
+                id: postToEdit.id,
+                content: text,
+                background,
+                visibility,
+                location,
+                feeling,
+                wantsMessages,
+                newFile: file,
+                imageKept: !!imagePreview && !file,
+            });
+        } else {
+            let type = 'text';
+            if (file) {
+                type = file.type.startsWith('video') ? 'video' : 'image';
+            } else if (background) {
+                type = 'text'; 
+            }
+            const linkPreview = getLinkPreview(text);
+            onCreatePost(text, file, type, visibility, location, feeling, [], background, linkPreview || undefined, wantsMessages);
+        }
+        onClose();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+            setImagePreview(null); // New file overrides existing preview
+            setBackground(''); 
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setFile(null);
+        setImagePreview(null);
+    };
+
+    const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setText(value);
+
+        const textBeforeCursor = value.substring(0, e.target.selectionStart);
+        const lastAtPos = textBeforeCursor.lastIndexOf('@');
+
+        if (lastAtPos !== -1) {
+            const query = textBeforeCursor.substring(lastAtPos + 1);
+            if (!query.includes(' ') && query.length < 15) {
+                setMentionQuery(query);
+                setShowSuggestions(true);
+                return;
+            }
+        }
+        setShowSuggestions(false);
+    };
+
+    const handleSelectMention = (user: User) => {
+        const cursorPosition = textareaRef.current?.selectionStart || 0;
+        const textBeforeCursor = text.substring(0, cursorPosition);
+        const lastAtPos = textBeforeCursor.lastIndexOf('@');
+        const textAfterCursor = text.substring(cursorPosition);
+        
+        const newText = text.substring(0, lastAtPos) + `@${user.name} ` + textAfterCursor;
+        setText(newText);
+        setShowSuggestions(false);
+        textareaRef.current?.focus();
+    };
+
+    const OptionRow = ({ icon, color, label, onClick, subtext, active }: { icon: string, color: string, label: string, onClick?: () => void, subtext?: string, active?: boolean }) => (
+        <div className={`flex items-center justify-between p-4 hover:bg-[#3A3B3C] active:bg-[#4E4F50] transition-colors cursor-pointer border-b border-[#3E4042]/30 ${active ? 'bg-[#1877F2]/10' : ''}`} onClick={onClick}>
+            <div className="flex items-center gap-3">
+                <div className="w-8 flex justify-center"><i className={`${icon} text-[22px]`} style={{ color }}></i></div>
+                <div className="flex flex-col">
+                    <span className={`text-[#E4E6EB] text-[16px] ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
+                    {subtext && <span className="text-[#B0B3B8] text-[12px]">{subtext}</span>}
+                </div>
+            </div>
+            {active && <i className="fas fa-check text-[#1877F2]"></i>}
+        </div>
+    );
+
+    const currentImage = file ? URL.createObjectURL(file) : imagePreview;
+
+    return (
+        <div className="fixed inset-0 z-[150] bg-[#18191A] flex flex-col font-sans animate-slide-up">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#3E4042] bg-[#242526] sticky top-0 z-20">
+                <div className="flex items-center gap-4">
+                    <i className="fas fa-arrow-left text-[#E4E6EB] text-xl cursor-pointer p-2 -ml-2 rounded-full hover:bg-[#3A3B3C]" onClick={onClose}></i>
+                    <div className="flex items-center gap-3">
+                        <img src={currentUser.profileImage} className="w-10 h-10 rounded-full object-cover border border-[#3E4042]" alt="" />
+                        <div>
+                            <div className="font-black text-[#E4E6EB] text-[16px] leading-tight">{currentUser.name}</div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                                <div className="bg-[#3A3B3C] px-2 py-0.5 rounded-md text-[12px] text-[#E4E6EB] font-semibold flex items-center gap-1 border border-[#3E4042] cursor-pointer" onClick={() => setVisibility(visibility === 'Public' ? 'Friends' : 'Public')}>
+                                    <i className={`fas ${visibility === 'Public' ? 'fa-globe-americas' : 'fa-user-friends'} text-[10px]`}></i>
+                                    <span>{visibility}</span>
+                                    <i className="fas fa-caret-down text-[10px]"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <h3 className="text-[#E4E6EB] text-[18px] font-bold">{isEditMode ? 'Edit post' : 'Create post'}</h3>
+            </div>
+
+            <div className="flex-1 overflow-y-auto flex flex-col relative pb-32">
+                {showSuggestions && (
+                    <div className="px-4">
+                         <MentionSuggestions users={users} query={mentionQuery} onSelect={handleSelectMention} />
+                    </div>
+                )}
+
+                <div 
+                    className={`flex-1 min-h-[200px] relative transition-all ${background ? 'flex items-center justify-center text-center p-8' : 'p-4'}`}
+                    style={{ background: background.includes('url') ? background : background, backgroundSize: 'cover' }}
+                >
+                    <textarea 
+                        ref={textareaRef}
+                        autoFocus
+                        className={`w-full bg-transparent outline-none text-[#E4E6EB] placeholder-[#B0B3B8] resize-none ${background ? 'text-center font-bold text-3xl drop-shadow-md placeholder-white/70' : 'text-[24px]'}`} 
+                        placeholder="What’s new You need To Post?"
+                        value={text}
+                        onChange={handleTextChange}
+                        style={{ height: 'auto', minHeight: '150px' }}
+                    />
+                </div>
+
+                {(location || taggedPeople) && (
+                   <div className="px-4 py-2 border-t border-[#3E4042]/20 flex flex-wrap gap-2">
+                       {location && <div className="bg-[#3A3B3C] px-3 py-1 rounded-full text-xs font-bold text-[#E4E6EB] flex items-center gap-2"><i className="fas fa-map-marker-alt text-[#F02849]"></i> {location} <i className="fas fa-times cursor-pointer opacity-50" onClick={() => setLocation('')}></i></div>}
+                       {taggedPeople && <div className="bg-[#3A3B3C] px-3 py-1 rounded-full text-xs font-bold text-[#E4E6EB] flex items-center gap-2"><i className="fas fa-user-tag text-[#1877F2]"></i> with {taggedPeople} <i className="fas fa-times cursor-pointer opacity-50" onClick={() => setTaggedPeople('')}></i></div>}
+                   </div>
+                )}
+
+                {currentImage && (
+                    <div className="mx-4 mb-4 relative rounded-lg overflow-hidden border border-[#3E4042] max-h-[300px] bg-black shadow-lg">
+                        {file && file.type.startsWith('video') ? <video src={currentImage} className="w-full h-full object-contain" controls /> : <img src={currentImage} className="w-full h-full object-contain" />}
+                        <div onClick={handleRemoveImage} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10"><i className="fas fa-times text-white"></i></div>
+                    </div>
+                )}
+
+                {!currentImage && (
+                    <div className="px-4 py-4 flex items-center gap-3 overflow-x-auto scrollbar-hide border-t border-[#3E4042]/30 bg-[#242526]/50">
+                         <div 
+                            className={`w-10 h-10 rounded-lg cursor-pointer border-2 bg-[#3A3B3C] flex items-center justify-center flex-shrink-0 transition-all ${!background ? 'border-[#1877F2] scale-110' : 'border-[#3E4042]'}`}
+                            onClick={() => setBackground('')}
+                         >
+                             <div className="w-6 h-6 bg-white rounded flex items-center justify-center"><i className="fas fa-font text-black text-[10px]"></i></div>
+                         </div>
+                         {BACKGROUNDS.filter(b => b.id !== 'none').map(bg => (
+                             <div 
+                                key={bg.id} 
+                                className={`w-10 h-10 rounded-lg cursor-pointer border-2 flex-shrink-0 transition-all ${background === bg.value ? 'border-[#1877F2] scale-110' : 'border-transparent'}`}
+                                style={{ background: bg.value, backgroundSize: 'cover' }}
+                                onClick={() => setBackground(bg.value)}
+                             ></div>
+                         ))}
+                    </div>
+                )}
+
+                <div className="bg-[#242526] border-t border-[#3E4042]">
+                    <OptionRow icon="fas fa-images" color="#45BD62" label="Photos/videos" onClick={() => fileInputRef.current?.click()} />
+                    <OptionRow icon="fas fa-user-tag" color="#1877F2" label="Tag people" onClick={() => { const p = prompt("Who are you with?"); if(p) setTaggedPeople(p); }} />
+                    <OptionRow icon="fas fa-map-marker-alt" color="#F02849" label="Add location" onClick={() => { const loc = prompt("Where are you?"); if(loc) setLocation(loc); }} />
+                    <OptionRow icon="far fa-smile" color="#F7B928" label="Feeling/activity" onClick={() => { const feel = prompt("How are you feeling?"); if(feel) setFeeling(feel); }} />
+                    <OptionRow icon="fab fa-facebook-messenger" color="#1877F2" label="Get messages" onClick={() => setWantsMessages(!wantsMessages)} active={wantsMessages} subtext="Adds a 'Send Message' button to your post" />
+                    {!isEditMode && <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} />}
+                </div>
+            </div>
+
+            <div className="p-4 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+                <button onClick={handleSubmit} disabled={!text.trim() && !file && !background && !imagePreview} className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] transition-all disabled:bg-[#3A3B3C]">
+                    {isEditMode ? 'SAVE' : 'POST'}
+                </button>
+            </div>
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
+        </div>
+    );
+};
+
 interface PostProps {
     post: PostType;
-    author: User;
+    author: User | Brand;
     currentUser: User | null;
     users: User[];
     brands?: Brand[];
@@ -597,7 +815,7 @@ interface PostProps {
     onReact: (postId: number, type: ReactionType) => void;
     onShare: (postId: number) => void;
     onDelete?: (postId: number) => void;
-    onEdit?: (postId: number, content: string) => void;
+    onEdit?: (post: PostType) => void;
     onHashtagClick?: (tag: string) => void;
     onViewImage: (url: string) => void;
     onOpenComments: (postId: number) => void;
@@ -618,8 +836,6 @@ export const Post: React.FC<PostProps> = ({
     onHashtagClick, onViewImage, onOpenComments, onViewProduct, onVideoClick, onFollow, 
     isFollowing, onPlayAudio, onGroupClick, canDelete, onMessage, onJoinEvent, sharedPost
 }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editContent, setEditContent] = useState(post.content || '');
     const [showMenu, setShowMenu] = useState(false);
     
     const myReaction = currentUser ? post.reactions.find(r => r.userId === currentUser.id)?.type : undefined;
@@ -642,11 +858,17 @@ export const Post: React.FC<PostProps> = ({
                         <div className="flex flex-wrap items-center gap-1">
                             <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer leading-tight" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             {author.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
+                            
                             {post.groupName && (
-                                <>
-                                    <i className="fas fa-caret-right text-[#B0B3B8] text-xs mx-0.5"></i>
-                                    <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer leading-tight" onClick={() => onGroupClick?.(post.groupId!)}>{post.groupName}</span>
-                                </>
+                                <div className="flex items-center">
+                                    <i className="fas fa-caret-right text-[#B0B3B8] text-xs mx-1"></i>
+                                    <span 
+                                        className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer leading-tight" 
+                                        onClick={(e) => { e.stopPropagation(); onGroupClick?.(post.groupId!); }}
+                                    >
+                                        {post.groupName}
+                                    </span>
+                                </div>
                             )}
                         </div>
                         <div className="flex items-center gap-1 text-[#B0B3B8] text-[12px]">
@@ -660,6 +882,11 @@ export const Post: React.FC<PostProps> = ({
                     <i className="fas fa-ellipsis-h text-[#B0B3B8] p-2 rounded-full hover:bg-[#3A3B3C] cursor-pointer" onClick={() => setShowMenu(!showMenu)}></i>
                     {showMenu && (
                         <div className="absolute right-0 top-10 bg-[#242526] border border-[#3E4042] rounded-lg shadow-xl w-48 z-10 py-1">
+                            {currentUser && currentUser.id === author.id && onEdit && (
+                                <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onEdit(post); setShowMenu(false); }}>
+                                    <i className="fas fa-pen"></i> Edit Post
+                                </div>
+                            )}
                             {(canDelete || (currentUser && currentUser.id === author.id)) && onDelete && <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onDelete(post.id); setShowMenu(false); }}><i className="fas fa-trash"></i> Delete Post</div>}
                         </div>
                     )}
@@ -667,46 +894,41 @@ export const Post: React.FC<PostProps> = ({
             </div>
 
             <div className="px-3 pb-2 text-[#E4E6EB] text-[18px] leading-relaxed">
-                {isEditing ? (
-                    <div className="mb-2">
-                        <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded p-2 text-[#E4E6EB]" value={editContent} onChange={e => setEditContent(e.target.value)} />
-                        <div className="flex gap-2 mt-2 justify-end">
-                            <button className="text-[#B0B3B8] text-sm" onClick={() => setIsEditing(false)}>Cancel</button>
-                            <button className="bg-[#1877F2] text-white px-3 py-1 rounded text-sm font-black" onClick={() => { onEdit?.(post.id, editContent); setIsEditing(false); }}>Save</button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className={post.background ? 'text-center font-black text-[24px] py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
-                        <RichText text={post.content || ''} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} />
-                    </div>
-                )}
+                <div className={post.background ? 'text-center font-black text-[24px] py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
+                    <RichText text={post.content || ''} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} />
+                </div>
             </div>
 
             {isAudio && (
-                <div className="mx-3 mb-3 bg-gradient-to-br from-[#2D88FF]/20 to-black rounded-2xl border border-[#3E4042] overflow-hidden group shadow-2xl relative">
-                    <div className="absolute inset-0 opacity-30 blur-2xl -z-1" style={{ backgroundImage: `url(${post.audioTrack!.cover})`, backgroundSize: 'cover' }}></div>
-                    <div className="flex flex-col md:flex-row p-6 items-center gap-6 relative z-10">
-                        <div className="w-48 h-48 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 relative group">
-                            <img src={post.audioTrack!.cover} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt="" />
-                            <button 
-                                onClick={() => onPlayAudio?.(post.audioTrack!)}
-                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <div className="w-16 h-16 bg-[#1877F2] rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                                    <i className="fas fa-play text-white text-2xl ml-1"></i>
+                <div className="mx-3 mb-3 bg-gradient-to-br from-[#1E1E1E] to-black rounded-2xl border border-[#3E4042] overflow-hidden group shadow-lg relative">
+                    <div 
+                        className="absolute inset-0 opacity-40 blur-3xl scale-125 z-0 transition-opacity duration-700" 
+                        style={{ backgroundImage: `url(${post.audioTrack!.cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                    ></div>
+                    
+                    <div className="flex flex-col sm:flex-row p-5 items-center gap-5 relative z-10">
+                        <div className="w-40 h-40 sm:w-32 sm:h-32 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 relative group cursor-pointer" onClick={() => onPlayAudio?.(post.audioTrack!)}>
+                            <img src={post.audioTrack!.cover} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="w-12 h-12 bg-[#1877F2] rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                                    <i className="fas fa-play text-white text-xl ml-1"></i>
                                 </div>
-                            </button>
+                            </div>
                         </div>
-                        <div className="flex-1 text-center md:text-left overflow-hidden">
-                            <span className="bg-[#1877F2] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block">New {post.audioTrack!.type === 'podcast' ? 'Podcast' : 'Release'}</span>
-                            <h2 className="text-white font-black text-2xl md:text-3xl mb-1 truncate leading-tight">{post.audioTrack!.title}</h2>
-                            <p className="text-[#B0B3B8] font-bold text-lg mb-4 flex items-center justify-center md:justify-start gap-2">
+
+                        <div className="flex-1 text-center sm:text-left min-w-0">
+                            <span className="bg-[#1877F2]/20 text-[#1877F2] text-[10px] font-black px-2 py-0.5 rounded border border-[#1877F2]/30 uppercase tracking-wider mb-2 inline-block">
+                                New {post.audioTrack!.type === 'podcast' ? 'Podcast' : 'Release'}
+                            </span>
+                            <h2 className="text-white font-black text-xl sm:text-2xl mb-1 truncate leading-tight w-full" title={post.audioTrack!.title}>{post.audioTrack!.title}</h2>
+                            <p className="text-[#B0B3B8] font-bold text-sm sm:text-base mb-4 flex items-center justify-center sm:justify-start gap-1">
                                 {post.audioTrack!.artist}
-                                {post.audioTrack!.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-sm"></i>}
+                                {post.audioTrack!.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
                             </p>
+                            
                             <button 
                                 onClick={() => onPlayAudio?.(post.audioTrack!)}
-                                className="bg-white text-black px-8 py-3 rounded-full font-black text-sm flex items-center gap-2 mx-auto md:mx-0 hover:bg-[#E4E6EB] transition-all active:scale-95 shadow-xl"
+                                className="bg-white text-black px-6 py-2 rounded-full font-black text-xs sm:text-sm flex items-center gap-2 mx-auto sm:mx-0 hover:bg-[#E4E6EB] transition-all active:scale-95 shadow-xl"
                             >
                                 <i className="fas fa-play"></i> Listen Now
                             </button>

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Post as PostType, ReactionType, Comment, Product, LinkPreview, AudioTrack, Group, Brand } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -8,7 +9,6 @@ import { StickerPicker, EmojiPicker } from './Pickers';
 const RichText = ({ text, users, onProfileClick, onHashtagClick }: { text: string, users?: User[], onProfileClick: (id: number) => void, onHashtagClick?: (tag: string) => void }) => {
     if (!text) return null;
 
-    // Regex to capture @Mentions and #Hashtags
     const regex = /(@[\w\s]+|#\w+)/g;
     const parts = text.split(regex);
 
@@ -71,7 +71,6 @@ const BACKGROUNDS = [
     { id: 'fire', value: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)' },
 ];
 
-// --- MENTION SUGGESTIONS COMPONENT ---
 const MentionSuggestions = ({ users, query, onSelect }: { users: User[], query: string, onSelect: (user: User) => void }) => {
     const filteredUsers = users.filter(u => u.name.toLowerCase().includes(query.toLowerCase())).slice(0, 5);
     if (filteredUsers.length === 0) return null;
@@ -97,8 +96,6 @@ const MentionSuggestions = ({ users, query, onSelect }: { users: User[], query: 
         </div>
     );
 };
-
-// --- WIDGETS ---
 
 interface RecommendationWidgetProps {
     title: string;
@@ -139,7 +136,7 @@ export const SuggestedProductsWidget: React.FC<{ products: Product[]; onViewProd
     );
 };
 
-export const SuggestedGroupsWidget: React.FC<{ groups: Group[]; onJoin: (id: string) => void; onSeeAll?: () => void; currentUser?: User | null }> = ({ groups, onJoin, onSeeAll, currentUser }) => {
+export const SuggestedGroupsWidget: React.FC<{ groups: Group[]; onJoin: (id: string) => void; onSeeAll?: () => void; currentUser?: User | null }> = ({ groups, onJoin, onSeeAll }) => {
     return (
         <FeedWidgetContainer title="Groups you might like" onSeeAll={onSeeAll}>
             {groups.slice(0, 6).map(group => (
@@ -205,7 +202,6 @@ export const SuggestedBrandsWidget: React.FC<{ brands: Brand[]; currentUser: Use
     );
 };
 
-// --- REACTION BUTTON ---
 interface ReactionButtonProps {
     currentUserReactions: ReactionType | undefined;
     reactionCount: number;
@@ -415,9 +411,12 @@ export const CreatePost: React.FC<any> = ({ currentUser, onProfileClick, onClick
     );
 };
 
-export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, onCreatePost, onCreateEventClick }) => {
+export const PostEditorModal: React.FC<any> = ({ currentUser, users, onClose, onCreatePost, onUpdatePost, onCreateEventClick, postToEdit }) => {
+    const isEditMode = !!postToEdit;
+    
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [visibility, setVisibility] = useState('Public');
     const [background, setBackground] = useState('');
     const [location, setLocation] = useState('');
@@ -431,26 +430,59 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const handleSubmit = () => {
-        if (!text.trim() && !file && !background) return;
-        
-        let type = 'text';
-        if (file) {
-            type = file.type.startsWith('video') ? 'video' : 'image';
-        } else if (background) {
-            type = 'text'; 
+    useEffect(() => {
+        if (isEditMode && postToEdit) {
+            setText(postToEdit.content || '');
+            setBackground(postToEdit.background || '');
+            setVisibility(postToEdit.visibility || 'Public');
+            setLocation(postToEdit.location || '');
+            setFeeling(postToEdit.feeling || '');
+            setWantsMessages(postToEdit.wantsMessages || false);
+            if (postToEdit.image) {
+                setImagePreview(postToEdit.image);
+            }
         }
+    }, [postToEdit, isEditMode]);
 
-        const linkPreview = getLinkPreview(text);
-        onCreatePost(text, file, type, visibility, location, feeling, [], background, linkPreview || undefined, wantsMessages);
+    const handleSubmit = () => {
+        if (!text.trim() && !file && !background && !imagePreview) return;
+        
+        if (isEditMode) {
+            onUpdatePost({
+                id: postToEdit.id,
+                content: text,
+                background,
+                visibility,
+                location,
+                feeling,
+                wantsMessages,
+                newFile: file,
+                imageKept: !!imagePreview && !file,
+            });
+        } else {
+            let type = 'text';
+            if (file) {
+                type = file.type.startsWith('video') ? 'video' : 'image';
+            } else if (background) {
+                type = 'text'; 
+            }
+            const linkPreview = getLinkPreview(text);
+            onCreatePost(text, file, type, visibility, location, feeling, [], background, linkPreview || undefined, wantsMessages);
+        }
         onClose();
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
+            setImagePreview(null); // New file overrides existing preview
             setBackground(''); 
         }
+    };
+
+    const handleRemoveImage = () => {
+        setFile(null);
+        setImagePreview(null);
     };
 
     const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -496,6 +528,8 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
         </div>
     );
 
+    const currentImage = file ? URL.createObjectURL(file) : imagePreview;
+
     return (
         <div className="fixed inset-0 z-[150] bg-[#18191A] flex flex-col font-sans animate-slide-up">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#3E4042] bg-[#242526] sticky top-0 z-20">
@@ -515,7 +549,7 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                         </div>
                     </div>
                 </div>
-                <h3 className="text-[#E4E6EB] text-[18px] font-bold">Create post</h3>
+                <h3 className="text-[#E4E6EB] text-[18px] font-bold">{isEditMode ? 'Edit post' : 'Create post'}</h3>
             </div>
 
             <div className="flex-1 overflow-y-auto flex flex-col relative pb-32">
@@ -547,14 +581,14 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                    </div>
                 )}
 
-                {file && (
+                {currentImage && (
                     <div className="mx-4 mb-4 relative rounded-lg overflow-hidden border border-[#3E4042] max-h-[300px] bg-black shadow-lg">
-                        {file.type.startsWith('video') ? <video src={URL.createObjectURL(file)} className="w-full h-full object-contain" controls /> : <img src={URL.createObjectURL(file)} className="w-full h-full object-contain" />}
-                        <div onClick={() => setFile(null)} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10"><i className="fas fa-times text-white"></i></div>
+                        {file && file.type.startsWith('video') ? <video src={currentImage} className="w-full h-full object-contain" controls /> : <img src={currentImage} className="w-full h-full object-contain" />}
+                        <div onClick={handleRemoveImage} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full cursor-pointer z-10"><i className="fas fa-times text-white"></i></div>
                     </div>
                 )}
 
-                {!file && (
+                {!currentImage && (
                     <div className="px-4 py-4 flex items-center gap-3 overflow-x-auto scrollbar-hide border-t border-[#3E4042]/30 bg-[#242526]/50">
                          <div 
                             className={`w-10 h-10 rounded-lg cursor-pointer border-2 bg-[#3A3B3C] flex items-center justify-center flex-shrink-0 transition-all ${!background ? 'border-[#1877F2] scale-110' : 'border-[#3E4042]'}`}
@@ -579,22 +613,23 @@ export const CreatePostModal: React.FC<any> = ({ currentUser, users, onClose, on
                     <OptionRow icon="fas fa-map-marker-alt" color="#F02849" label="Add location" onClick={() => { const loc = prompt("Where are you?"); if(loc) setLocation(loc); }} />
                     <OptionRow icon="far fa-smile" color="#F7B928" label="Feeling/activity" onClick={() => { const feel = prompt("How are you feeling?"); if(feel) setFeeling(feel); }} />
                     <OptionRow icon="fab fa-facebook-messenger" color="#1877F2" label="Get messages" onClick={() => setWantsMessages(!wantsMessages)} active={wantsMessages} subtext="Adds a 'Send Message' button to your post" />
-                    <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} />
+                    {!isEditMode && <OptionRow icon="fas fa-calendar-alt" color="#F3425F" label="Create event" onClick={() => { onClose(); onCreateEventClick(); }} />}
                 </div>
             </div>
 
             <div className="p-4 bg-[#242526] border-t border-[#3E4042] fixed bottom-0 w-full z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
-                <button onClick={handleSubmit} disabled={!text.trim() && !file && !background} className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] transition-all disabled:bg-[#3A3B3C]">POST</button>
+                <button onClick={handleSubmit} disabled={!text.trim() && !file && !background && !imagePreview} className="w-full bg-[#1877F2] text-white font-black text-[18px] py-3.5 rounded-lg hover:bg-[#166FE5] transition-all disabled:bg-[#3A3B3C]">
+                    {isEditMode ? 'SAVE' : 'POST'}
+                </button>
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
         </div>
     );
 };
 
-// Fix: Add missing PostProps interface definition
 interface PostProps {
     post: PostType;
-    author: User;
+    author: User | Brand;
     currentUser: User | null;
     users: User[];
     brands?: Brand[];
@@ -602,7 +637,7 @@ interface PostProps {
     onReact: (postId: number, type: ReactionType) => void;
     onShare: (postId: number) => void;
     onDelete?: (postId: number) => void;
-    onEdit?: (postId: number, content: string) => void;
+    onEdit?: (post: PostType) => void;
     onHashtagClick?: (tag: string) => void;
     onViewImage: (url: string) => void;
     onOpenComments: (postId: number) => void;
@@ -623,8 +658,6 @@ export const Post: React.FC<PostProps> = ({
     onHashtagClick, onViewImage, onOpenComments, onViewProduct, onVideoClick, onFollow, 
     isFollowing, onPlayAudio, onGroupClick, canDelete, onMessage, onJoinEvent, sharedPost
 }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editContent, setEditContent] = useState(post.content || '');
     const [showMenu, setShowMenu] = useState(false);
     
     const myReaction = currentUser ? post.reactions.find(r => r.userId === currentUser.id)?.type : undefined;
@@ -634,6 +667,7 @@ export const Post: React.FC<PostProps> = ({
 
     const isProduct = post.type === 'product' && post.product;
     const isEvent = post.type === 'event' && post.event;
+    const isAudio = post.type === 'audio' && post.audioTrack;
 
     return (
         <div className="bg-[#242526] rounded-xl border border-[#3E4042] mb-4 shadow-sm animate-fade-in font-sans overflow-hidden">
@@ -646,6 +680,18 @@ export const Post: React.FC<PostProps> = ({
                         <div className="flex flex-wrap items-center gap-1">
                             <span className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer leading-tight" onClick={() => onProfileClick(author.id)}>{author.name}</span>
                             {author.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
+                            
+                            {post.groupName && (
+                                <div className="flex items-center">
+                                    <i className="fas fa-caret-right text-[#B0B3B8] text-xs mx-1"></i>
+                                    <span 
+                                        className="font-bold text-[#E4E6EB] text-[17px] hover:underline cursor-pointer leading-tight" 
+                                        onClick={(e) => { e.stopPropagation(); onGroupClick?.(post.groupId!); }}
+                                    >
+                                        {post.groupName}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center gap-1 text-[#B0B3B8] text-[12px]">
                             <span>{post.timestamp}</span>
@@ -658,6 +704,11 @@ export const Post: React.FC<PostProps> = ({
                     <i className="fas fa-ellipsis-h text-[#B0B3B8] p-2 rounded-full hover:bg-[#3A3B3C] cursor-pointer" onClick={() => setShowMenu(!showMenu)}></i>
                     {showMenu && (
                         <div className="absolute right-0 top-10 bg-[#242526] border border-[#3E4042] rounded-lg shadow-xl w-48 z-10 py-1">
+                            {currentUser && currentUser.id === author.id && onEdit && (
+                                <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onEdit(post); setShowMenu(false); }}>
+                                    <i className="fas fa-pen"></i> Edit Post
+                                </div>
+                            )}
                             {(canDelete || (currentUser && currentUser.id === author.id)) && onDelete && <div className="px-4 py-2 hover:bg-[#3A3B3C] cursor-pointer text-[#E4E6EB] flex items-center gap-2" onClick={() => { onDelete(post.id); setShowMenu(false); }}><i className="fas fa-trash"></i> Delete Post</div>}
                         </div>
                     )}
@@ -665,20 +716,48 @@ export const Post: React.FC<PostProps> = ({
             </div>
 
             <div className="px-3 pb-2 text-[#E4E6EB] text-[18px] leading-relaxed">
-                {isEditing ? (
-                    <div className="mb-2">
-                        <textarea className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded p-2 text-[#E4E6EB]" value={editContent} onChange={e => setEditContent(e.target.value)} />
-                        <div className="flex gap-2 mt-2 justify-end">
-                            <button className="text-[#B0B3B8] text-sm" onClick={() => setIsEditing(false)}>Cancel</button>
-                            <button className="bg-[#1877F2] text-white px-3 py-1 rounded text-sm font-black" onClick={() => { onEdit?.(post.id, editContent); setIsEditing(false); }}>Save</button>
+                <div className={post.background ? 'text-center font-black text-[24px] py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
+                    <RichText text={post.content || ''} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} />
+                </div>
+            </div>
+
+            {isAudio && (
+                <div className="mx-3 mb-3 bg-gradient-to-br from-[#1E1E1E] to-black rounded-2xl border border-[#3E4042] overflow-hidden group shadow-lg relative">
+                    <div 
+                        className="absolute inset-0 opacity-40 blur-3xl scale-125 z-0 transition-opacity duration-700" 
+                        style={{ backgroundImage: `url(${post.audioTrack!.cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                    ></div>
+                    
+                    <div className="flex flex-col sm:flex-row p-5 items-center gap-5 relative z-10">
+                        <div className="w-40 h-40 sm:w-32 sm:h-32 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 relative group cursor-pointer" onClick={() => onPlayAudio?.(post.audioTrack!)}>
+                            <img src={post.audioTrack!.cover} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="w-12 h-12 bg-[#1877F2] rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                                    <i className="fas fa-play text-white text-xl ml-1"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 text-center sm:text-left min-w-0">
+                            <span className="bg-[#1877F2]/20 text-[#1877F2] text-[10px] font-black px-2 py-0.5 rounded border border-[#1877F2]/30 uppercase tracking-wider mb-2 inline-block">
+                                New {post.audioTrack!.type === 'podcast' ? 'Podcast' : 'Release'}
+                            </span>
+                            <h2 className="text-white font-black text-xl sm:text-2xl mb-1 truncate leading-tight w-full" title={post.audioTrack!.title}>{post.audioTrack!.title}</h2>
+                            <p className="text-[#B0B3B8] font-bold text-sm sm:text-base mb-4 flex items-center justify-center sm:justify-start gap-1">
+                                {post.audioTrack!.artist}
+                                {post.audioTrack!.isVerified && <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>}
+                            </p>
+                            
+                            <button 
+                                onClick={() => onPlayAudio?.(post.audioTrack!)}
+                                className="bg-white text-black px-6 py-2 rounded-full font-black text-xs sm:text-sm flex items-center gap-2 mx-auto sm:mx-0 hover:bg-[#E4E6EB] transition-all active:scale-95 shadow-xl"
+                            >
+                                <i className="fas fa-play"></i> Listen Now
+                            </button>
                         </div>
                     </div>
-                ) : (
-                    <div className={post.background ? 'text-center font-black text-[24px] py-10 px-4 min-h-[200px] flex items-center justify-center rounded-lg' : ''} style={post.background ? { background: post.background, backgroundSize: 'cover' } : {}}>
-                        <RichText text={post.content || ''} users={users} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} />
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {isProduct && (
                 <div className="mx-3 mb-3 bg-[#18191A] rounded-xl border border-[#3E4042] overflow-hidden cursor-pointer" onClick={() => onViewProduct?.(post.product!)}>
@@ -719,7 +798,7 @@ export const Post: React.FC<PostProps> = ({
                 </div>
             )}
 
-            {!isProduct && !isEvent && post.image && (
+            {!isProduct && !isEvent && !isAudio && post.image && (
                 <div className="cursor-pointer bg-black w-full" onClick={() => onViewImage(post.image!)}>
                     <img src={post.image} alt="" className="w-full max-h-[600px] object-contain mx-auto" />
                 </div>

@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Login, Register } from './components/Auth';
 import { Header, Sidebar, RightSidebar, MenuOverlay } from './components/Layout';
-import { CreatePost, Post, CommentsSheet, ShareSheet, CreatePostModal, SuggestedPeopleWidget, SuggestedGroupsWidget, SuggestedProductsWidget, SuggestedBrandsWidget } from './components/Feed';
+import { CreatePost, Post, CommentsSheet, ShareSheet, PostEditorModal, SuggestedPeopleWidget, SuggestedGroupsWidget, SuggestedProductsWidget, SuggestedBrandsWidget } from './components/Feed';
 import { StoryReel, StoryViewer, CreateStoryModal } from './components/Story';
 import { UserProfile } from './components/UserProfile';
-import { MarketplacePage, ProductDetailModal } from './components/Marketplace';
+import { MarketplacePage, ProductDetailModal, CreateProductModal } from './components/Marketplace';
 import { ReelsFeed, CreateReel } from './components/Reels';
 import { ChatWindow } from './components/Chat';
 import { AIChat } from './components/AIChat';
@@ -73,7 +74,7 @@ export default function App() {
     const [currentAudioTrack, setCurrentAudioTrack] = useState<AudioTrack | null>(null);
     const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
-    const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+    const [postEditorState, setPostEditorState] = useState<PostType | 'create' | null>(null);
     const [showCreateReelModal, setShowCreateReelModal] = useState(false);
     const [showCreateEventModal, setShowCreateEventModal] = useState(false);
     const [showCreateStory, setShowCreateStory] = useState(false);
@@ -104,7 +105,6 @@ export default function App() {
         const brandOwnedPosts = posts.filter(p => brandIds.has(p.authorId));
         const standardPosts = rankFeed(posts, currentUser, users);
         
-        // Includes posts from all public groups and groups user is a member of
         const groupPosts = groups.filter(g => g.type === 'public' || (currentUser && g.members.includes(currentUser.id))).flatMap(group => group.posts.map(gp => ({ 
             id: gp.id, 
             authorId: gp.authorId, 
@@ -140,10 +140,89 @@ export default function App() {
         }
     };
 
+    const handleCreatePost = (text: string, file: File | null, type: string, visibility: string, location?: string, feeling?: string, taggedUsers?: number[], background?: string, linkPreview?: LinkPreview, wantsMessages?: boolean) => {
+        if (!currentUser) return;
+        const newPost: PostType = {
+          id: Date.now(),
+          authorId: currentUser.id,
+          content: text,
+          image: file && !file.type.startsWith('video') ? URL.createObjectURL(file) : undefined,
+          video: file && file.type.startsWith('video') ? URL.createObjectURL(file) : undefined,
+          timestamp: 'Just now',
+          createdAt: Date.now(),
+          reactions: [],
+          comments: [],
+          shares: 0,
+          type: file ? (file.type.startsWith('video') ? 'video' : 'image') : (background ? 'text' : type as any),
+          visibility: visibility as 'Public' | 'Friends',
+          location,
+          feeling,
+          taggedUsers,
+          background,
+          linkPreview,
+          wantsMessages,
+        };
+        setPosts(prev => [newPost, ...prev]);
+        setPostEditorState(null);
+    };
+
+    const handlePostAsBrand = (brandId: number, postData: any) => {
+        const newPost: PostType = {
+            id: Date.now(),
+            authorId: brandId,
+            content: postData.text,
+            image: postData.file && !postData.file.type.startsWith('video') ? URL.createObjectURL(postData.file) : undefined,
+            video: postData.file && postData.file.type.startsWith('video') ? URL.createObjectURL(postData.file) : undefined,
+            timestamp: 'Just now',
+            createdAt: Date.now(),
+            reactions: [],
+            comments: [],
+            shares: 0,
+            type: postData.file ? (postData.file.type.startsWith('video') ? 'video' : 'image') : (postData.background ? 'text' : postData.type as any),
+            visibility: postData.visibility as 'Public' | 'Friends',
+            location: postData.location,
+            feeling: postData.feeling,
+            taggedUsers: postData.taggedUsers,
+            background: postData.background,
+            linkPreview: postData.linkPreview,
+            wantsMessages: postData.wantsMessages,
+        };
+        setPosts(prev => [newPost, ...prev]);
+    };
+
+    const handleUpdatePost = (updatedData: Partial<PostType> & { id: number, newFile?: File | null, imageKept: boolean }) => {
+        setPosts(prevPosts => prevPosts.map(p => {
+            if (p.id === updatedData.id) {
+                const updatedPost = { ...p, ...updatedData };
+                
+                if (updatedData.newFile) {
+                    const objectURL = URL.createObjectURL(updatedData.newFile);
+                    if (updatedData.newFile.type.startsWith('video')) {
+                        updatedPost.video = objectURL;
+                        updatedPost.image = undefined;
+                        updatedPost.type = 'video';
+                    } else {
+                        updatedPost.image = objectURL;
+                        updatedPost.video = undefined;
+                        updatedPost.type = 'image';
+                    }
+                } else if (!updatedData.imageKept) {
+                    updatedPost.image = undefined;
+                    updatedPost.video = undefined;
+                    if (updatedPost.type === 'image' || updatedPost.type === 'video') {
+                        updatedPost.type = 'text';
+                    }
+                }
+                return updatedPost;
+            }
+            return p;
+        }));
+        setPostEditorState(null);
+    };
+
     const handleReact = (postId: number, type: ReactionType) => {
         if (!currentUser) { setShowLogin(true); return; }
         
-        // Check if it's a group post first
         const isGroupPost = groups.some(g => g.posts.some(p => p.id === postId));
         if (isGroupPost) {
             const group = groups.find(g => g.posts.some(p => p.id === postId));
@@ -162,7 +241,6 @@ export default function App() {
         setUsers(prev => prev.map(u => u.id === id ? { ...u, followers: !isAlreadyFollowing ? [...u.followers, currentUser.id] : u.followers.filter(fid => fid !== currentUser.id) } : u));
     };
 
-    // Fix: Added missing handleFollowBrand function to resolve errors on line 428 and 442
     const handleFollowBrand = async (id: number) => {
         if(!currentUser) { setShowLogin(true); return; }
         const isAlreadyFollowing = currentUser.following.includes(id);
@@ -303,7 +381,6 @@ export default function App() {
         };
         setEvents([newEvent, ...events]);
         
-        // Automatically create a post for the event to show on feed
         const eventPost: PostType = {
             id: Date.now() + 1,
             authorId: currentUser.id,
@@ -338,7 +415,6 @@ export default function App() {
         setEvents([newEvent, ...events]);
         setGroups(prev => prev.map(g => g.id === groupId ? { ...g, events: [newEvent, ...(g.events || [])] } : g));
         
-        // Also add to global posts feed
         const group = groups.find(g => g.id === groupId);
         const eventPost: PostType = {
             id: Date.now() + 1,
@@ -425,12 +501,12 @@ export default function App() {
         <div className="bg-[#18191A] min-h-screen text-[#E4E6EB] font-sans">
             <Header onHomeClick={() => { setView('home'); setActiveTab('home'); setSelectedGroupId(null); }} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReelsClick={() => { setView('reels'); setActiveTab('reels'); }} onMarketplaceClick={() => { setView('marketplace'); setActiveTab('marketplace'); }} onGroupsClick={() => { setView('groups'); setActiveTab('groups'); setSelectedGroupId(null); }} currentUser={currentUser} notifications={notifications} users={users} groups={groups} brands={brands} onLogout={() => { setCurrentUser(null); clearSession(); }} onLoginClick={() => setShowLogin(true)} onMarkNotificationsRead={() => {}} activeTab={activeTab} onNavigate={setView} />
             <div className="flex justify-center">
-                <Sidebar currentUser={currentUser || INITIAL_USERS[0]} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReelsClick={() => { setView('reels'); setActiveTab('reels'); }} onMarketplaceClick={() => { setView('marketplace'); setActiveTab('marketplace'); }} onGroupsClick={() => { setView('groups'); setActiveTab('groups'); setSelectedGroupId(null); }} />
+                <Sidebar currentUser={currentUser || INITIAL_USERS[0]} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReelsClick={() => { setView('reels'); setActiveTab('reels'); }} onMarketplaceClick={() => { setView('marketplace'); setActiveTab('marketplace'); }} onGroupsClick={() => { setView('groups'); setActiveTab('groups'); setSelectedGroupId(null); }} onEventsClick={() => setView('events')} />
                 <div className="flex-1 w-full max-w-[700px] min-h-screen relative">
                     {view === 'home' && (
                         <div className="w-full pb-20 pt-4 px-0 md:px-4">
                             <StoryReel stories={enrichedStories} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onCreateStory={() => setShowCreateStory(true)} onViewStory={setActiveStory} currentUser={currentUser} onRequestLogin={() => setShowLogin(true)} />
-                            {currentUser && <CreatePost currentUser={currentUser} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onClick={() => setShowCreatePostModal(true)} onCreateEventClick={() => setShowCreateEventModal(true)} />}
+                            {currentUser && <CreatePost currentUser={currentUser} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onClick={() => setPostEditorState('create')} onCreateEventClick={() => setShowCreateEventModal(true)} />}
                             
                             {rankedPosts.map((post, index) => {
                                 const author = users.find(u => u.id === post.authorId) || brands.find(b => b.id === post.authorId);
@@ -438,7 +514,7 @@ export default function App() {
                                 
                                 return (
                                     <React.Fragment key={post.id}>
-                                        <Post post={post} author={author as any} currentUser={currentUser} users={users} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReact={handleReact} onShare={(id) => setActiveSharePostId(id)} onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))} onEdit={(id, c) => setPosts(prev => prev.map(p => p.id === id ? { ...p, content: c } : p))} onViewImage={setFullScreenImage} onOpenComments={setActiveCommentsPostId} onVideoClick={() => {}} onViewProduct={setActiveProduct} onFollow={handleFollow} isFollowing={currentUser?.following.includes(author.id)} onPlayAudio={() => {}} sharedPost={(post as any).embeddedSharedPost} onMessage={(uid) => { if(!currentUser) setShowLogin(true); else setActiveChatUser(users.find(u => u.id === uid) || null); }} onJoinEvent={handleToggleEventInterest} onGroupClick={(gid) => { setSelectedGroupId(gid); setView('groups'); }} />
+                                        <Post post={post} author={author as any} currentUser={currentUser} users={users} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onReact={handleReact} onShare={(id) => setActiveSharePostId(id)} onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))} onEdit={setPostEditorState} onViewImage={setFullScreenImage} onOpenComments={setActiveCommentsPostId} onVideoClick={() => {}} onViewProduct={setActiveProduct} onFollow={handleFollow} isFollowing={currentUser?.following.includes(author.id)} onPlayAudio={() => {}} sharedPost={(post as any).embeddedSharedPost} onMessage={(uid) => { if(!currentUser) setShowLogin(true); else setActiveChatUser(users.find(u => u.id === uid) || null); }} onJoinEvent={handleToggleEventInterest} onGroupClick={(gid) => { setSelectedGroupId(gid); setView('groups'); }} />
                                         
                                         {index === 2 && <SuggestedPeopleWidget users={users} currentUser={currentUser} onFollow={handleFollow} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} />}
                                         {index === 5 && <SuggestedGroupsWidget groups={groups} currentUser={currentUser} onJoin={handleJoinGroup} />}
@@ -450,14 +526,14 @@ export default function App() {
                         </div>
                     )}
                     {view === 'profile' && selectedUserId && (
-                        <UserProfile user={users.find(u => u.id === selectedUserId)!} currentUser={currentUser} users={users} groups={groups} brands={brands} posts={posts} reels={reels} songs={songs} episodes={episodes} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onFollow={handleFollow} onReact={handleReact} onComment={() => {}} onShare={setActiveSharePostId} onMessage={(id) => { if(!currentUser) setShowLogin(true); else setActiveChatUser(users.find(u => u.id === id) || null); }} onCreatePost={() => {}} onUpdateProfileImage={() => {}} onUpdateCoverImage={() => {}} onUpdateUserDetails={() => {}} onDeletePost={() => {}} onEditPost={() => {}} getCommentAuthor={(id) => users.find(u => u.id === id)} onViewImage={setFullScreenImage} onCreateEventClick={() => { if(!currentUser) setShowLogin(true); else setShowCreateEventModal(true); }} onCreateStoryClick={() => { if(!currentUser) setShowLogin(true); else setShowCreateStory(true); }} onOpenComments={setActiveCommentsPostId} onVideoClick={() => {}} onPlayAudio={() => {}} onViewProduct={setActiveProduct} onJoinEvent={handleToggleEventInterest} />
+                        <UserProfile user={users.find(u => u.id === selectedUserId)!} currentUser={currentUser} users={users} groups={groups} brands={brands} posts={posts} reels={reels} songs={songs} episodes={episodes} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onFollow={handleFollow} onReact={handleReact} onComment={() => {}} onShare={setActiveSharePostId} onMessage={(id) => { if(!currentUser) setShowLogin(true); else setActiveChatUser(users.find(u => u.id === id) || null); }} onCreatePost={() => {}} onUpdateProfileImage={() => {}} onUpdateCoverImage={() => {}} onUpdateUserDetails={() => {}} onDeletePost={() => {}} onEditPost={(post) => setPostEditorState(post)} getCommentAuthor={(id) => users.find(u => u.id === id)} onViewImage={setFullScreenImage} onCreateEventClick={() => { if(!currentUser) setShowLogin(true); else setShowCreateEventModal(true); }} onCreateStoryClick={() => { if(!currentUser) setShowLogin(true); else setShowCreateStory(true); }} onOpenComments={setActiveCommentsPostId} onVideoClick={() => {}} onPlayAudio={() => {}} onViewProduct={setActiveProduct} onJoinEvent={handleToggleEventInterest} />
                     )}
                     {view === 'marketplace' && <MarketplacePage currentUser={currentUser} products={products} onNavigateHome={() => setView('home')} onCreateProduct={(p) => setProducts([p as Product, ...products])} onViewProduct={setActiveProduct} />}
                     {view === 'reels' && <ReelsFeed reels={reels} users={users} currentUser={currentUser} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onCreateReelClick={() => setShowCreateReelModal(true)} onReact={() => {}} onComment={() => {}} onShare={() => {}} onFollow={handleFollow} getCommentAuthor={(id) => users.find(u => u.id === id)} initialReelId={activeReelId} />}
                     {view === 'groups' && (
                         <GroupsPage currentUser={currentUser} groups={groups} users={users} onCreateGroup={handleCreateGroup} onJoinGroup={handleJoinGroup} onLeaveGroup={() => {}} onDeleteGroup={(id) => setGroups(groups.filter(g => g.id !== id))} onUpdateGroupImage={() => {}} onPostToGroup={handlePostToGroup} onCreateGroupEvent={handleCreateGroupEvent} onInviteToGroup={() => {}} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onLikePost={handleLikeGroupPost} onOpenComments={(_, pid) => setActiveCommentsPostId(pid)} onSharePost={(_, pid) => setActiveSharePostId(pid)} onDeleteGroupPost={() => {}} onRemoveMember={() => {}} onUpdateGroupSettings={() => {}} initialGroupId={selectedGroupId} />
                     )}
-                    {view === 'brands' && <BrandsPage currentUser={currentUser} brands={brands} posts={posts} users={users} onCreateBrand={handleCreateBrand} onFollowBrand={handleFollowBrand} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onPostAsBrand={() => {}} onReact={() => {}} onShare={setActiveSharePostId} onOpenComments={setActiveCommentsPostId} onUpdateBrand={() => {}} onMessage={() => {}} onCreateEvent={handleCreateEvent} />}
+                    {view === 'brands' && <BrandsPage currentUser={currentUser} brands={brands} posts={posts} users={users} onCreateBrand={handleCreateBrand} onFollowBrand={handleFollowBrand} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onPostAsBrand={handlePostAsBrand} onReact={handleReact} onShare={setActiveSharePostId} onOpenComments={setActiveCommentsPostId} onUpdateBrand={(id, data) => setBrands(prev => prev.map(b => b.id === id ? {...b, ...data} : b))} onMessage={(brandId) => { if (!currentUser) {setShowLogin(true); return;} const brand = brands.find(b => b.id === brandId); if (brand) {const admin = users.find(u => u.id === brand.adminId); if (admin) setActiveChatUser(admin);}}} onCreateEvent={handleCreateEvent} />}
                     {view === 'music' && <MusicSystem currentUser={currentUser} songs={songs} episodes={episodes} onUpdateSongs={setSongs} onUpdateEpisodes={setEpisodes} onPlayTrack={() => {}} isPlaying={isAudioPlaying} onTogglePlay={() => setIsAudioPlaying(!isAudioPlaying)} onFeedPost={(p) => setPosts([p, ...posts])} />}
                     {view === 'tools' && <ToolsPage />}
                     {view === 'help' && <HelpSupportPage onNavigateHome={() => setView('home')} />}
@@ -473,7 +549,7 @@ export default function App() {
             {showLogin && <Login onLogin={handleLogin} onNavigateToRegister={() => { setShowLogin(false); setShowRegister(true); }} onClose={() => setShowLogin(false)} error={loginError} />}
             {showRegister && <Register onRegister={() => setShowRegister(false)} onBackToLogin={() => { setShowRegister(false); setShowLogin(true); }} />}
             {activeStory && <StoryViewer story={activeStory} user={enrichedStories.find(s => s.id === activeStory.id)?.user!} currentUser={currentUser} onClose={() => setActiveStory(null)} allStories={enrichedStories} onNext={handleNextStory} onPrev={handlePrevStory} onLike={() => handleStoryReaction(activeStory.id)} onReply={(text) => handleStoryReply(activeStory.id, text)} onFollow={handleFollow} isFollowing={currentUser?.following.includes(activeStory.userId)} />}
-            {showCreatePostModal && currentUser && <CreatePostModal currentUser={currentUser} users={users} onClose={() => setShowCreatePostModal(false)} onCreatePost={() => {}} onCreateEventClick={() => { setShowCreatePostModal(false); setShowCreateEventModal(true); }} />}
+            {currentUser && postEditorState && <PostEditorModal currentUser={currentUser} users={users} onClose={() => setPostEditorState(null)} onCreatePost={handleCreatePost} onUpdatePost={handleUpdatePost} onCreateEventClick={() => { setPostEditorState(null); setShowCreateEventModal(true); }} postToEdit={typeof postEditorState === 'object' ? postEditorState : undefined} />}
             {showCreateReelModal && currentUser && <CreateReel currentUser={currentUser} onClose={() => setShowCreateReelModal(false)} onSubmit={() => {}} />}
             {showCreateEventModal && currentUser && <CreateEventModal currentUser={currentUser} onClose={() => setShowCreateEventModal(false)} onCreate={handleCreateEvent} />}
             {showCreateStory && currentUser && <CreateStoryModal currentUser={currentUser} onClose={() => setShowCreateStory(false)} onCreate={handleCreateStory} />}

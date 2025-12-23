@@ -10,7 +10,6 @@ interface CreateProductModalProps {
     onCreate: (product: Product) => void;
 }
 
-// @FIX: Exported CreateProductModal to resolve missing export error in App.tsx.
 export const CreateProductModal: React.FC<CreateProductModalProps> = ({ currentUser, onClose, onCreate }) => {
     const [title, setTitle] = useState('');
     const [price, setPrice] = useState('');
@@ -163,6 +162,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({ currentU
         </div>
     );
 };
+
 // --- PRODUCT DETAIL MODAL ---
 interface ProductDetailModalProps {
     product: Product;
@@ -185,10 +185,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                     <i className="fas fa-times text-xl"></i>
                 </button>
 
-                {/* Content Area - Scrollable on mobile */}
                 <div className="flex flex-col md:flex-row w-full h-full overflow-y-auto md:overflow-hidden">
-                    
-                    {/* Left: Image Gallery */}
                     <div className="w-full md:w-[60%] bg-black flex flex-col relative flex-shrink-0">
                         <div className="aspect-square md:flex-1 relative flex items-center justify-center bg-[#18191A] overflow-hidden">
                             <img src={product.images[activeImageIndex]} alt={product.title} className="max-w-full max-h-full object-contain" />
@@ -210,7 +207,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                                 </>
                             )}
                         </div>
-                        {/* Thumbnails */}
                         {product.images.length > 1 && (
                             <div className="h-20 bg-[#242526] flex items-center gap-2 px-4 overflow-x-auto border-t border-[#3E4042] scrollbar-hide flex-shrink-0">
                                 {product.images.map((img, idx) => (
@@ -226,7 +222,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                         )}
                     </div>
 
-                    {/* Right: Details */}
                     <div className="w-full md:w-[40%] flex flex-col bg-[#242526] md:border-l border-[#3E4042]">
                         <div className="p-5 md:p-8 space-y-6 md:overflow-y-auto md:flex-1 scrollbar-hide">
                             <div>
@@ -269,7 +264,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                             </div>
                         </div>
 
-                        {/* Footer Actions */}
                         <div className="p-5 border-t border-[#3E4042] bg-[#242526] flex gap-3 flex-shrink-0 sticky bottom-0">
                             <button onClick={() => onMessage(product.sellerId)} className="flex-1 bg-[#1877F2] text-white font-black py-4 rounded-xl transition-all shadow-lg text-sm">
                                 <i className="fab fa-facebook-messenger mr-2"></i> Message
@@ -285,7 +279,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
     );
 };
 
-// ... (Rest of MarketplacePage component preserved as-is)
 export const MarketplacePage: React.FC<any> = ({ currentUser, products, onNavigateHome, onCreateProduct, onViewProduct }) => {
     const [selectedCountry, setSelectedCountry] = useState<string>('all');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -299,6 +292,14 @@ export const MarketplacePage: React.FC<any> = ({ currentUser, products, onNaviga
         return true;
     });
 
+    const handleSellClick = () => {
+        if (!currentUser) {
+            alert("Please login to sell items.");
+            return;
+        }
+        setShowSellModal(true);
+    };
+
     return (
         <div className="min-h-screen bg-[#18191A] font-sans pb-20">
             <div className="bg-[#242526] sticky top-0 z-50 px-4 py-2 flex items-center justify-between shadow-sm border-b border-[#3E4042]">
@@ -306,7 +307,9 @@ export const MarketplacePage: React.FC<any> = ({ currentUser, products, onNaviga
                     <i className="fas fa-arrow-left text-[#E4E6EB] text-xl"></i>
                     <h1 className="text-xl font-bold bg-gradient-to-r from-[#1877F2] to-[#1D8AF2] text-transparent bg-clip-text">Marketplace</h1>
                 </div>
-                <button onClick={() => setShowSellModal(true)} className="px-4 py-2 bg-[#45BD62] text-white rounded-full font-bold text-sm">Sell</button>
+                <button onClick={handleSellClick} className="px-6 py-2 bg-[#45BD62] hover:bg-[#36A420] text-white rounded-full font-bold text-sm shadow-md transition-colors flex items-center gap-2">
+                    <i className="fas fa-plus"></i> Sell
+                </button>
             </div>
 
             <div className="p-4">
@@ -318,7 +321,7 @@ export const MarketplacePage: React.FC<any> = ({ currentUser, products, onNaviga
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {filteredProducts.map((product: Product) => (
                         <div key={product.id} className="bg-[#242526] rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border border-[#3E4042]" onClick={() => onViewProduct(product)}>
-                            <div className="aspect-square bg-white">
+                            <div className="aspect-square bg-white relative">
                                 <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover" />
                             </div>
                             <div className="p-3">
@@ -330,6 +333,14 @@ export const MarketplacePage: React.FC<any> = ({ currentUser, products, onNaviga
                     ))}
                 </div>
             </div>
+
+            {showSellModal && currentUser && (
+                <CreateProductModal 
+                    currentUser={currentUser} 
+                    onClose={() => setShowSellModal(false)} 
+                    onCreate={(p) => { onCreateProduct(p); setShowSellModal(false); }}
+                />
+            )}
         </div>
     );
 };
