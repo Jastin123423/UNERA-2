@@ -18,7 +18,8 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({ currentUser, onClose, 
         { id: 'marketplace', title: 'Marketplace', icon: 'fas fa-store', color: '#1877F2', desc: 'Buy and sell in your community.' },
         { id: 'groups', title: 'Groups', icon: 'fas fa-users', color: '#1877F2', desc: 'Connect with people who share your interests.' },
         { id: 'brands', title: 'Brands', icon: 'fas fa-flag', color: '#F3425F', desc: 'Discover and connect with your favorite businesses.' },
-        { id: 'create_event', title: 'Create Event', icon: 'fas fa-calendar-plus', color: '#F3425F', desc: 'Host a new event for friends.' },
+        // FIXED: Changed from 'create_event' to 'events'
+        { id: 'events', title: 'Events', icon: 'fas fa-calendar-alt', color: '#F3425F', desc: 'Browse and create events.' },
         { id: 'profiles', title: 'Profiles', icon: 'fas fa-user-friends', color: '#1877F2', desc: 'See friends and profiles.' },
         { id: 'music', title: 'UNERA Music', icon: 'fas fa-music', color: '#0055FF', desc: 'Listen to music and podcasts.' }, 
         { id: 'tools', title: 'UNERA Tools', icon: 'fas fa-briefcase', color: '#2ABBA7', desc: 'PDF Tools, AI Chat, Image Tools.' }, 
@@ -129,6 +130,8 @@ interface HeaderProps {
     onReelsClick: () => void;
     onMarketplaceClick: () => void;
     onGroupsClick: () => void;
+    // ADDED: onEventsClick prop
+    onEventsClick: () => void;
     currentUser: User | null;
     notifications: Notification[];
     users: User[];
@@ -149,7 +152,25 @@ interface SearchResult {
     subtext: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onReelsClick, onMarketplaceClick, onGroupsClick, currentUser, notifications, users, groups = [], brands = [], onLogout, onLoginClick, onMarkNotificationsRead, activeTab, onNavigate }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+    onHomeClick, 
+    onProfileClick, 
+    onReelsClick, 
+    onMarketplaceClick, 
+    onGroupsClick, 
+    // ADDED: onEventsClick prop
+    onEventsClick,
+    currentUser, 
+    notifications, 
+    users, 
+    groups = [], 
+    brands = [], 
+    onLogout, 
+    onLoginClick, 
+    onMarkNotificationsRead, 
+    activeTab, 
+    onNavigate 
+}) => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showFullMenu, setShowFullMenu] = useState(false);
@@ -246,6 +267,8 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick, onProfileClick, onR
                     <div className={`flex-1 h-full flex items-center justify-center cursor-pointer border-b-[3px] border-transparent text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg`} title={t('watch')}><i className="fas fa-tv text-[24px]"></i></div>
                     <div onClick={onMarketplaceClick} className={`flex-1 h-full flex items-center justify-center cursor-pointer border-b-[3px] ${activeTab === 'marketplace' ? 'border-[#1877F2] text-[#1877F2]' : 'border-transparent text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg'}`} title={t('marketplace')}><i className="fas fa-store text-[24px]"></i></div>
                     <div onClick={onGroupsClick} className={`flex-1 h-full flex items-center justify-center cursor-pointer border-b-[3px] ${activeTab === 'groups' ? 'border-[#1877F2] text-[#1877F2]' : 'border-transparent text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg'}`} title={t('groups')}><i className="fas fa-users text-[24px]"></i></div>
+                    {/* ADDED: Events tab in header */}
+                    <div onClick={onEventsClick} className={`flex-1 h-full flex items-center justify-center cursor-pointer border-b-[3px] ${activeTab === 'events' ? 'border-[#F3425F] text-[#F3425F]' : 'border-transparent text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg'}`} title={t('events')}><i className="fas fa-calendar-alt text-[24px]"></i></div>
                 </div>
 
                 <div className="flex items-center gap-2 xl:gap-3 justify-end">
@@ -343,10 +366,20 @@ interface SidebarProps {
     onReelsClick: () => void;
     onMarketplaceClick: () => void;
     onGroupsClick: () => void;
+    // ADDED: onEventsClick prop
+    onEventsClick: () => void;
     currentUser: User;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onProfileClick, onReelsClick, onMarketplaceClick, onGroupsClick, currentUser }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+    onProfileClick, 
+    onReelsClick, 
+    onMarketplaceClick, 
+    onGroupsClick, 
+    // ADDED: onEventsClick prop
+    onEventsClick, 
+    currentUser 
+}) => {
     const { t } = useLanguage();
     const SidebarRow = ({ Icon, src, title, color, onClick }: { Icon?: string, src?: string, title: string, color?: string, onClick?: () => void }) => (
         <div className="flex items-center gap-3 p-2 hover:bg-[#3A3B3C] rounded-lg cursor-pointer transition-colors -ml-2" onClick={onClick}>
@@ -365,7 +398,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onProfileClick, onReelsClick, 
             <SidebarRow Icon="fas fa-clapperboard" title={t('reels')} color="#F3425F" onClick={onReelsClick} />
             <SidebarRow Icon="fas fa-store" title={t('marketplace')} color="#1877F2" onClick={onMarketplaceClick} />
             <SidebarRow Icon="fas fa-rss" title={t('feeds')} color="#1877F2" />
-            <SidebarRow Icon="fas fa-calendar-alt" title={t('events')} color="#F3425F" />
+            {/* FIXED: Added onClick handler for Events */}
+            <SidebarRow Icon="fas fa-calendar-alt" title={t('events')} color="#F3425F" onClick={onEventsClick} />
             <div className="border-b border-[#3E4042] my-2"></div>
             <div className="flex items-center gap-2 p-2 cursor-pointer hover:bg-[#3A3B3C] rounded-lg -ml-2"><div className="w-8 h-8 bg-[#3A3B3C] rounded-full flex items-center justify-center"><i className="fas fa-chevron-down text-[#E4E6EB]"></i></div><span className="font-medium text-[15px] text-[#E4E6EB]">{t('see_more')}</span></div>
         </div>
