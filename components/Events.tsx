@@ -16,6 +16,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
     const [time, setTime] = useState('');
     const [location, setLocation] = useState('');
     const [image, setImage] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Set default date to tomorrow
@@ -35,27 +36,52 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
         if (!title || !date || !time || !location) {
             alert("Please fill all required fields");
             return;
         }
         
-        const eventDate = new Date(`${date}T${time}`);
-        
-        onCreate({
-            title,
-            description: desc,
-            date: eventDate.toISOString(),
-            time,
-            location,
-            image: image || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
-            organizerId: currentUser.id,
-            attendees: [currentUser.id],
-            interestedIds: []
-        });
-        onClose();
+        try {
+            setIsSubmitting(true);
+            
+            // Combine date and time into a single datetime string
+            const eventDate = new Date(`${date}T${time}:00`);
+            
+            // Validate date is in the future
+            if (eventDate <= new Date()) {
+                alert("Event date must be in the future");
+                setIsSubmitting(false);
+                return;
+            }
+            
+            const newEvent = {
+                id: Date.now(), // Generate unique ID
+                title,
+                description: desc,
+                date: eventDate.toISOString(),
+                time,
+                location,
+                image: image || 'https://images.unsplash.com/photo-1540575467063-178a50935278?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
+                organizerId: currentUser.id,
+                attendees: [currentUser.id],
+                interestedIds: []
+            };
+            
+            // Call the onCreate function with the complete event
+            onCreate(newEvent);
+            
+            // Show success message
+            alert(`Event "${title}" created successfully! It will appear in your feed and events page.`);
+            onClose();
+        } catch (error) {
+            console.error('Error creating event:', error);
+            alert('Failed to create event. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -71,7 +97,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                     </div>
                 </div>
                 
-                <div className="p-6 overflow-y-auto space-y-6">
+                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
                     {/* Cover Image Upload */}
                     <div 
                         className="w-full h-48 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] rounded-xl flex flex-col items-center justify-center cursor-pointer border-2 border-dashed border-[#2A2A2A] hover:border-[#3A3A3A] hover:bg-[#1A1A1A] transition-all group overflow-hidden relative"
@@ -96,7 +122,13 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                                 <p className="text-[#8A8A8A] text-sm mt-1">Recommended: 1200x600px</p>
                             </>
                         )}
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={handleFileChange} 
+                        />
                     </div>
 
                     {/* Event Name */}
@@ -112,6 +144,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                             onChange={e => setTitle(e.target.value)} 
                             placeholder="What's the name of your event?" 
                             required
+                            disabled={isSubmitting}
                         />
                     </div>
 
@@ -129,6 +162,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                                 onChange={e => setDate(e.target.value)} 
                                 min={new Date().toISOString().split('T')[0]}
                                 required
+                                disabled={isSubmitting}
                             />
                         </div>
                         <div className="space-y-2">
@@ -142,6 +176,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                                 value={time || defaultTime} 
                                 onChange={e => setTime(e.target.value)} 
                                 required
+                                disabled={isSubmitting}
                             />
                         </div>
                     </div>
@@ -160,6 +195,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                             placeholder="Where will it take place?" 
                             list="locations" 
                             required
+                            disabled={isSubmitting}
                          />
                          <datalist id="locations">
                              {LOCATIONS_DATA.map(l => <option key={l.name} value={l.name} />)}
@@ -177,20 +213,38 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                             value={desc} 
                             onChange={e => setDesc(e.target.value)} 
                             placeholder="Tell people more about your event. What can they expect?" 
+                            disabled={isSubmitting}
                         />
                     </div>
 
                     {/* Submit Button */}
                     <button 
-                        onClick={handleSubmit} 
-                        disabled={!title || !date || !time || !location}
+                        type="submit"
+                        disabled={!title || !date || !time || !location || isSubmitting}
                         className="w-full bg-gradient-to-r from-[#FF6B35] to-[#FF8E53] hover:from-[#FF8E53] hover:to-[#FF6B35] disabled:from-[#2A2A2A] disabled:to-[#1A1A1A] disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-lg shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
                     >
-                        <i className="fas fa-bolt"></i>
-                        Create & Share Event
-                        <i className="fas fa-arrow-right"></i>
+                        {isSubmitting ? (
+                            <>
+                                <i className="fas fa-spinner fa-spin"></i>
+                                Creating Event...
+                            </>
+                        ) : (
+                            <>
+                                <i className="fas fa-bolt"></i>
+                                Create & Share Event
+                                <i className="fas fa-arrow-right"></i>
+                            </>
+                        )}
                     </button>
-                </div>
+                    
+                    {/* Validation summary */}
+                    {(!title || !date || !time || !location) && (
+                        <div className="text-[#FF6B35] text-sm bg-[#2A2A2A]/50 p-3 rounded-xl border border-[#FF6B35]/30">
+                            <i className="fas fa-exclamation-circle mr-2"></i>
+                            Please fill all required fields marked with *
+                        </div>
+                    )}
+                </form>
             </div>
         </div>
     );
@@ -249,18 +303,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventCli
                 day: 'numeric' 
             });
         }
-    };
-
-    const getEventCategoryColor = (category: string) => {
-        const colors = {
-            'Business': 'from-[#FF6B35] to-[#FF8E53]',
-            'Social': 'from-[#06D6A0] to-[#0CB48A]',
-            'Music': 'from-[#118AB2] to-[#0A6A8A]',
-            'Sports': 'from-[#EF476F] to-[#D43A5F]',
-            'Education': 'from-[#FFD166] to-[#E6B950]',
-            'default': 'from-[#8A8A8A] to-[#6A6A6A]'
-        };
-        return colors[category as keyof typeof colors] || colors.default;
     };
 
     return (
