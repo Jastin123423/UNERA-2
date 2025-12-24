@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { User, Event } from '../types';
 import { LOCATIONS_DATA } from '../constants';
 
+// --- CREATE EVENT MODAL ---
 interface CreateEventModalProps {
     currentUser: User;
     onClose: () => void;
@@ -58,60 +59,86 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
     };
 
     return (
-        <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4 animate-fade-in font-sans">
-            <div className="bg-[#242526] w-full max-w-[500px] rounded-xl border border-[#3E4042] shadow-2xl flex flex-col max-h-[90vh]">
-                <div className="p-4 border-b border-[#3E4042] flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-[#E4E6EB]">Host an Event</h2>
-                    <div onClick={onClose} className="w-8 h-8 rounded-full bg-[#3A3B3C] hover:bg-[#4E4F50] flex items-center justify-center cursor-pointer">
-                        <i className="fas fa-times text-[#B0B3B8]"></i>
+        <div className="fixed inset-0 z-[150] bg-black/90 flex items-center justify-center p-4 animate-fade-in font-sans backdrop-blur-sm">
+            <div className="bg-[#0F0F0F] w-full max-w-[500px] rounded-2xl border border-[#1A1A1A] shadow-2xl flex flex-col max-h-[90vh] animate-scale-in">
+                <div className="p-6 border-b border-[#1A1A1A] flex justify-between items-center bg-gradient-to-r from-[#1A1A1A] to-[#0F0F0F]">
+                    <div>
+                        <h2 className="text-2xl font-black text-[#FFFFFF] tracking-tight">Host an Event</h2>
+                        <p className="text-[#8A8A8A] text-sm mt-1">Create amazing experiences for your community</p>
+                    </div>
+                    <div onClick={onClose} className="w-10 h-10 rounded-full bg-[#1A1A1A] hover:bg-[#2A2A2A] flex items-center justify-center cursor-pointer transition-all hover:scale-110 border border-[#2A2A2A]">
+                        <i className="fas fa-times text-[#8A8A8A]"></i>
                     </div>
                 </div>
                 
-                <div className="p-4 overflow-y-auto space-y-4">
+                <div className="p-6 overflow-y-auto space-y-6">
+                    {/* Cover Image Upload */}
                     <div 
-                        className="w-full h-40 bg-[#3A3B3C] rounded-lg flex flex-col items-center justify-center cursor-pointer border border-dashed border-[#B0B3B8] hover:bg-[#4E4F50] transition-colors overflow-hidden relative"
+                        className="w-full h-48 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] rounded-xl flex flex-col items-center justify-center cursor-pointer border-2 border-dashed border-[#2A2A2A] hover:border-[#3A3A3A] hover:bg-[#1A1A1A] transition-all group overflow-hidden relative"
                         onClick={() => fileInputRef.current?.click()}
                     >
                         {image ? (
-                            <img src={image} className="w-full h-full object-cover" alt="Event Cover" />
+                            <>
+                                <img src={image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Event Cover" />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="bg-black/70 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
+                                        <i className="fas fa-camera text-white mr-2"></i>
+                                        <span className="text-white text-sm font-semibold">Change Photo</span>
+                                    </div>
+                                </div>
+                            </>
                         ) : (
                             <>
-                                <i className="fas fa-camera text-2xl text-[#E4E6EB] mb-2"></i>
-                                <span className="text-[#E4E6EB] text-sm font-semibold">Upload Cover Photo</span>
+                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A] flex items-center justify-center mb-3 border border-[#3A3A3A]">
+                                    <i className="fas fa-camera text-2xl text-[#8A8A8A]"></i>
+                                </div>
+                                <span className="text-[#FFFFFF] text-base font-semibold">Upload Cover Photo</span>
+                                <p className="text-[#8A8A8A] text-sm mt-1">Recommended: 1200x600px</p>
                             </>
                         )}
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                     </div>
 
-                    <div>
-                        <label className="block text-[#E4E6EB] font-semibold mb-1 text-sm">Event Name <span className="text-red-500">*</span></label>
+                    {/* Event Name */}
+                    <div className="space-y-2">
+                        <label className="block text-[#FFFFFF] font-bold text-sm flex items-center gap-2">
+                            <i className="fas fa-heading text-[#FF6B35] w-5"></i>
+                            Event Name <span className="text-[#FF6B35]">*</span>
+                        </label>
                         <input 
                             type="text" 
-                            className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" 
+                            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-[#FFFFFF] outline-none focus:border-[#FF6B35] transition-colors placeholder-[#5A5A5A] font-medium" 
                             value={title} 
                             onChange={e => setTitle(e.target.value)} 
-                            placeholder="What's the occasion?" 
+                            placeholder="What's the name of your event?" 
                             required
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-[#E4E6EB] font-semibold mb-1 text-sm">Date <span className="text-red-500">*</span></label>
+                    {/* Date & Time */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="block text-[#FFFFFF] font-bold text-sm flex items-center gap-2">
+                                <i className="far fa-calendar text-[#00D4AA] w-5"></i>
+                                Date <span className="text-[#FF6B35]">*</span>
+                            </label>
                             <input 
                                 type="date" 
-                                className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" 
+                                className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-[#FFFFFF] outline-none focus:border-[#00D4AA] transition-colors" 
                                 value={date || defaultDate} 
                                 onChange={e => setDate(e.target.value)} 
                                 min={new Date().toISOString().split('T')[0]}
                                 required
                             />
                         </div>
-                        <div>
-                            <label className="block text-[#E4E6EB] font-semibold mb-1 text-sm">Time <span className="text-red-500">*</span></label>
+                        <div className="space-y-2">
+                            <label className="block text-[#FFFFFF] font-bold text-sm flex items-center gap-2">
+                                <i className="far fa-clock text-[#00D4AA] w-5"></i>
+                                Time <span className="text-[#FF6B35]">*</span>
+                            </label>
                             <input 
                                 type="time" 
-                                className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" 
+                                className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-[#FFFFFF] outline-none focus:border-[#00D4AA] transition-colors" 
                                 value={time || defaultTime} 
                                 onChange={e => setTime(e.target.value)} 
                                 required
@@ -119,14 +146,18 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-[#E4E6EB] font-semibold mb-1 text-sm">Location <span className="text-red-500">*</span></label>
+                    {/* Location */}
+                    <div className="space-y-2">
+                        <label className="block text-[#FFFFFF] font-bold text-sm flex items-center gap-2">
+                            <i className="fas fa-map-marker-alt text-[#FFD166] w-5"></i>
+                            Location <span className="text-[#FF6B35]">*</span>
+                        </label>
                          <input 
                             type="text" 
-                            className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2]" 
+                            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-[#FFFFFF] outline-none focus:border-[#FFD166] transition-colors placeholder-[#5A5A5A]" 
                             value={location} 
                             onChange={e => setLocation(e.target.value)} 
-                            placeholder="Where is it happening?" 
+                            placeholder="Where will it take place?" 
                             list="locations" 
                             required
                          />
@@ -135,22 +166,29 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
                          </datalist>
                     </div>
 
-                    <div>
-                        <label className="block text-[#E4E6EB] font-semibold mb-1 text-sm">Details</label>
+                    {/* Description */}
+                    <div className="space-y-2">
+                        <label className="block text-[#FFFFFF] font-bold text-sm flex items-center gap-2">
+                            <i className="fas fa-align-left text-[#06D6A0] w-5"></i>
+                            Description
+                        </label>
                         <textarea 
-                            className="w-full bg-[#3A3B3C] border border-[#3E4042] rounded-lg p-2.5 text-[#E4E6EB] outline-none focus:border-[#1877F2] h-20 resize-none" 
+                            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-[#FFFFFF] outline-none focus:border-[#06D6A0] transition-colors h-32 resize-none placeholder-[#5A5A5A]" 
                             value={desc} 
                             onChange={e => setDesc(e.target.value)} 
-                            placeholder="Share more about the event..." 
+                            placeholder="Tell people more about your event. What can they expect?" 
                         />
                     </div>
 
+                    {/* Submit Button */}
                     <button 
                         onClick={handleSubmit} 
                         disabled={!title || !date || !time || !location}
-                        className="w-full bg-[#1877F2] hover:bg-[#166FE5] disabled:bg-[#3A3B3C] disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold shadow-md transition-colors text-lg"
+                        className="w-full bg-gradient-to-r from-[#FF6B35] to-[#FF8E53] hover:from-[#FF8E53] hover:to-[#FF6B35] disabled:from-[#2A2A2A] disabled:to-[#1A1A1A] disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-lg shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
                     >
+                        <i className="fas fa-bolt"></i>
                         Create & Share Event
+                        <i className="fas fa-arrow-right"></i>
                     </button>
                 </div>
             </div>
@@ -158,6 +196,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ currentUser,
     );
 };
 
+// --- EVENTS PAGE ---
 interface EventsPageProps { 
     events: Event[]; 
     currentUser: User | null; 
@@ -166,23 +205,28 @@ interface EventsPageProps {
 }
 
 export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventClick, currentUser, onJoinEvent }) => {
-    const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'interested'>('upcoming');
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'my-events'>('upcoming');
+    const [searchQuery, setSearchQuery] = useState('');
     
     // Sort events by date
     const sortedEvents = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
-    // Filter events based on active tab
+    // Filter events based on active tab and search
     const now = new Date();
-    const filteredEvents = sortedEvents.filter(event => {
+    let filteredEvents = sortedEvents.filter(event => {
         const eventDate = new Date(event.date);
+        const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            event.location.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        if (!matchesSearch) return false;
         
         switch (activeTab) {
             case 'upcoming':
                 return eventDate >= now;
             case 'past':
                 return eventDate < now;
-            case 'interested':
-                return currentUser && event.interestedIds?.includes(currentUser.id);
+            case 'my-events':
+                return currentUser && event.organizerId === currentUser.id;
             default:
                 return true;
         }
@@ -207,107 +251,210 @@ export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventCli
         }
     };
 
+    const getEventCategoryColor = (category: string) => {
+        const colors = {
+            'Business': 'from-[#FF6B35] to-[#FF8E53]',
+            'Social': 'from-[#06D6A0] to-[#0CB48A]',
+            'Music': 'from-[#118AB2] to-[#0A6A8A]',
+            'Sports': 'from-[#EF476F] to-[#D43A5F]',
+            'Education': 'from-[#FFD166] to-[#E6B950]',
+            'default': 'from-[#8A8A8A] to-[#6A6A6A]'
+        };
+        return colors[category as keyof typeof colors] || colors.default;
+    };
+
     return (
-        <div className="w-full max-w-[900px] mx-auto p-4 font-sans pb-20 animate-fade-in">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-3xl font-black text-[#E4E6EB] tracking-tight">Events</h1>
-                    <p className="text-[#B0B3B8] text-sm">Find and join interesting events near you.</p>
+        <div className="w-full max-w-[1200px] mx-auto p-4 font-sans pb-20 animate-fade-in">
+            {/* Hero Header */}
+            <div className="relative overflow-hidden rounded-3xl mb-8 border border-[#1A1A1A] bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A]">
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-10"></div>
+                <img 
+                    src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80" 
+                    className="w-full h-64 object-cover opacity-40"
+                    alt="Events Background"
+                />
+                <div className="absolute inset-0 z-20 flex flex-col justify-center p-8">
+                    <h1 className="text-5xl font-black text-white mb-3 tracking-tight">Events</h1>
+                    <p className="text-[#8A8A8A] text-lg max-w-2xl">Discover amazing experiences, connect with people, and create unforgettable memories</p>
+                    <div className="flex items-center gap-4 mt-6">
+                        {currentUser && (
+                            <button 
+                                onClick={onCreateEventClick}
+                                className="bg-gradient-to-r from-[#FF6B35] to-[#FF8E53] hover:from-[#FF8E53] hover:to-[#FF6B35] text-white px-8 py-3 rounded-xl font-black flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95 shadow-2xl border border-[#FF8E53]/30"
+                            >
+                                <i className="fas fa-plus text-lg"></i>
+                                Host Event
+                            </button>
+                        )}
+                        <div className="text-white">
+                            <div className="text-2xl font-black">{events.filter(e => new Date(e.date) >= now).length}</div>
+                            <div className="text-[#8A8A8A] text-sm">Upcoming Events</div>
+                        </div>
+                    </div>
                 </div>
-                {currentUser && (
-                    <button 
-                        onClick={onCreateEventClick} 
-                        className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-6 py-2.5 rounded-lg font-black flex items-center gap-2 transition-all shadow-lg active:scale-95"
-                    >
-                        <i className="fas fa-calendar-plus"></i> Host Event
-                    </button>
-                )}
+            </div>
+
+            {/* Search Bar */}
+            <div className="mb-8">
+                <div className="relative">
+                    <input 
+                        type="text"
+                        className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-4 pl-12 text-[#FFFFFF] outline-none focus:border-[#FF6B35] transition-colors placeholder-[#5A5A5A] text-lg"
+                        placeholder="Search events by name or location..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] text-lg"></i>
+                    {searchQuery && (
+                        <button 
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-white"
+                        >
+                            <i className="fas fa-times"></i>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-2 mb-6 border-b border-[#3E4042]">
-                {(['upcoming', 'past', 'interested'] as const).map(tab => (
+            <div className="flex gap-2 mb-8 bg-[#1A1A1A] rounded-2xl p-2 border border-[#2A2A2A]">
+                {(['upcoming', 'past', 'my-events'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 font-semibold text-sm border-b-2 transition-colors ${
+                        className={`flex-1 px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                             activeTab === tab
-                                ? 'text-[#1877F2] border-[#1877F2]'
-                                : 'text-[#B0B3B8] border-transparent hover:text-[#E4E6EB]'
+                                ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8E53] text-white shadow-lg'
+                                : 'text-[#8A8A8A] hover:text-white hover:bg-[#2A2A2A]'
                         }`}
                     >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        {tab === 'interested' && currentUser && (
-                            <span className="ml-2 bg-[#3A3B3C] text-xs px-2 py-0.5 rounded-full">
-                                {events.filter(e => e.interestedIds?.includes(currentUser.id)).length}
-                            </span>
-                        )}
+                        {tab === 'upcoming' && <i className="fas fa-calendar-day"></i>}
+                        {tab === 'past' && <i className="fas fa-history"></i>}
+                        {tab === 'my-events' && <i className="fas fa-user-check"></i>}
+                        {tab.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                        <span className="bg-black/30 px-2 py-1 rounded text-xs">
+                            {tab === 'my-events' 
+                                ? events.filter(e => currentUser && e.organizerId === currentUser.id).length
+                                : sortedEvents.filter(e => {
+                                    const eventDate = new Date(e.date);
+                                    if (tab === 'upcoming') return eventDate >= now;
+                                    if (tab === 'past') return eventDate < now;
+                                    return true;
+                                }).length
+                            }
+                        </span>
                     </button>
                 ))}
             </div>
 
             {/* Events Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredEvents.map(event => {
                     const isInterested = currentUser && event.interestedIds?.includes(currentUser.id);
                     const eventDate = new Date(event.date);
-                    const isPast = eventDate < new Date();
+                    const isPast = eventDate < now;
+                    const isMyEvent = currentUser && event.organizerId === currentUser.id;
                     
                     return (
                         <div 
                             key={event.id} 
-                            className="bg-[#242526] rounded-2xl overflow-hidden border border-[#3E4042] group transition-all hover:border-[#4E4F50] hover:shadow-xl shadow-sm"
+                            className="group bg-gradient-to-b from-[#1A1A1A] to-[#0F0F0F] rounded-3xl overflow-hidden border border-[#2A2A2A] transition-all duration-500 hover:border-[#FF6B35]/30 hover:shadow-2xl hover:scale-[1.02] cursor-pointer"
                         >
-                            <div className="h-44 overflow-hidden relative">
+                            {/* Event Image */}
+                            <div className="h-48 overflow-hidden relative">
                                 <img 
                                     src={event.image} 
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                                     alt={event.title} 
                                 />
-                                {isPast && (
-                                    <div className="absolute top-3 left-3 bg-gray-700 text-white px-2 py-1 rounded text-xs font-bold">
-                                        PAST
+                                {/* Gradient Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+                                
+                                {/* Date Badge */}
+                                <div className="absolute top-4 left-4">
+                                    <div className="bg-black/80 backdrop-blur-sm rounded-xl p-3 text-center min-w-[60px] border border-white/10">
+                                        <div className="text-[#FF6B35] font-black text-xs uppercase leading-tight">
+                                            {eventDate.toLocaleString('default', { month: 'short' })}
+                                        </div>
+                                        <div className="text-white font-black text-2xl leading-none">
+                                            {eventDate.getDate()}
+                                        </div>
                                     </div>
-                                )}
-                                <div className="absolute top-3 right-3 bg-white rounded-xl p-2 text-center shadow-2xl min-w-[55px] border border-gray-100">
-                                    <span className="block text-[#F02849] font-black text-[10px] uppercase leading-tight">
-                                        {eventDate.toLocaleString('default', { month: 'short' })}
-                                    </span>
-                                    <span className="block text-black font-black text-2xl leading-none">
-                                        {eventDate.getDate()}
-                                    </span>
+                                </div>
+                                
+                                {/* Status Badges */}
+                                <div className="absolute top-4 right-4 flex gap-2">
+                                    {isPast && (
+                                        <div className="bg-[#2A2A2A] text-[#8A8A8A] px-3 py-1.5 rounded-lg text-xs font-bold border border-[#3A3A3A]">
+                                            PAST
+                                        </div>
+                                    )}
+                                    {isMyEvent && (
+                                        <div className="bg-gradient-to-r from-[#06D6A0] to-[#0CB48A] text-white px-3 py-1.5 rounded-lg text-xs font-bold">
+                                            YOUR EVENT
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                            <div className="p-5">
-                                <h3 className="text-[#E4E6EB] font-bold text-xl mb-2 truncate leading-tight">{event.title}</h3>
+                            
+                            {/* Event Content */}
+                            <div className="p-6">
+                                {/* Title and Time */}
+                                <h3 className="text-white font-bold text-xl mb-2 line-clamp-1 group-hover:text-[#FF6B35] transition-colors">
+                                    {event.title}
+                                </h3>
                                 
-                                <div className="space-y-2 mb-4">
-                                    <p className="text-[#F02849] text-sm font-black flex items-center gap-2">
-                                        <i className="far fa-clock"></i>
-                                        {formatDate(event.date)} • {event.time}
-                                    </p>
-                                    <p className="text-[#B0B3B8] text-sm flex items-center gap-2">
-                                        <i className="fas fa-map-marker-alt text-[#F02849]"></i>
-                                        {event.location}
-                                    </p>
+                                <div className="space-y-3 mb-4">
+                                    {/* Time */}
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A] flex items-center justify-center border border-[#3A3A3A]">
+                                            <i className="far fa-clock text-[#00D4AA] text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <div className="text-white font-medium">{formatDate(event.date)}</div>
+                                            <div className="text-[#8A8A8A] text-sm">{event.time}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Location */}
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A] flex items-center justify-center border border-[#3A3A3A]">
+                                            <i className="fas fa-map-marker-alt text-[#FFD166] text-sm"></i>
+                                        </div>
+                                        <div className="text-[#8A8A8A] text-sm line-clamp-1">{event.location}</div>
+                                    </div>
+                                    
+                                    {/* Description */}
                                     {event.description && (
-                                        <p className="text-[#B0B3B8] text-sm line-clamp-2">
+                                        <p className="text-[#8A8A8A] text-sm line-clamp-2">
                                             {event.description}
                                         </p>
                                     )}
                                 </div>
                                 
-                                <div className="flex justify-between items-center pt-3 border-t border-[#3E4042]">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex -space-x-2">
-                                            {[1, 2, 3].map(i => (
-                                                <div key={i} className="w-6 h-6 rounded-full bg-gray-600 border-2 border-[#242526]"></div>
-                                            ))}
+                                {/* Stats and Action Button */}
+                                <div className="flex justify-between items-center pt-4 border-t border-[#2A2A2A]">
+                                    {/* Stats */}
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex -space-x-2">
+                                                {[1, 2, 3].map(i => (
+                                                    <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A] border-2 border-[#0F0F0F]"></div>
+                                                ))}
+                                            </div>
+                                            <span className="text-[#8A8A8A] text-xs font-bold">
+                                                {event.attendees?.length || 0}
+                                            </span>
                                         </div>
-                                        <span className="text-[#B0B3B8] text-xs font-bold">
-                                            {event.attendees?.length || 0} going • {event.interestedIds?.length || 0} interested
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <i className="fas fa-heart text-[#EF476F]"></i>
+                                            <span className="text-[#8A8A8A] text-xs font-bold">
+                                                {event.interestedIds?.length || 0}
+                                            </span>
+                                        </div>
                                     </div>
+                                    
+                                    {/* Action Button */}
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -317,14 +464,23 @@ export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventCli
                                             }
                                             onJoinEvent(event.id);
                                         }} 
-                                        className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${
+                                        className={`px-5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
                                             isInterested 
-                                                ? 'bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50]' 
-                                                : 'bg-[#1877F2] text-white hover:bg-[#166FE5]'
+                                                ? 'bg-gradient-to-r from-[#2A2A2A] to-[#1A1A1A] text-[#8A8A8A] border border-[#3A3A3A] hover:border-[#4A4A4A]' 
+                                                : 'bg-gradient-to-r from-[#118AB2] to-[#0A6A8A] text-white hover:from-[#0A6A8A] hover:to-[#118AB2]'
                                         }`}
                                     >
-                                        <i className={`fas ${isInterested ? 'fa-check' : 'fa-star'}`}></i>
-                                        {isInterested ? 'Interested ✓' : 'Interested'}
+                                        {isInterested ? (
+                                            <>
+                                                <i className="fas fa-check"></i>
+                                                Interested
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="far fa-star"></i>
+                                                Interested
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -333,27 +489,32 @@ export const EventsPage: React.FC<EventsPageProps> = ({ events, onCreateEventCli
                 })}
             </div>
             
+            {/* Empty State */}
             {filteredEvents.length === 0 && (
-                <div className="text-center py-20 bg-[#242526] rounded-3xl border border-[#3E4042]">
-                    <div className="w-20 h-20 bg-[#18191A] rounded-full flex items-center justify-center mx-auto mb-4 border border-[#3E4042]">
-                        <i className="fas fa-calendar-alt text-4xl text-[#B0B3B8]"></i>
+                <div className="text-center py-20 bg-gradient-to-b from-[#1A1A1A] to-[#0F0F0F] rounded-3xl border border-[#2A2A2A]">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A] flex items-center justify-center mx-auto mb-6 border border-[#3A3A3A]">
+                        <i className="fas fa-calendar-alt text-5xl text-[#8A8A8A]"></i>
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-1">
-                        {activeTab === 'upcoming' ? 'No upcoming events' : 
-                         activeTab === 'past' ? 'No past events' : 
-                         'No events you\'re interested in'}
+                    <h3 className="text-2xl font-black text-white mb-3">
+                        {activeTab === 'upcoming' ? 'No Upcoming Events' : 
+                         activeTab === 'past' ? 'No Past Events' : 
+                         'No Events Created By You'}
                     </h3>
-                    <p className="text-[#B0B3B8] text-sm mb-4">
-                        {activeTab === 'upcoming' && currentUser 
-                            ? 'Be the first to host an event in your community!' 
-                            : 'Check back later for more events'}
+                    <p className="text-[#8A8A8A] text-lg max-w-md mx-auto mb-8">
+                        {searchQuery 
+                            ? `No events found for "${searchQuery}"`
+                            : activeTab === 'upcoming' && currentUser 
+                                ? 'Be the first to host an amazing event in your community!' 
+                                : 'Check back later for more exciting events'
+                        }
                     </p>
-                    {activeTab === 'upcoming' && currentUser && (
+                    {activeTab === 'upcoming' && currentUser && !searchQuery && (
                         <button 
                             onClick={onCreateEventClick}
-                            className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 mx-auto"
+                            className="bg-gradient-to-r from-[#FF6B35] to-[#FF8E53] hover:from-[#FF8E53] hover:to-[#FF6B35] text-white px-8 py-4 rounded-xl font-black text-lg flex items-center gap-3 mx-auto transition-all transform hover:scale-105 shadow-2xl"
                         >
-                            <i className="fas fa-plus"></i> Create Your First Event
+                            <i className="fas fa-plus"></i>
+                            Host Your First Event
                         </button>
                     )}
                 </div>
