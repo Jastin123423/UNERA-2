@@ -49,6 +49,37 @@ const getTimeAgo = (timestamp: number) => {
     return `${Math.floor(seconds / 86400)}d`;
 };
 
+// Create a function to convert products to feed posts
+const createProductPosts = (products: Product[], users: User[]): PostType[] => {
+    return products.map(product => {
+        const seller = users.find(u => u.id === product.sellerId);
+        return {
+            id: product.id + 1000000, // Offset to avoid ID collisions
+            authorId: product.sellerId,
+            content: `📦 ${product.sellerName} listed a new item for sale: ${product.title}`,
+            image: product.images[0],
+            timestamp: getTimeAgo(product.date),
+            createdAt: product.date,
+            reactions: product.ratings?.map(r => ({ userId: r.userId, type: r.rating >= 4 ? 'love' : r.rating >= 3 ? 'like' : 'wow' as ReactionType })) || [],
+            comments: product.comments?.map(c => ({
+                id: c.id,
+                userId: c.userId,
+                text: c.text,
+                timestamp: getTimeAgo(c.timestamp),
+                likes: c.likes || 0,
+                replies: [] as CommentReply[]
+            })) || [],
+            shares: 0,
+            type: 'product',
+            visibility: 'Public' as const,
+            productId: product.id,
+            price: product.mainPrice,
+            location: product.address,
+            productCategory: product.category
+        };
+    });
+};
+
 export default function App() {
     const [users, setUsers] = useState<User[]>(INITIAL_USERS);
     const [posts, setPosts] = useState<PostType[]>(INITIAL_POSTS);
@@ -90,6 +121,7 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(true);
     const [activeProduct, setActiveProduct] = useState<Product | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
+    const [showCreateProductModal, setShowCreateProductModal] = useState(false);
     
     useEffect(() => {
         if (currentUser) {
@@ -101,6 +133,10 @@ export default function App() {
     const enrichedStories = useMemo(() => stories.map(story => story.user ? story : { ...story, user: users.find(u => u.id === story.userId) }), [stories, users]);
 
     const rankedPosts = useMemo(() => {
+        // Create product posts for feed
+        const productPosts = createProductPosts(products, users);
+        
+        // Combine all types of posts
         const brandIds = new Set(brands.map(b => b.id));
         const brandOwnedPosts = posts.filter(p => brandIds.has(p.authorId) || p.brandId);
         const standardPosts = rankFeed(posts.filter(p => !brandIds.has(p.authorId) && !p.brandId), currentUser, users);
@@ -124,9 +160,13 @@ export default function App() {
             isGroupAdmin: group.adminId === gp.authorId 
         } as PostType)));
         
-        const merged = [...brandOwnedPosts, ...standardPosts, ...groupPosts].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-        return merged.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    }, [posts, groups, currentUser, users, brands]);
+        // Merge all posts and sort by date
+        const merged = [...brandOwnedPosts, ...standardPosts, ...groupPosts, ...productPosts]
+            .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
+            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        
+        return merged;
+    }, [posts, groups, products, currentUser, users, brands]);
 
     const handleLogin = async (email: string, pass: string) => {
         const user = users.find(u => u.email === email && u.password === pass);
@@ -247,6 +287,32 @@ export default function App() {
 
     const handleReact = (postId: number, type: ReactionType) => {
         if (!currentUser) { setShowLogin(true); return; }
+        
+        // Check if it's a product post
+        const productPost = rankedPosts.find(p => p.id === postId && p.type === 'product');
+        if (productPost && productPost.productId) {
+            // Handle product reaction (rating)
+            const product = products.find(p => p.id === productPost.productId);
+            if (product) {
+                const ratingValue = type === 'love' ? 5 : type === 'like' ? 4 : type === 'wow' ? 3 : 2;
+                const newRating = {
+                    userId: currentUser.id,
+                    rating: ratingValue,
+                    comment: '',
+                    timestamp: Date.now()
+                };
+                
+                setProducts(prev => prev.map(p => 
+                    p.id === product.id 
+                        ? { 
+                            ...p, 
+                            ratings: [...(p.ratings || []), newRating] 
+                          } 
+                        : p
+                ));
+            }
+            return;
+        }
         
         const isGroupPost = groups.some(g => g.posts.some(p => p.id === postId));
         if (isGroupPost) {
@@ -520,6 +586,11 @@ export default function App() {
         }));
     };
 
+    const handleCreateProduct = (product: Product) => {
+        setProducts(prev => [product, ...prev]);
+        setShowCreateProductModal(false);
+    };
+
     // Create author object for posts
     const getPostAuthor = (post: PostType) => {
         // Check if this is a brand post
@@ -544,6 +615,20 @@ export default function App() {
                     website: brand.website,
                     posts: []
                 };
+            }
+        }
+        
+        // For product posts
+        if (post.type === 'product') {
+            const product = products.find(p => p.id === post.productId);
+            if (product) {
+                const seller = users.find(u => u.id === product.sellerId);
+                if (seller) {
+                    return {
+                        ...seller,
+                        isBrand: false
+                    };
+                }
             }
         }
         
@@ -575,6 +660,16 @@ export default function App() {
         };
     };
 
+    // Handle product view from feed
+    const handleViewProductFromFeed = (post: PostType) => {
+        if (post.type === 'product' && post.productId) {
+            const product = products.find(p => p.id === post.productId);
+            if (product) {
+                setActiveProduct(product);
+            }
+        }
+    };
+
     if (isLoading) return <Spinner />;
 
     return (
@@ -596,6 +691,13 @@ export default function App() {
                 onMarkNotificationsRead={() => {}} 
                 activeTab={activeTab} 
                 onNavigate={setView} 
+                onSellClick={() => {
+                    if (currentUser) {
+                        setShowCreateProductModal(true);
+                    } else {
+                        setShowLogin(true);
+                    }
+                }}
             />
             <div className="flex justify-center">
                 <Sidebar 
@@ -605,12 +707,19 @@ export default function App() {
                     onMarketplaceClick={() => { setView('marketplace'); setActiveTab('marketplace'); }} 
                     onGroupsClick={() => { setView('groups'); setActiveTab('groups'); setSelectedGroupId(null); }} 
                     onEventsClick={() => { setView('events'); setActiveTab('events'); }}
+                    onCreateSellClick={() => {
+                        if (currentUser) {
+                            setShowCreateProductModal(true);
+                        } else {
+                            setShowLogin(true);
+                        }
+                    }}
                 />
                 <div className="flex-1 w-full max-w-[700px] min-h-screen relative">
                     {view === 'home' && (
                         <div className="w-full pb-20 pt-4 px-0 md:px-4">
                             <StoryReel stories={enrichedStories} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onCreateStory={() => setShowCreateStory(true)} onViewStory={setActiveStory} currentUser={currentUser} onRequestLogin={() => setShowLogin(true)} />
-                            {currentUser && <CreatePost currentUser={currentUser} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onClick={() => setPostEditorState('create')} onCreateEventClick={() => setShowCreateEventModal(true)} />}
+                            {currentUser && <CreatePost currentUser={currentUser} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onClick={() => setPostEditorState('create')} onCreateEventClick={() => setShowCreateEventModal(true)} onCreateSellClick={() => setShowCreateProductModal(true)} />}
                             
                             {rankedPosts.map((post, index) => {
                                 const author = getPostAuthor(post);
@@ -639,7 +748,7 @@ export default function App() {
                                             onViewImage={setFullScreenImage} 
                                             onOpenComments={setActiveCommentsPostId} 
                                             onVideoClick={() => {}} 
-                                            onViewProduct={setActiveProduct} 
+                                            onViewProduct={post.type === 'product' ? () => handleViewProductFromFeed(post) : setActiveProduct} 
                                             onFollow={author.isBrand ? handleFollowBrand : handleFollow} 
                                             isFollowing={currentUser?.following.includes(author.id)} 
                                             onPlayAudio={() => {}} 
@@ -694,7 +803,7 @@ export default function App() {
                         />
                     )}
                     
-                    {view === 'marketplace' && <MarketplacePage currentUser={currentUser} products={products} onNavigateHome={() => setView('home')} onCreateProduct={(p) => setProducts([p as Product, ...products])} onViewProduct={setActiveProduct} />}
+                    {view === 'marketplace' && <MarketplacePage currentUser={currentUser} products={products} onNavigateHome={() => setView('home')} onCreateProduct={handleCreateProduct} onViewProduct={setActiveProduct} />}
                     
                     {view === 'reels' && <ReelsFeed reels={reels} users={users} currentUser={currentUser} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); }} onCreateReelClick={() => setShowCreateReelModal(true)} onReact={() => {}} onComment={() => {}} onShare={() => {}} onFollow={handleFollow} getCommentAuthor={(id) => users.find(u => u.id === id)} initialReelId={activeReelId} />}
                     
@@ -787,6 +896,14 @@ export default function App() {
             {showCreateGroupModal && currentUser && <CreateGroupModal currentUser={currentUser} onClose={() => setShowCreateGroupModal(false)} onCreate={handleCreateGroup} />}
             
             {showCreateBrandModal && currentUser && <CreateBrandModal currentUser={currentUser} onClose={() => setShowCreateBrandModal(false)} onCreate={handleCreateBrand} />}
+            
+            {showCreateProductModal && currentUser && (
+                <CreateProductModal 
+                    currentUser={currentUser}
+                    onClose={() => setShowCreateProductModal(false)}
+                    onCreate={handleCreateProduct}
+                />
+            )}
             
             {activeCommentsPostId && <CommentsSheet post={rankedPosts.find(p => p.id === activeCommentsPostId)!} currentUser={currentUser} users={users} brands={brands} onClose={() => setActiveCommentsPostId(null)} onComment={() => {}} onLikeComment={() => {}} getCommentAuthor={(id) => users.find(u => u.id === id)} onProfileClick={(id) => { setSelectedUserId(id); setView('profile'); setActiveCommentsPostId(null); }} />}
             
